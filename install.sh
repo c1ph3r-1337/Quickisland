@@ -113,7 +113,18 @@ install_arch() {
     )
 
     info "Installing system packages via pacman..."
-    sudo pacman -S --needed --noconfirm "${pacman_deps[@]}"
+    if ! sudo pacman -S --needed --noconfirm "${pacman_deps[@]}"; then
+        warn "Package installation failed. This is usually caused by outdated local package databases (dependency conflicts)."
+        echo -e "  ${BOLD}Would you like to run a full system upgrade (pacman -Syu) to resolve this?${NC}"
+        read -rp "  Run system upgrade? [y/N] " answer
+        if [[ "$answer" =~ ^[Yy]$ ]]; then
+            info "Running full system upgrade and installing dependencies..."
+            sudo pacman -Syu --needed --noconfirm "${pacman_deps[@]}"
+        else
+            fail "Could not install dependencies. Please resolve package conflicts manually and re-run the installer."
+            exit 1
+        fi
+    fi
 
     # Detect AUR helper
     local aur_helper=""
