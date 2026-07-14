@@ -73,6 +73,26 @@ fi
 header "Step 2/6 — Installing Dependencies"
 
 install_arch() {
+    # Optimize compilation thread settings to prevent Out-Of-Memory (OOM) compiler crashes
+    local total_mem_kb
+    total_mem_kb=$(grep MemTotal /proc/meminfo | awk '{print $2}')
+    local total_mem_gb=$(( total_mem_kb / 1024 / 1024 ))
+    local build_jobs=1
+    
+    if [ "$total_mem_gb" -ge 30 ]; then
+        build_jobs=8
+    elif [ "$total_mem_gb" -ge 14 ]; then
+        build_jobs=4
+    elif [ "$total_mem_gb" -ge 7 ]; then
+        build_jobs=2
+    else
+        build_jobs=1
+    fi
+    
+    info "Optimizing build parameters for ${total_mem_gb}GB RAM (Jobs: $build_jobs)"
+    export MAKEFLAGS="-j$build_jobs"
+    export CARGO_BUILD_JOBS="$build_jobs"
+
     local pacman_deps=(
         # Core
         brightnessctl
