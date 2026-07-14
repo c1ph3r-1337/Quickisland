@@ -1,0 +1,11 @@
+# Logs and cache
+*.log
+*.qslog
+stdout
+recent_apps.txt
+.system_generated/
+*.pyc
+__pycache__/
+.vscode/
+.idea/
+scratch/
