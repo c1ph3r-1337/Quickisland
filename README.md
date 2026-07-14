@@ -4,7 +4,7 @@
 
 [![Preview](https://img.shields.io/badge/YouTube-Preview-red?style=flat-square&logo=youtube)](https://youtu.be/uPwyolLwxvs)
 
-A premium, Wayland-native desktop shell, status bar, and Dynamic Island for the Hyprland compositor, built on the Quickshell framework. Quickisland provides a sleek, interactive Dynamic Island system, an integrated Control Center, launcher capabilities, and diagnostic tools to elevate your desktop experience.
+A premium, Wayland-native desktop shell, status bar, and Dynamic Island for the Hyprland compositor, built on the Quickshell framework.
 
 ---
 
@@ -12,73 +12,47 @@ A premium, Wayland-native desktop shell, status bar, and Dynamic Island for the 
 
 ---
 
-### Performance Specs
+</div>
 
-Lightweight Memory Footprint: Approximately 500 MB of VRAM/RAM under normal workloads
+## Performance Specs
 
-Optimized CPU Utilization: Proactive visual layer-gating and event-driven timer throttling ensure near-zero idle overhead
-
-Smooth Transitions: Morphing physics and transition engines tuned for instant visual responses
-
-Hardware Acceleration: Rendered directly via Qt Quick Scene Graph using hardware graphics APIs
-
----
-
-### Major Modules
-
-**Dynamic Island & Status OSD**
-Provides volume and brightness visual feedback overlays that expand out of a central, pill-shaped desktop island. Offers real-time feedback with premium animations.
-
-**Desktop Notifications**
-Wayland-native desktop notifications displayed as animated island expanders. Includes a notification history view, individual notification clearing, and status toggles.
-
-**Control Center**
-Includes status indicators and controls for Wi-Fi networks, Bluetooth devices, active VPN connections, audio inputs/outputs, system performance modes, and night light.
-
-**Application Launcher**
-A clean, grid-based application search and launcher with custom navigation and vertical list scrolling pass-through.
-
-**Media Controller**
-Full MPRIS-compatible dashboard showing metadata, playback controls (play, pause, skip, backward), track duration progress, and album art.
-
-**Theme Personalization**
-Wallpaper management with active color extraction, generating custom accent, surface, and text color palettes based on your wallpaper colors. Features an interactive Color Palette Designer.
+* **Lightweight Memory Footprint:** Approximately 500 MB of VRAM/RAM under normal workloads.
+* **Optimized CPU Utilization:** Proactive visual layer-gating and event-driven timer throttling ensure near-zero idle overhead.
+* **Smooth Transitions:** Morphing physics and transition engines tuned for instant visual responses.
+* **Hardware Acceleration:** Rendered directly via Qt Quick Scene Graph using hardware graphics APIs.
 
 ---
 
-### Screen Toolkit
+## Major Modules
 
-**Annotate**
-Draw and write directly on top of active screen displays for notes or presentations.
-
-**Measure**
-A pixel-accurate measurement ruler to evaluate lengths, offsets, and element coordinates.
-
-**Region Recorder**
-Record videos of defined screen regions or capture cropped screenshots.
-
-**Color Picker**
-Select any pixel on the screen and copy its HEX value.
-
-**OCR Scanner**
-Instantly extract text from any selected region of the screen and copy it to the clipboard.
-
-**QR Helper**
-Scan existing QR codes from your screen or quickly generate new ones.
+* **Dynamic Island & Status OSD:** Provides volume and brightness visual feedback overlays that expand out of a central, pill-shaped desktop island. Offers real-time feedback with premium animations.
+* **Desktop Notifications:** Wayland-native desktop notifications displayed as animated island expanders. Includes a notification history view, individual notification clearing, and status toggles.
+* **Control Center:** Includes status indicators and controls for Wi-Fi networks, Bluetooth devices, active VPN connections, audio inputs/outputs, system performance modes, and night light.
+* **Application Launcher:** A clean, grid-based application search and launcher with custom navigation and vertical list scrolling pass-through.
+* **Media Controller:** Full MPRIS-compatible dashboard showing metadata, playback controls (play, pause, skip, backward), track duration progress, and album art.
+* **Theme Personalization:** Wallpaper management with active color extraction, generating custom accent, surface, and text color palettes based on your wallpaper colors. Features an interactive Color Palette Designer.
 
 ---
 
-### Gestures & Navigation
+## Screen Toolkit
 
-**Horizontal Swipes**
-Swipe left or right inside the active menu zones to switch between the Control Center, App Launcher, and Power Menu.
-
-**Vertical Scrolling**
-Vertical scrolling automatically passes through to underneath lists (such as notification logs and app grids) while preserving horizontal swipe boundaries.
+* **Annotate:** Draw and write directly on top of active screen displays for notes or presentations.
+* **Measure:** A pixel-accurate measurement ruler to evaluate lengths, offsets, and element coordinates.
+* **Region Recorder:** Record videos of defined screen regions or capture cropped screenshots.
+* **Color Picker:** Select any pixel on the screen and copy its HEX value.
+* **OCR Scanner:** Instantly extract text from any selected region of the screen and copy it to the clipboard.
+* **QR Helper:** Scan existing QR codes from your screen or quickly generate new ones.
 
 ---
 
-### Keyboard Shortcuts
+## Gestures & Navigation
+
+* **Horizontal Swipes:** Swipe left or right inside the active menu zones to switch between the Control Center, App Launcher, and Power Menu.
+* **Vertical Scrolling:** Vertical scrolling automatically passes through to underneath lists (such as notification logs and app grids) while preserving horizontal swipe boundaries.
+
+---
+
+## Keyboard Shortcuts
 
 | Keybinding | Action |
 |---|---|
@@ -92,7 +66,7 @@ Vertical scrolling automatically passes through to underneath lists (such as not
 
 ---
 
-### File Structure & Standalone Architecture
+## File Structure & Standalone Architecture
 
 ```
 quickisland/
@@ -111,7 +85,7 @@ quickisland/
 
 ---
 
-### Installation
+## Installation
 
 ```bash
 git clone https://github.com/c1ph3r-1337/Quickisland.git
@@ -122,12 +96,8 @@ chmod +x install.sh
 
 ---
 
-### System Requirements
+## System Requirements
 
-Wayland Compositor: Hyprland
-
-Wallpaper Backend: awww daemon
-
-Base Engine: Quickshell (Wayland QML shell framework)
-
-</div>
+* **Wayland Compositor:** Hyprland
+* **Wallpaper Backend:** awww daemon
+* **Base Engine:** Quickshell (Wayland QML shell framework)
