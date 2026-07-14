@@ -102,7 +102,6 @@ install_arch() {
         tesseract-data-eng
         zbar
         ffmpeg
-        wl-screenrec
         wtype
 
         # Folder picker UI
@@ -114,7 +113,7 @@ install_arch() {
     )
 
     info "Installing system packages via pacman..."
-    sudo pacman -S --needed --noconfirm "${pacman_deps[@]}" 2>&1 | tail -n 3
+    sudo pacman -S --needed --noconfirm "${pacman_deps[@]}"
 
     # Detect AUR helper
     local aur_helper=""
@@ -127,21 +126,30 @@ install_arch() {
     if [ -n "$aur_helper" ]; then
         success "Found AUR helper: $aur_helper"
 
-        # Install Quickshell (custom package with FFTW/spectrum support)
+        # Install wl-screenrec if missing
+        if ! command -v wl-screenrec &>/dev/null; then
+            info "Installing wl-screenrec from AUR..."
+            $aur_helper -S --noconfirm wl-screenrec 2>/dev/null || warn "Could not install wl-screenrec from AUR."
+        fi
+
+        # Install Quickshell (FFTW/spectrum support)
         if command -v quickshell &>/dev/null; then
             success "Quickshell is already installed"
             info "Rebuilding to ensure Qt version match and FFTW support..."
-            $aur_helper -S --rebuild --noconfirm quickisland-qs 2>/dev/null \
-                || $aur_helper -S --rebuild --noconfirm quickisland-qs-git 2>/dev/null \
+            $aur_helper -S --rebuild --noconfirm noctalia-qs 2>/dev/null \
+                || $aur_helper -S --rebuild --noconfirm noctalia-qs-git 2>/dev/null \
                 || warn "Could not rebuild quickshell. If you experience crashes, rebuild it manually."
         else
             info "Installing Quickshell from AUR..."
-            $aur_helper -S --noconfirm quickisland-qs 2>/dev/null \
-                || $aur_helper -S --noconfirm quickisland-qs-git 2>/dev/null \
+            $aur_helper -S --noconfirm noctalia-qs 2>/dev/null \
+                || $aur_helper -S --noconfirm noctalia-qs-git 2>/dev/null \
                 || { fail "Failed to install Quickshell. Install it manually from the AUR."; exit 1; }
         fi
     else
         warn "No AUR helper found (paru or yay)."
+        if ! command -v wl-screenrec &>/dev/null; then
+            warn "wl-screenrec is not installed. Please install it manually from the AUR."
+        fi
         if ! command -v quickshell &>/dev/null; then
             fail "Quickshell is not installed and no AUR helper is available."
             fail "Please install 'paru' or 'yay' first, then re-run this script."

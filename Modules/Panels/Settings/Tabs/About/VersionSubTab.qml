@@ -261,7 +261,7 @@ ColumnLayout {
         // Format (old): "quickisland-qs 0.3.0, revision abc12345, distributed by: ..."
         // Format (new): "quickisland-qs 0.0.9 (revision b602b69c81d96a1d7c645328feb7b1e1d4b7b7a4, distributed by Unset)"
         // Only set if this is actually quickisland-qs; leave empty for upstream quickshell
-        var match = output.match(/quickisland-qs\s+(\S+?)[\s,(]+revision\s*([0-9a-f]*)/i);
+        var match = output.match(/(quickisland-qs|noctalia-qs|quickshell)\s+(\S+?)[\s,(]+revision\s*([0-9a-f]*)/i);
         if (match) {
           root.qsVersion = match[1];
           root.qsRevision = match[2] ? match[2].substring(0, 9) : "";
