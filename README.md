@@ -1,102 +1,89 @@
-# Quickisland 🏝️
+<div align="center">
 
-[![Preview Video](https://img.shields.io/badge/YouTube-Preview-red?style=for-the-badge&logo=youtube)](https://youtu.be/uPwyolLwxvs)
+# Quickisland
 
-A premium, state-of-the-art Dynamic Island, Control Center, and Desktop Shell for **Hyprland**, built using **Quickshell** (QML/C++). Designed for speed, responsiveness, and minimal resource usage, Quickisland provides macOS-style dynamic island notifications, a comprehensive control center, and utility tools directly integrated into your status bar.
+[![Preview](https://img.shields.io/badge/YouTube-Preview-red?style=flat-square&logo=youtube)](https://youtu.be/uPwyolLwxvs)
+
+A premium, Wayland-native desktop shell and Dynamic Island for Hyprland built on Quickshell.
 
 ---
-
-## 🎥 Video Preview
-
-Click the badge below or the preview image to watch the unlisted preview of Quickisland on YouTube:
 
 [![Quickisland Preview](https://img.youtube.com/vi/uPwyolLwxvs/maxresdefault.jpg)](https://youtu.be/uPwyolLwxvs)
 
 ---
 
-## 🚀 Key Features
+### Features
 
-* **⚡ Ultra-Lightweight & Low Resources:** 
-  * Only uses **about 500 MB** of VRAM/RAM under typical running conditions.
-  * Optimized with lazy-loading QML components and strict layer-gating to ensure **near-zero CPU usage** when idle.
-* **🌀 Quick and Smooth Transitions:** 
-  * Responsive morphing transitions that automatically resize the island based on its active state.
-  * Instant, snappy wallpaper transition options.
-* **🔊 Volume & Brightness Controls:**
-  * Beautiful volume and brightness bar OSD overlays that morph dynamically out of the central island.
-* **🔔 Integrated Notification System:**
-  * Clean, non-intrusive desktop notification toasts that display inside the island, with support for clearing and history.
-* **🎨 Personalization & Palette Generation:**
-  * Persistent custom wallpaper management using `awww`.
-  * Dynamic, automatic color scheme generation based on your active wallpaper.
-  * Custom Palette Designer to fine-tune your accent, surface, and text colors on the fly.
-* **🎵 Media Controls:**
-  * Full MPRIS-compatible media control card displaying player info, metadata, track navigation, and high-quality album art.
-* **🛠️ Screen Toolkit:**
-  * A full suite of desktop tools containing:
-    * **Annotate:** Draw directly on your screen.
-    * **Measure:** Pixel-accurate ruler.
-    * **Region Selector:** Screen recorder and region screenshot tool.
-    * **Color Picker:** Hex color grabber.
-    * **OCR Scanner:** Extract text instantly from a screen region.
-    * **QR Helper:** Generate and read QR codes.
-* **🖐️ Touchpad & Mouse Gestures:**
-  * Complete gesture support: swipe left/right to seamlessly switch between the App Launcher, Control Center, and Session Menu.
-  * Vertical scroll pass-through for lists.
-* **⚙️ Control Center, Launcher, & Session Hub:**
-  * Quick-access buttons for Wi-Fi, Bluetooth, Performance Profiles, Night Light, Dark Mode, and more.
+Lightweight resource footprint (approx. 500 MB VRAM/RAM)
+
+Low CPU usage with optimized idle throttling
+
+Quick, smooth, and customizable transitions
+
+Integrated dynamic volume and brightness OSD
+
+Desktop notification toasts and history
+
+Persistent custom wallpaper theme personalization
+
+MPRIS media control panel
+
+All-in-one control center, app launcher, and session menu
+
+Full touchpad and mouse gesture support
+
+Easy installation on Hyprland using install.sh script
 
 ---
 
-## ⌨️ Keyboard Shortcuts
+### Screen Toolkit
 
-Quickisland integrates globally with your Hyprland configuration. The default keybindings are:
+Screen Annotations
+
+Pixel-accurate Measurement ruler
+
+Region screen recorder and screenshot tool
+
+Hex Color Picker
+
+OCR Scanner (extract text from screen)
+
+QR Code helper (read and write QRs)
+
+---
+
+### Keyboard Shortcuts
 
 | Shortcut | Action |
 |---|---|
-| `Super + A` | Toggle Application Launcher |
-| `Super + N` | Toggle Control Center |
-| `Super + V` | Toggle Clipboard History |
-| `Super + .` | Toggle Emoji Board |
-| `Super + /` | Toggle Keyboard Shortcuts Help (Island Popup) |
-| `Super + L` | Lock Screen |
-| `Ctrl + Alt + Delete` | Open Session / Power Menu |
-| `Swipe Left / Right` | Switch between CC / Launcher / Power (when open) |
+| Super + A | Toggle Application Launcher |
+| Super + N | Toggle Control Center |
+| Super + V | Toggle Clipboard History |
+| Super + . | Toggle Emoji Board |
+| Super + / | Toggle Keyboard Shortcuts Help |
+| Super + L | Lock Screen |
+| Ctrl + Alt + Delete | Open Session / Power Menu |
+| Swipe Left / Right | Switch active menus |
 
 ---
 
-## 📦 Easy Installation
+### Installation
 
-Quickisland comes with an automated `install.sh` script to set up all system dependencies, compile plugins, and merge keybindings automatically.
-
-### Installation Steps
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/c1ph3r-1337/Quickisland.git
-   cd Quickisland
-   ```
-
-2. **Make the installer executable:**
-   ```bash
-   chmod +x install.sh
-   ```
-
-3. **Run the installer:**
-   ```bash
-   ./install.sh
-   ```
-
-The script will:
-* Check for package dependencies (`quickshell-git`, `awww`, etc.).
-* Build local plugins.
-* Prompt to append Quickisland-specific hotkeys to your Hyprland configuration.
+```bash
+git clone https://github.com/c1ph3r-1337/Quickisland.git
+cd Quickisland
+chmod +x install.sh
+./install.sh
+```
 
 ---
 
-## 🛠️ Tech Stack & Requirements
+### Requirements
 
-* **Framework:** [Quickshell](https://github.com/outfoxxed/quickshell) (Wayland-native QML shell)
-* **Compositor:** [Hyprland](https://hyprland.org/)
-* **Wallpaper Backend:** `awww`
-* **Color Schemes:** Wallbash/Noctalia
+Quickshell (noctalia fork)
+
+Hyprland compositor
+
+awww wallpaper daemon
+
+</div>
