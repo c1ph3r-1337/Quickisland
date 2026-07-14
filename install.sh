@@ -134,6 +134,30 @@ install_arch() {
         aur_helper="yay"
     fi
 
+    if [ -z "$aur_helper" ]; then
+        warn "No AUR helper found (paru or yay)!"
+        echo -e "  ${BOLD}Would you like to automatically install 'yay' to build AUR packages?${NC}"
+        read -rp "  Install 'yay'? [Y/n] " install_yay_ans
+        install_yay_ans="${install_yay_ans:-Y}"
+        if [[ "$install_yay_ans" =~ ^[Yy]$ ]]; then
+            info "Installing prerequisites for building packages (base-devel)..."
+            sudo pacman -S --needed --noconfirm base-devel git
+            
+            info "Cloning and building 'yay-bin' from the AUR..."
+            rm -rf /tmp/yay-bin
+            git clone https://aur.archlinux.org/yay-bin.git /tmp/yay-bin
+            (cd /tmp/yay-bin && makepkg -si --noconfirm)
+            rm -rf /tmp/yay-bin
+            
+            if command -v yay &>/dev/null; then
+                success "Successfully installed 'yay'"
+                aur_helper="yay"
+            else
+                fail "Failed to install 'yay'."
+            fi
+        fi
+    fi
+
     if [ -n "$aur_helper" ]; then
         success "Found AUR helper: $aur_helper"
 
@@ -157,9 +181,9 @@ install_arch() {
                 || { fail "Failed to install Quickshell. Install it manually from the AUR."; exit 1; }
         fi
     else
-        warn "No AUR helper found (paru or yay)."
+        warn "No AUR helper available."
         if ! command -v wl-screenrec &>/dev/null; then
-            warn "wl-screenrec is not installed. Please install it manually from the AUR."
+            warn "wl-screenrec is not installed. Please install it manually."
         fi
         if ! command -v quickshell &>/dev/null; then
             fail "Quickshell is not installed and no AUR helper is available."
