@@ -4,35 +4,35 @@
   ...
 }:
 let
-  cfg = config.services.noctalia-shell;
+  cfg = config.services.quickisland-shell;
 in
 {
-  options.services.noctalia-shell = {
-    enable = lib.mkEnableOption "Noctalia shell systemd service";
+  options.services.quickisland-shell = {
+    enable = lib.mkEnableOption "Quickisland shell systemd service";
 
     package = lib.mkOption {
       type = lib.types.package;
-      description = "The noctalia-shell package to use";
+      description = "The quickisland-shell package to use";
     };
 
     target = lib.mkOption {
       type = lib.types.str;
       default = "graphical-session.target";
       example = "hyprland-session.target";
-      description = "The systemd target for the noctalia-shell service.";
+      description = "The systemd target for the quickisland-shell service.";
     };
   };
 
   config = lib.mkIf cfg.enable {
     warnings = [
       ''
-        Running noctalia-shell as a systemd service has been deprecated!
-        See https://docs.noctalia.dev/getting-started/nixos/#running-the-shell for details.
+        Running quickisland-shell as a systemd service has been deprecated!
+        See https://docs.quickisland.dev/getting-started/nixos/#running-the-shell for details.
       ''
     ];
-    systemd.user.services.noctalia-shell = {
-      description = "Noctalia Shell - Wayland desktop shell";
-      documentation = [ "https://docs.noctalia.dev" ];
+    systemd.user.services.quickisland-shell = {
+      description = "Quickisland Shell - Wayland desktop shell";
+      documentation = [ "https://docs.quickisland.dev" ];
       after = [ cfg.target ];
       partOf = [ cfg.target ];
       wantedBy = [ cfg.target ];

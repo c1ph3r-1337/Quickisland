@@ -206,7 +206,7 @@ ShellRoot {
         function onCustomBlueChanged() { if (shell.activeColorKey === "customBlue") shell.activeColorHex = shell.customBlue.toString(); }
     }
 
-    // Sync quickisland theme to Noctalia Color singleton
+    // Sync quickisland theme colors
     Binding { target: Color; property: "mPrimary";          value: shell.accent }
     Binding { target: Color; property: "mOnPrimary";        value: shell.surface }
     Binding { target: Color; property: "mSurface";          value: shell.surface }
@@ -710,7 +710,7 @@ ShellRoot {
 
         var resolvedPath = imagePath;
         if (imagePath.startsWith("qs/")) {
-            resolvedPath = Quickshell.env("HOME") + "/.config/quickshell/noctalia-shell/" + imagePath.substring(3);
+            resolvedPath = Quickshell.env("HOME") + "/.config/quickshell/quickisland/" + imagePath.substring(3);
         }
 
         if (resolvedPath === shell.lastExtractedWallpaperPath) {

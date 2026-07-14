@@ -1,5 +1,5 @@
 /*
-* Noctalia – made by https://github.com/noctalia-dev
+* Quickisland – made by https://github.com/quickisland-dev
 * Licensed under the MIT License.
 * Forks and modifications are allowed under the MIT License,
 * but proper credit must be given to the original author.
@@ -33,7 +33,7 @@ import qs.Services.Hardware
 import qs.Services.Keyboard
 import qs.Services.Location
 import qs.Services.Networking
-import qs.Services.Noctalia
+import qs.Services.Quickisland
 import qs.Services.Power
 import qs.Services.System
 import qs.Services.Theming
@@ -48,7 +48,7 @@ ShellRoot {
 
   Component.onCompleted: {
     Logger.i("Shell", "---------------------------");
-    Logger.i("Shell", "Noctalia Hello!");
+    Logger.i("Shell", "Quickisland Hello!");
 
     // Initialize plugin system early so Settings can validate plugin widgets
     PluginRegistry.init();
@@ -275,14 +275,14 @@ ShellRoot {
     }
 
     if (profileSelectorConnection) {
-      selectorPanel.noctaliaSelected.disconnect(profileSelectorConnection);
+      selectorPanel.quickislandSelected.disconnect(profileSelectorConnection);
     }
     profileSelectorConnection = function () {
-      selectorPanel.noctaliaSelected.disconnect(profileSelectorConnection);
+      selectorPanel.quickislandSelected.disconnect(profileSelectorConnection);
       profileSelectorConnection = null;
       showWizardOrChangelog();
     };
-    selectorPanel.noctaliaSelected.connect(profileSelectorConnection);
+    selectorPanel.quickislandSelected.connect(profileSelectorConnection);
 
     selectorPanel.open();
   }

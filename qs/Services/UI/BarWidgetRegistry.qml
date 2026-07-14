@@ -29,7 +29,7 @@ Singleton {
                            "Microphone": microphoneComponent,
                            "Network": networkComponent,
                            "NightLight": nightLightComponent,
-                           "NoctaliaPerformance": noctaliaPerformanceComponent,
+                           "QuickislandPerformance": quickislandPerformanceComponent,
                            "NotificationHistory": notificationHistoryComponent,
                            "PowerProfile": powerProfileComponent,
                            "SessionMenu": sessionMenuComponent,
@@ -62,7 +62,7 @@ Singleton {
                                      "Microphone": "WidgetSettings/MicrophoneSettings.qml",
                                      "Network": "WidgetSettings/NetworkSettings.qml",
                                      "NightLight": "WidgetSettings/NightLightSettings.qml",
-                                     "NoctaliaPerformance": "WidgetSettings/NoctaliaPerformanceSettings.qml",
+                                     "QuickislandPerformance": "WidgetSettings/QuickislandPerformanceSettings.qml",
                                      "NotificationHistory": "WidgetSettings/NotificationHistorySettings.qml",
                                      "PowerProfile": "WidgetSettings/PowerProfileSettings.qml",
                                      "SessionMenu": "WidgetSettings/SessionMenuSettings.qml",
@@ -97,7 +97,7 @@ Singleton {
                                     "displayMode": "graphic-clean",
                                     "deviceNativePath": "__default__",
                                     "showPowerProfiles": false,
-                                    "showNoctaliaPerformance": false,
+                                    "showQuickislandPerformance": false,
                                     "hideIfNotDetected": true,
                                     "hideIfIdle": false
                                   },
@@ -122,7 +122,7 @@ Singleton {
                                   },
                                   "ControlCenter": {
                                     "useDistroLogo": false,
-                                    "icon": "noctalia",
+                                    "icon": "quickisland",
                                     "customIconPath": "",
                                     "colorizeDistroLogo": false,
                                     "colorizeSystemIcon": "none",
@@ -285,7 +285,7 @@ Singleton {
                                   "NightLight": {
                                     "iconColor": "none"
                                   },
-                                  "NoctaliaPerformance": {
+                                  "QuickislandPerformance": {
                                     "iconColor": "none"
                                   },
                                   "PowerProfile": {
@@ -368,8 +368,8 @@ Singleton {
   property Component nightLightComponent: Component {
     NightLight {}
   }
-  property Component noctaliaPerformanceComponent: Component {
-    NoctaliaPerformance {}
+  property Component quickislandPerformanceComponent: Component {
+    QuickislandPerformance {}
   }
   property Component notificationHistoryComponent: Component {
     NotificationHistory {}

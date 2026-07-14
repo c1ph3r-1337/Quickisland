@@ -63,7 +63,7 @@ Singleton {
     }
   }
 
-  // TODO Remove in may 2026 - temporary until noctalia-qs is fully propagated
+  // TODO Remove in may 2026 - temporary until quickisland-qs is fully propagated
   Connections {
     target: Settings.data.audio
     function onSpectrumMirroredChanged() {

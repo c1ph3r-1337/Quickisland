@@ -264,7 +264,7 @@ Popup {
       }
     };
 
-    xhr.open("GET", "https://raw.githubusercontent.com/noctalia-dev/noctalia-colorschemes/main/registry.json");
+    xhr.open("GET", "https://raw.githubusercontent.com/quickisland-dev/quickisland-colorschemes/main/registry.json");
     xhr.send();
   }
 
@@ -308,7 +308,7 @@ Popup {
           }
         }
       };
-      xhr.open("GET", "https://api.github.com/repos/noctalia-dev/noctalia-colorschemes");
+      xhr.open("GET", "https://api.github.com/repos/quickisland-dev/quickisland-colorschemes");
       xhr.send();
     }
   }
@@ -341,7 +341,7 @@ Popup {
         }
       }
     };
-    xhr.open("GET", "https://api.github.com/repos/noctalia-dev/noctalia-colorschemes/git/refs/heads/" + branch);
+    xhr.open("GET", "https://api.github.com/repos/quickisland-dev/quickisland-colorschemes/git/refs/heads/" + branch);
     xhr.send();
   }
 
@@ -361,7 +361,7 @@ Popup {
                 if (item.type === "blob" && item.path.startsWith(scheme.path + "/")) {
                   files.push({
                                "path": item.path,
-                               "url": "https://raw.githubusercontent.com/noctalia-dev/noctalia-colorschemes/" + branch + "/" + item.path,
+                               "url": "https://raw.githubusercontent.com/quickisland-dev/quickisland-colorschemes/" + branch + "/" + item.path,
                                "name": item.path.split("/").pop()
                              });
                 }
@@ -385,7 +385,7 @@ Popup {
         }
       }
     };
-    xhr.open("GET", "https://api.github.com/repos/noctalia-dev/noctalia-colorschemes/git/trees/" + sha + "?recursive=1");
+    xhr.open("GET", "https://api.github.com/repos/quickisland-dev/quickisland-colorschemes/git/trees/" + sha + "?recursive=1");
     xhr.send();
   }
 
@@ -424,7 +424,7 @@ Popup {
         }
       }
     };
-    xhr.open("GET", "https://api.github.com/repos/noctalia-dev/noctalia-colorschemes/contents/" + scheme.path);
+    xhr.open("GET", "https://api.github.com/repos/quickisland-dev/quickisland-colorschemes/contents/" + scheme.path);
     xhr.send();
   }
 
@@ -661,11 +661,11 @@ Popup {
 
         // If the deleted scheme was the active one, reset to default BEFORE reloading
         if (needsReset) {
-          Logger.i("ColorSchemeDownload", "Deleted scheme was active, resetting to Noctalia (default)");
+          Logger.i("ColorSchemeDownload", "Deleted scheme was active, resetting to Quickisland (default)");
           // Clear the setting immediately so ColorSchemeService won't try to apply the deleted scheme
-          Settings.data.colorSchemes.predefinedScheme = "Noctalia (default)";
+          Settings.data.colorSchemes.predefinedScheme = "Quickisland (default)";
           // Apply the default scheme immediately
-          ColorSchemeService.setPredefinedScheme("Noctalia (default)");
+          ColorSchemeService.setPredefinedScheme("Quickisland (default)");
         }
 
         // Reload color schemes

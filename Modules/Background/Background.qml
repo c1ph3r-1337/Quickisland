@@ -14,7 +14,7 @@ Variants {
 
     required property ShellScreen modelData
 
-    active: modelData && Settings.data.wallpaper.enabled && (!PowerProfileService.noctaliaPerformanceMode || !Settings.data.noctaliaPerformance.disableWallpaper)
+    active: modelData && Settings.data.wallpaper.enabled && (!PowerProfileService.quickislandPerformanceMode || !Settings.data.quickislandPerformance.disableWallpaper)
 
     sourceComponent: PanelWindow {
       id: root
@@ -126,7 +126,7 @@ Variants {
       screen: modelData
       WlrLayershell.layer: WlrLayer.Background
       WlrLayershell.exclusionMode: ExclusionMode.Ignore
-      WlrLayershell.namespace: "noctalia-wallpaper-" + (screen?.name || "unknown")
+      WlrLayershell.namespace: "quickisland-wallpaper-" + (screen?.name || "unknown")
 
       anchors {
         bottom: true

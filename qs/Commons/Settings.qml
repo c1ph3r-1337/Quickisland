@@ -7,7 +7,7 @@ import "../Helpers/QtObj2JS.js" as QtObj2JS
 import qs.Commons
 import qs.Commons.Migrations
 import qs.Modules.OSD
-import qs.Services.Noctalia
+import qs.Services.Quickisland
 import qs.Services.UI
 
 Singleton {
@@ -22,13 +22,13 @@ Singleton {
 
   /*
   Shell directories.
-  - Default config directory: ~/.config/noctalia
-  - Default cache directory: ~/.cache/noctalia
+  - Default config directory: ~/.config/quickisland
+  - Default cache directory: ~/.cache/quickisland
   */
   readonly property alias data: adapter  // Used to access via Settings.data.xxx.yyy
   readonly property int settingsVersion: 59
   property bool isDebug: Quickshell.env("NOCTALIA_DEBUG") === "1"
-  readonly property string shellName: "noctalia"
+  readonly property string shellName: "quickisland"
   readonly property string configDir: ensureTrailingSlash(Quickshell.env("NOCTALIA_CONFIG_DIR") || (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/" + shellName + "/")
   readonly property string cacheDir: ensureTrailingSlash(Quickshell.env("NOCTALIA_CACHE_DIR") || (Quickshell.env("XDG_CACHE_HOME") || Quickshell.env("HOME") + "/.cache") + "/" + shellName + "/")
 
@@ -498,7 +498,7 @@ Singleton {
             "id": "WallpaperSelector"
           },
           {
-            "id": "NoctaliaPerformance"
+            "id": "QuickislandPerformance"
           }
         ]
         property list<var> right: [
@@ -570,7 +570,7 @@ Singleton {
     }
 
     // performance
-    property JsonObject noctaliaPerformance: JsonObject {
+    property JsonObject quickislandPerformance: JsonObject {
       property bool disableWallpaper: true
       property bool disableDesktopWidgets: true
     }
@@ -736,7 +736,7 @@ Singleton {
 
     property JsonObject colorSchemes: JsonObject {
       property bool useWallpaperColors: false
-      property string predefinedScheme: "Noctalia (default)"
+      property string predefinedScheme: "Quickisland (default)"
       property bool darkMode: true
       property string schedulingMode: "off"
       property string manualSunrise: "06:30"

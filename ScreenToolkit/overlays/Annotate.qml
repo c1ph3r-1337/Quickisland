@@ -72,7 +72,7 @@ Variants {
             ? WlrKeyboardFocus.Exclusive
             : WlrKeyboardFocus.None
         WlrLayershell.exclusionMode: ExclusionMode.Ignore
-        WlrLayershell.namespace:     "noctalia-annotate"
+        WlrLayershell.namespace:     "quickisland-annotate"
         Item { id: fullMask; anchors.fill: parent }
         mask: Region { item: !overlayWin.isPrimary ? null : fullMask }
         readonly property real localX: root.regionX

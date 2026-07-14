@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import qs.Commons
-import qs.Services.Noctalia
+import qs.Services.Quickisland
 import qs.Services.UI
 import qs.Widgets
 
@@ -181,7 +181,7 @@ ColumnLayout {
               elide: Text.ElideRight
             }
 
-            // Official badge (Noctalia Team maintained)
+            // Official badge (Quickisland Team maintained)
             Rectangle {
               visible: modelData.official === true
               color: Color.mSecondary
@@ -241,7 +241,7 @@ ColumnLayout {
               visible: true
               onClicked: {
                 var sourceUrl = PluginRegistry.getPluginSourceUrl(modelData.compositeKey) || "";
-                Qt.openUrlExternally(sourceUrl && !PluginRegistry.isMainSource(sourceUrl) ? sourceUrl : "https://noctalia.dev/plugins/" + modelData.id);
+                Qt.openUrlExternally(sourceUrl && !PluginRegistry.isMainSource(sourceUrl) ? sourceUrl : "https://quickisland.dev/plugins/" + modelData.id);
               }
             }
 
@@ -338,7 +338,7 @@ ColumnLayout {
                   return I18n.tr("panels.plugins.update-pending", {
                                    "current": modelData.version,
                                    "new": modelData.pendingUpdateInfo.availableVersion,
-                                   "required": modelData.pendingUpdateInfo.minNoctaliaVersion
+                                   "required": modelData.pendingUpdateInfo.minQuickislandVersion
                                  });
                 }
                 return "v" + modelData.version;

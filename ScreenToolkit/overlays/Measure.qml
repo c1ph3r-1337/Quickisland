@@ -23,7 +23,7 @@ Variants {
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.keyboardFocus: measureVariants.isVisible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
         WlrLayershell.exclusionMode: ExclusionMode.Ignore
-        WlrLayershell.namespace: "noctalia-measure"
+        WlrLayershell.namespace: "quickisland-measure"
         Shortcut {
             sequence: "Escape"
             onActivated: measureVariants.hide()

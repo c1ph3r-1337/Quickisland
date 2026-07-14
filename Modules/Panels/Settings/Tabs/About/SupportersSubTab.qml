@@ -3,7 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
 import qs.Commons
-import qs.Services.Noctalia
+import qs.Services.Quickisland
 import qs.Services.UI
 import qs.Widgets
 
@@ -33,7 +33,7 @@ ColumnLayout {
     text: I18n.tr("panels.about.become-supporter")
     outlined: true
     onClicked: {
-      Quickshell.execDetached(["xdg-open", "https://buymeacoffee.com/noctalia"]);
+      Quickshell.execDetached(["xdg-open", "https://buymeacoffee.com/quickisland"]);
       ToastService.showNotice(I18n.tr("panels.about.support"), I18n.tr("toast.donation-opened"));
     }
   }
@@ -132,7 +132,7 @@ ColumnLayout {
 
                 Image {
                   anchors.centerIn: parent
-                  source: "../../../../../Assets/noctalia.svg"
+                  source: "../../../../../Assets/quickisland.svg"
                   width: parent.width * 0.75
                   height: width
                   fillMode: Image.PreserveAspectFit

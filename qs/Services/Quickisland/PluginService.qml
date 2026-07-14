@@ -5,7 +5,7 @@ import Quickshell
 import Quickshell.Io
 import qs.Commons
 import qs.Modules.Panels.Settings
-import qs.Services.Noctalia
+import qs.Services.Quickisland
 import qs.Services.UI
 
 Singleton {
@@ -36,7 +36,7 @@ Singleton {
   // Plugin updates available: { pluginId: { currentVersion, availableVersion } }
   property var pluginUpdates: ({})
 
-  // Plugin updates that require a newer Noctalia version: { pluginId: { currentVersion, availableVersion, minNoctaliaVersion } }
+  // Plugin updates that require a newer Quickisland version: { pluginId: { currentVersion, availableVersion, minQuickislandVersion } }
   property var pluginUpdatesPending: ({})
 
   // Plugin load errors: { pluginId: { error: string, entryPoint: string, timestamp: date } }
@@ -415,13 +415,13 @@ Singleton {
         return;
       }
 
-      // Check Noctalia version compatibility (skip when updating - that's handled in performUpdateCheck)
-      if (pluginMetadata.minNoctaliaVersion) {
-        var noctaliaVersion = UpdateService.baseVersion;
-        if (compareVersions(pluginMetadata.minNoctaliaVersion, noctaliaVersion) > 0) {
+      // Check Quickisland version compatibility (skip when updating - that's handled in performUpdateCheck)
+      if (pluginMetadata.minQuickislandVersion) {
+        var quickislandVersion = UpdateService.baseVersion;
+        if (compareVersions(pluginMetadata.minQuickislandVersion, quickislandVersion) > 0) {
           var incompatibleMsg = I18n.tr("panels.plugins.install-incompatible", {
                                           "plugin": pluginMetadata.name,
-                                          "version": pluginMetadata.minNoctaliaVersion
+                                          "version": pluginMetadata.minQuickislandVersion
                                         });
           Logger.w("PluginService", "Plugin incompatible:", incompatibleMsg);
           if (callback)
@@ -1417,15 +1417,15 @@ Singleton {
 
         // Compare versions
         if (compareVersions(availableVersion, currentVersion) > 0) {
-          // Check if the available version requires a higher Noctalia version
-          if (availablePlugin.minNoctaliaVersion) {
-            var noctaliaVersion = UpdateService.baseVersion;
-            if (compareVersions(availablePlugin.minNoctaliaVersion, noctaliaVersion) > 0) {
-              Logger.d("PluginService", "Pending update for", pluginId + ": requires Noctalia v" + availablePlugin.minNoctaliaVersion + " (current: v" + noctaliaVersion + ")");
+          // Check if the available version requires a higher Quickisland version
+          if (availablePlugin.minQuickislandVersion) {
+            var quickislandVersion = UpdateService.baseVersion;
+            if (compareVersions(availablePlugin.minQuickislandVersion, quickislandVersion) > 0) {
+              Logger.d("PluginService", "Pending update for", pluginId + ": requires Quickisland v" + availablePlugin.minQuickislandVersion + " (current: v" + quickislandVersion + ")");
               pendingUpdates[pluginId] = {
                 currentVersion: currentVersion,
                 availableVersion: availableVersion,
-                minNoctaliaVersion: availablePlugin.minNoctaliaVersion
+                minQuickislandVersion: availablePlugin.minQuickislandVersion
               };
               continue;
             }
@@ -1475,7 +1475,7 @@ Singleton {
         });
       }
     } else if (pendingCount > 0) {
-      Logger.i("PluginService", pendingCount, "plugin update(s) pending (require newer Noctalia)");
+      Logger.i("PluginService", pendingCount, "plugin update(s) pending (require newer Quickisland)");
     } else {
       Logger.i("PluginService", "All installed plugins are up to date");
     }
@@ -1550,10 +1550,10 @@ Singleton {
       return;
     }
 
-    // Check Noctalia compatibility
-    if (availablePlugin.minNoctaliaVersion) {
+    // Check Quickisland compatibility
+    if (availablePlugin.minQuickislandVersion) {
       // Simple check: just warn, don't block (UpdateService would have more sophisticated logic)
-      Logger.d("PluginService", "Plugin requires Noctalia v" + availablePlugin.minNoctaliaVersion);
+      Logger.d("PluginService", "Plugin requires Quickisland v" + availablePlugin.minQuickislandVersion);
     }
 
     // Backup entire bar layout (global + screen overrides)

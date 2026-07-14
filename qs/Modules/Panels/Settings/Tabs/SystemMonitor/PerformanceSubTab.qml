@@ -11,19 +11,19 @@ ColumnLayout {
 
   NToggle {
     Layout.fillWidth: true
-    label: I18n.tr("panels.system.noctalia-performance-disable-wallpaper-label")
-    description: I18n.tr("panels.system.noctalia-performance-disable-wallpaper-description")
-    checked: !Settings.data.noctaliaPerformance.disableWallpaper
-    defaultValue: !Settings.getDefaultValue("noctaliaPerformance.disableWallpaper")
-    onToggled: checked => Settings.data.noctaliaPerformance.disableWallpaper = !checked
+    label: I18n.tr("panels.system.quickisland-performance-disable-wallpaper-label")
+    description: I18n.tr("panels.system.quickisland-performance-disable-wallpaper-description")
+    checked: !Settings.data.quickislandPerformance.disableWallpaper
+    defaultValue: !Settings.getDefaultValue("quickislandPerformance.disableWallpaper")
+    onToggled: checked => Settings.data.quickislandPerformance.disableWallpaper = !checked
   }
 
   NToggle {
     Layout.fillWidth: true
-    label: I18n.tr("panels.system.noctalia-performance-disable-desktop-widgets-label")
-    description: I18n.tr("panels.system.noctalia-performance-disable-desktop-widgets-description")
-    checked: !Settings.data.noctaliaPerformance.disableDesktopWidgets
-    defaultValue: !Settings.getDefaultValue("noctaliaPerformance.disableDesktopWidgets")
-    onToggled: checked => Settings.data.noctaliaPerformance.disableDesktopWidgets = !checked
+    label: I18n.tr("panels.system.quickisland-performance-disable-desktop-widgets-label")
+    description: I18n.tr("panels.system.quickisland-performance-disable-desktop-widgets-description")
+    checked: !Settings.data.quickislandPerformance.disableDesktopWidgets
+    defaultValue: !Settings.getDefaultValue("quickislandPerformance.disableDesktopWidgets")
+    onToggled: checked => Settings.data.quickislandPerformance.disableDesktopWidgets = !checked
   }
 }

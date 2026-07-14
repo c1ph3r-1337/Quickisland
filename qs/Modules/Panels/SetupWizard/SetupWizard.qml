@@ -5,7 +5,7 @@ import Quickshell
 import Quickshell.Wayland
 import qs.Commons
 import qs.Modules.MainScreen
-import qs.Services.Noctalia
+import qs.Services.Quickisland
 import qs.Services.System
 import qs.Services.UI
 import qs.Widgets
@@ -186,7 +186,7 @@ SmartPanel {
                   anchors.centerIn: parent
                   width: 110
                   height: 110
-                  source: Qt.resolvedUrl(Quickshell.shellDir + "/Assets/noctalia.svg")
+                  source: Qt.resolvedUrl(Quickshell.shellDir + "/Assets/quickisland.svg")
                   fillMode: Image.PreserveAspectFit
                   smooth: true
 

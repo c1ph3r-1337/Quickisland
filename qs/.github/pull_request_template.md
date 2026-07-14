@@ -1,6 +1,6 @@
 # Pull Request
 
-<!-- If this is a color scheme PR, please create it in https://github.com/noctalia-dev/noctalia-colorschemes instead -->
+<!-- If this is a color scheme PR, please create it in https://github.com/quickisland-dev/quickisland-colorschemes instead -->
 
 If this PR is not ready for review yet, please mark it as **Draft** until it's good to be reviewed.
 

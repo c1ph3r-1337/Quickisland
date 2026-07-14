@@ -189,7 +189,7 @@ Item {
             exclusionMode: ExclusionMode.Ignore
             WlrLayershell.layer: WlrLayer.Top
             WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
-            WlrLayershell.namespace: "noctalia-mirror"
+            WlrLayershell.namespace: "quickisland-mirror"
             onVisibleChanged: {
                 if (visible && isPrimary && root.xPos !== -1 && screen.width > 0) {
                     root.xPos = Math.max(0, Math.min(root.xPos, screen.width  - root.currentWidth))

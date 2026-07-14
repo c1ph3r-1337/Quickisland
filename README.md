@@ -4,7 +4,7 @@
 
 [![Preview](https://img.shields.io/badge/YouTube-Preview-red?style=flat-square&logo=youtube)](https://youtu.be/uPwyolLwxvs)
 
-A premium, Wayland-native desktop shell and Dynamic Island for Hyprland built on Quickshell.
+A premium, Wayland-native desktop shell, status bar, and Dynamic Island for the Hyprland compositor, built on the Quickshell framework. Quickisland provides a sleek, interactive Dynamic Island system, an integrated Control Center, launcher capabilities, and diagnostic tools to elevate your desktop experience.
 
 ---
 
@@ -12,58 +12,102 @@ A premium, Wayland-native desktop shell and Dynamic Island for Hyprland built on
 
 ---
 
-### Features
+### Performance Specs
 
-Lightweight resource footprint (approx. 500 MB VRAM/RAM)
+Lightweight Memory Footprint: Approximately 500 MB of VRAM/RAM under normal workloads
 
-Low CPU usage with optimized idle throttling
+Optimized CPU Utilization: Proactive visual layer-gating and event-driven timer throttling ensure near-zero idle overhead
 
-Quick, smooth, and customizable transitions
+Smooth Transitions: Morphing physics and transition engines tuned for instant visual responses
 
-Integrated dynamic volume and brightness OSD
+Hardware Acceleration: Rendered directly via Qt Quick Scene Graph using hardware graphics APIs
 
-Desktop notification toasts and history
+---
 
-Persistent custom wallpaper theme personalization
+### Major Modules
 
-MPRIS media control panel
+**Dynamic Island & Status OSD**
+Provides volume and brightness visual feedback overlays that expand out of a central, pill-shaped desktop island. Offers real-time feedback with premium animations.
 
-All-in-one control center, app launcher, and session menu
+**Desktop Notifications**
+Wayland-native desktop notifications displayed as animated island expanders. Includes a notification history view, individual notification clearing, and status toggles.
 
-Full touchpad and mouse gesture support
+**Control Center**
+Includes status indicators and controls for Wi-Fi networks, Bluetooth devices, active VPN connections, audio inputs/outputs, system performance modes, and night light.
 
-Easy installation on Hyprland using install.sh script
+**Application Launcher**
+A clean, grid-based application search and launcher with custom navigation and vertical list scrolling pass-through.
+
+**Media Controller**
+Full MPRIS-compatible dashboard showing metadata, playback controls (play, pause, skip, backward), track duration progress, and album art.
+
+**Theme Personalization**
+Wallpaper management with active color extraction, generating custom accent, surface, and text color palettes based on your wallpaper colors. Features an interactive Color Palette Designer.
 
 ---
 
 ### Screen Toolkit
 
-Screen Annotations
+**Annotate**
+Draw and write directly on top of active screen displays for notes or presentations.
 
-Pixel-accurate Measurement ruler
+**Measure**
+A pixel-accurate measurement ruler to evaluate lengths, offsets, and element coordinates.
 
-Region screen recorder and screenshot tool
+**Region Recorder**
+Record videos of defined screen regions or capture cropped screenshots.
 
-Hex Color Picker
+**Color Picker**
+Select any pixel on the screen and copy its HEX value.
 
-OCR Scanner (extract text from screen)
+**OCR Scanner**
+Instantly extract text from any selected region of the screen and copy it to the clipboard.
 
-QR Code helper (read and write QRs)
+**QR Helper**
+Scan existing QR codes from your screen or quickly generate new ones.
+
+---
+
+### Gestures & Navigation
+
+**Horizontal Swipes**
+Swipe left or right inside the active menu zones to switch between the Control Center, App Launcher, and Power Menu.
+
+**Vertical Scrolling**
+Vertical scrolling automatically passes through to underneath lists (such as notification logs and app grids) while preserving horizontal swipe boundaries.
 
 ---
 
 ### Keyboard Shortcuts
 
-| Shortcut | Action |
+| Keybinding | Action |
 |---|---|
 | Super + A | Toggle Application Launcher |
 | Super + N | Toggle Control Center |
 | Super + V | Toggle Clipboard History |
 | Super + . | Toggle Emoji Board |
-| Super + / | Toggle Keyboard Shortcuts Help |
+| Super + / | Toggle Keyboard Shortcuts Help Overlay |
 | Super + L | Lock Screen |
 | Ctrl + Alt + Delete | Open Session / Power Menu |
-| Swipe Left / Right | Switch active menus |
+
+---
+
+### File Structure & Standalone Architecture
+
+```
+quickisland/
+├── shell.qml                # Main shell declaration and UI state management
+├── launch.sh                # Launcher daemon script
+├── install.sh               # Dependency and install compiler script
+├── LiquidGlassBackground.qml# Custom glass effect shader renderer
+├── LockScreen.qml           # Lockscreen layout and auth handling
+├── qs/                      # Standalone backend service modules
+│   ├── Services/            # Core system interfaces (Network, Bluetooth, MPRIS, VPN)
+│   ├── Modules/             # UI elements (Control Center, Setup Wizard, Toasts)
+│   └── Widgets/             # Modular reusable components
+├── Assets/                  # Fonts, default wallpapers, and color themes
+└── scripts/                 # Auxiliary helper scripts (color extractors, pickers)
+```
 
 ---
 
@@ -78,12 +122,12 @@ chmod +x install.sh
 
 ---
 
-### Requirements
+### System Requirements
 
-Quickshell (noctalia fork)
+Wayland Compositor: Hyprland
 
-Hyprland compositor
+Wallpaper Backend: awww daemon
 
-awww wallpaper daemon
+Base Engine: Quickshell (Wayland QML shell framework)
 
 </div>

@@ -24,9 +24,9 @@ SmartPanel {
   panelBorderColor: "transparent"
   blurEnabled: false // Disable blur behind the invisible panel
 
-  signal noctaliaSelected
+  signal quickislandSelected
 
-  // Property to track current selection (0 = Noctalia Only, 1 = Quickisland)
+  // Property to track current selection (0 = Quickisland Only, 1 = Quickisland)
   property int selectedIndex: 0
 
   // Input guard to prevent repeated Enter keypresses on startup
@@ -88,7 +88,7 @@ SmartPanel {
         }
         if (root.selectedIndex === 0) {
           root.close();
-          root.noctaliaSelected();
+          root.quickislandSelected();
         } else if (root.selectedIndex === 1) {
           root.launchQuickisland();
         }
@@ -100,9 +100,9 @@ SmartPanel {
       anchors.fill: parent
       spacing: Style.marginL
 
-      // Noctalia Only Card
+      // Quickisland Only Card
       Rectangle {
-        id: noctaliaCard
+        id: quickislandCard
         Layout.fillWidth: true
         Layout.fillHeight: true
         radius: Style.radiusL * 1.2
@@ -112,14 +112,14 @@ SmartPanel {
         Behavior on scale { NumberAnimation { duration: Style.animationFast; easing.type: Easing.OutBack } }
 
         MouseArea {
-          id: noctaliaMA
+          id: quickislandMA
           anchors.fill: parent
           hoverEnabled: true
           cursorShape: Qt.PointingHandCursor
           onEntered: root.selectedIndex = 0
           onClicked: {
             root.close();
-            root.noctaliaSelected();
+            root.quickislandSelected();
           }
         }
 
@@ -147,7 +147,7 @@ SmartPanel {
           }
 
           NText {
-            text: "Noctalia Only"
+            text: "Quickisland Only"
             pointSize: Style.fontSizeL
             font.weight: Style.fontWeightBold
             color: Color.mOnSurface

@@ -505,7 +505,7 @@ Singleton {
       implicitWidth: 0
       implicitHeight: 0
       WlrLayershell.exclusionMode: ExclusionMode.Ignore
-      WlrLayershell.namespace: "noctalia-image-cache-renderer"
+      WlrLayershell.namespace: "quickisland-image-cache-renderer"
       color: "transparent"
       mask: Region {}
 

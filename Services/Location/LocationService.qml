@@ -202,7 +202,7 @@ Singleton {
     }
 
     Logger.d("Location", "Geocoding location name");
-    var geoUrl = "https://api.noctalia.dev/geocode?city=" + encodeURIComponent(locationName);
+    var geoUrl = "https://api.quickisland.dev/geocode?city=" + encodeURIComponent(locationName);
     var xhr = new XMLHttpRequest();
     xhr.onreadystatechange = function () {
       if (xhr.readyState === XMLHttpRequest.DONE) {
@@ -261,10 +261,10 @@ Singleton {
     xhr.send();
   }
 
-  // Geolocate via IP address using the Noctalia API
+  // Geolocate via IP address using the Quickisland API
   function geolocate(callback, errorCallback) {
     Logger.d("Location", "Geolocating via IP");
-    var url = "https://api.noctalia.dev/geolocate";
+    var url = "https://api.quickisland.dev/geolocate";
     var xhr = new XMLHttpRequest();
     xhr.onreadystatechange = function () {
       if (xhr.readyState === XMLHttpRequest.DONE) {

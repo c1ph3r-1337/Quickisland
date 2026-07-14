@@ -1,10 +1,10 @@
 {
-  description = "Noctalia shell - a Wayland desktop shell built with Quickshell";
+  description = "Quickisland shell - a Wayland desktop shell built with Quickshell";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    noctalia-qs = {
-      url = "github:noctalia-dev/noctalia-qs";
+    quickisland-qs = {
+      url = "github:quickisland-dev/quickisland-qs";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
@@ -13,7 +13,7 @@
     {
       self,
       nixpkgs,
-      noctalia-qs,
+      quickisland-qs,
       ...
     }:
     let
@@ -39,14 +39,14 @@
       formatter = eachSystem (system: pkgsFor.${system}.nixfmt);
 
       packages = eachSystem (system: {
-        default = pkgsFor.${system}.noctalia-shell;
+        default = pkgsFor.${system}.quickisland-shell;
       });
 
       overlays = {
         default = nixpkgs.lib.composeManyExtensions [
-          noctalia-qs.overlays.default
+          quickisland-qs.overlays.default
           (final: prev: {
-            noctalia-shell = final.callPackage ./nix/package.nix {
+            quickisland-shell = final.callPackage ./nix/package.nix {
               inherit version;
             };
           })
@@ -55,7 +55,7 @@
 
       devShells = eachSystem (system: {
         default = pkgsFor.${system}.callPackage ./nix/shell.nix {
-          quickshell = noctalia-qs.packages.${system}.default;
+          quickshell = quickisland-qs.packages.${system}.default;
         };
       });
 
@@ -67,7 +67,7 @@
         }:
         {
           imports = [ ./nix/home-module.nix ];
-          programs.noctalia-shell.package =
+          programs.quickisland-shell.package =
             lib.mkDefault
               self.packages.${pkgs.stdenv.hostPlatform.system}.default;
         };
@@ -80,7 +80,7 @@
         }:
         {
           imports = [ ./nix/nixos-module.nix ];
-          services.noctalia-shell.package =
+          services.quickisland-shell.package =
             lib.mkDefault
               self.packages.${pkgs.stdenv.hostPlatform.system}.default;
         };

@@ -111,7 +111,7 @@ Item {
 
   Image {
     id: lockBgImage
-    visible: source !== "" && Settings.data.wallpaper.enabled && !Settings.data.wallpaper.useSolidColor && (!PowerProfileService.noctaliaPerformanceMode || !Settings.data.noctaliaPerformance.disableWallpaper)
+    visible: source !== "" && Settings.data.wallpaper.enabled && !Settings.data.wallpaper.useSolidColor && (!PowerProfileService.quickislandPerformanceMode || !Settings.data.quickislandPerformance.disableWallpaper)
     anchors.fill: parent
     fillMode: Image.PreserveAspectCrop
     source: resolvedWallpaperPath
@@ -120,7 +120,7 @@ Item {
     mipmap: false
     antialiasing: true
 
-    layer.enabled: Settings.data.general.lockScreenBlur > 0 && !PowerProfileService.noctaliaPerformanceMode
+    layer.enabled: Settings.data.general.lockScreenBlur > 0 && !PowerProfileService.quickislandPerformanceMode
     layer.smooth: false
     layer.effect: MultiEffect {
       blurEnabled: true

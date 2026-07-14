@@ -5,7 +5,7 @@ import Quickshell
 import Quickshell.Io
 import qs.Commons
 import qs.Services.Compositor
-import qs.Services.Noctalia
+import qs.Services.Quickisland
 import qs.Services.System
 
 Singleton {
@@ -16,7 +16,7 @@ Singleton {
   property int totalRamGb: 0
   property string instanceId: ""
 
-  readonly property string telemetryEndpoint: Quickshell.env("NOCTALIA_TELEMETRY_ENDPOINT") || "https://api.noctalia.dev/ping"
+  readonly property string telemetryEndpoint: Quickshell.env("NOCTALIA_TELEMETRY_ENDPOINT") || "https://api.quickisland.dev/ping"
 
   function init() {
     if (initialized)

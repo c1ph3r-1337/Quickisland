@@ -26,10 +26,10 @@ ColumnLayout {
     var filename = pathParts[pathParts.length - 1];
     var schemeName = filename.replace(".json", "");
 
-    if (schemeName === "Noctalia-default") {
-      schemeName = "Noctalia (default)";
-    } else if (schemeName === "Noctalia-legacy") {
-      schemeName = "Noctalia (legacy)";
+    if (schemeName === "Quickisland-default") {
+      schemeName = "Quickisland (default)";
+    } else if (schemeName === "Quickisland-legacy") {
+      schemeName = "Quickisland (legacy)";
     } else if (schemeName === "Tokyo-Night") {
       schemeName = "Tokyo Night";
     } else if (schemeName === "Rosepine") {

@@ -1,15 +1,15 @@
 # Credits
 
-Noctalia Shell is made possible by the incredible work of many open-source projects and contributors.
+Quickisland Shell is made possible by the incredible work of many open-source projects and contributors.
 
 ## Design & Branding
 
-- **MrDowntempo** - Creator of the Noctalia Owl and moon logo
-- **[SaberJ2X](https://www.reddit.com/user/SaberJ64/)** - Creator of Talia, the Noctalia mascot
+- **MrDowntempo** - Creator of the Quickisland Owl and moon logo
+- **[SaberJ2X](https://www.reddit.com/user/SaberJ64/)** - Creator of Talia, the Quickisland mascot
 
 ## Core Framework
 
-- **[Quickshell](https://github.com/outfoxxed/quickshell)** - The Qt/QML-based Wayland shell framework that powers Noctalia
+- **[Quickshell](https://github.com/outfoxxed/quickshell)** - The Qt/QML-based Wayland shell framework that powers Quickisland
 
 ## Runtime Dependencies
 
@@ -40,9 +40,9 @@ Noctalia Shell is made possible by the incredible work of many open-source proje
 ## Special Thanks
 - The **Wayland** community for building the future of Linux desktop graphics
 - The **Niri**, **Hyprland**, **Sway**, **Labwc**, and **MangoWC** teams for their excellent Wayland compositors
-- All the contributors and users who have helped make Noctalia better
+- All the contributors and users who have helped make Quickisland better
 
 ## License
-Noctalia Shell is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+Quickisland Shell is licensed under the MIT License. See [LICENSE](LICENSE) for details.
 
 Each dependency listed above is governed by its own respective license. Please refer to their individual projects for licensing information.

@@ -127,18 +127,18 @@ install_arch() {
     if [ -n "$aur_helper" ]; then
         success "Found AUR helper: $aur_helper"
 
-        # Install Quickshell (noctalia fork with FFTW support)
+        # Install Quickshell (custom package with FFTW/spectrum support)
         if command -v quickshell &>/dev/null; then
             success "Quickshell is already installed"
             info "Rebuilding to ensure Qt version match and FFTW support..."
-            $aur_helper -S --rebuild --noconfirm noctalia-qs 2>/dev/null \
-                || $aur_helper -S --rebuild --noconfirm noctalia-qs-git 2>/dev/null \
-                || warn "Could not rebuild noctalia-qs. If you experience crashes, rebuild it manually."
+            $aur_helper -S --rebuild --noconfirm quickisland-qs 2>/dev/null \
+                || $aur_helper -S --rebuild --noconfirm quickisland-qs-git 2>/dev/null \
+                || warn "Could not rebuild quickshell. If you experience crashes, rebuild it manually."
         else
-            info "Installing Quickshell (noctalia-qs) from AUR..."
-            $aur_helper -S --noconfirm noctalia-qs 2>/dev/null \
-                || $aur_helper -S --noconfirm noctalia-qs-git 2>/dev/null \
-                || { fail "Failed to install noctalia-qs. Install it manually from the AUR."; exit 1; }
+            info "Installing Quickshell from AUR..."
+            $aur_helper -S --noconfirm quickisland-qs 2>/dev/null \
+                || $aur_helper -S --noconfirm quickisland-qs-git 2>/dev/null \
+                || { fail "Failed to install Quickshell. Install it manually from the AUR."; exit 1; }
         fi
     else
         warn "No AUR helper found (paru or yay)."
@@ -161,7 +161,7 @@ install_fedora() {
     )
     info "Installing system packages via dnf..."
     sudo dnf install -y "${deps[@]}" 2>&1 | tail -n 5
-    warn "Please ensure 'quickshell' (noctalia fork) is compiled and installed for Fedora."
+    warn "Please ensure 'quickshell' is compiled and installed for Fedora."
 }
 
 install_debian() {
@@ -174,7 +174,7 @@ install_debian() {
     info "Installing system packages via apt..."
     sudo apt update -qq
     sudo apt install -y "${deps[@]}" 2>&1 | tail -n 5
-    warn "Please ensure 'quickshell' (noctalia fork) is compiled and installed from source."
+    warn "Please ensure 'quickshell' is compiled and installed from source."
 }
 
 case "$OS_NAME" in

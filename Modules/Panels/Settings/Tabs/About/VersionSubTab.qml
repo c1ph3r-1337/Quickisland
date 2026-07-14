@@ -5,7 +5,7 @@ import Quickshell
 import Quickshell.Io
 import qs.Commons
 import qs.Services.Compositor
-import qs.Services.Noctalia
+import qs.Services.Quickisland
 import qs.Services.System
 import qs.Services.UI
 import qs.Widgets
@@ -128,7 +128,7 @@ ColumnLayout {
   }
 
   function copyInfoToClipboard() {
-    let info = "Noctalia Shell: " + root.currentVersion;
+    let info = "Quickisland Shell: " + root.currentVersion;
     if (root.isGitVersion && root.commitInfo) {
       info += " (" + root.commitInfo + ")";
     }
@@ -136,7 +136,7 @@ ColumnLayout {
 
     if (root.qsVersion) {
       let qsV = root.qsVersion.startsWith("v") ? root.qsVersion : "v" + root.qsVersion;
-      info += "Noctalia QS: " + qsV;
+      info += "Quickisland QS: " + qsV;
       if (root.qsRevision) {
         info += " (" + root.qsRevision + ")";
       }
@@ -198,9 +198,9 @@ ColumnLayout {
         var shellDir = Quickshell.shellDir || "";
         Logger.d("VersionSubTab", "Component.onCompleted - NixOS detected, shellDir:", shellDir);
         if (shellDir) {
-          // Extract commit hash from path like: /nix/store/...-noctalia-shell-2025-11-30_225e6d3/share/noctalia-shell
-          // Pattern matches: noctalia-shell-YYYY-MM-DD_<commit_hash>
-          var match = shellDir.match(/noctalia-shell-\d{4}-\d{2}-\d{2}_([0-9a-f]{7,})/i);
+          // Extract commit hash from path like: /nix/store/...-quickisland-shell-2025-11-30_225e6d3/share/quickisland-shell
+          // Pattern matches: quickisland-shell-YYYY-MM-DD_<commit_hash>
+          var match = shellDir.match(/quickisland-shell-\d{4}-\d{2}-\d{2}_([0-9a-f]{7,})/i);
           if (match && match[1]) {
             // Use first 7 characters of the commit hash
             root.commitInfo = match[1].substring(0, 7);
@@ -258,10 +258,10 @@ ColumnLayout {
     onExited: function (exitCode) {
       if (exitCode === 0) {
         var output = stdout.text.trim();
-        // Format (old): "noctalia-qs 0.3.0, revision abc12345, distributed by: ..."
-        // Format (new): "noctalia-qs 0.0.9 (revision b602b69c81d96a1d7c645328feb7b1e1d4b7b7a4, distributed by Unset)"
-        // Only set if this is actually noctalia-qs; leave empty for upstream quickshell
-        var match = output.match(/noctalia-qs\s+(\S+?)[\s,(]+revision\s*([0-9a-f]*)/i);
+        // Format (old): "quickisland-qs 0.3.0, revision abc12345, distributed by: ..."
+        // Format (new): "quickisland-qs 0.0.9 (revision b602b69c81d96a1d7c645328feb7b1e1d4b7b7a4, distributed by Unset)"
+        // Only set if this is actually quickisland-qs; leave empty for upstream quickshell
+        var match = output.match(/quickisland-qs\s+(\S+?)[\s,(]+revision\s*([0-9a-f]*)/i);
         if (match) {
           root.qsVersion = match[1];
           root.qsRevision = match[2] ? match[2].substring(0, 9) : "";
@@ -324,9 +324,9 @@ ColumnLayout {
     Layout.alignment: Qt.AlignHCenter
     spacing: Style.marginXL
 
-    // Noctalia logo
+    // Quickisland logo
     Image {
-      source: "../../../../../Assets/noctalia.svg"
+      source: "../../../../../Assets/quickisland.svg"
       width: 96 * Style.uiScaleRatio
       height: width
       fillMode: Image.PreserveAspectFit
@@ -375,7 +375,7 @@ ColumnLayout {
 
     ColumnLayout {
       NHeader {
-        label: "Noctalia Shell"
+        label: "Quickisland Shell"
       }
 
       // Versions
@@ -386,7 +386,7 @@ ColumnLayout {
 
         // Installed Version (Shell)
         NText {
-          text: "Noctalia Shell:"
+          text: "Quickisland Shell:"
           color: Color.mOnSurfaceVariant
           Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
         }
@@ -422,7 +422,7 @@ ColumnLayout {
               onExited: TooltipService.hide()
               onClicked: {
                 if (root.commitInfo) {
-                  Quickshell.execDetached(["xdg-open", "https://github.com/noctalia-dev/noctalia-shell/commit/" + root.commitInfo]);
+                  Quickshell.execDetached(["xdg-open", "https://github.com/quickisland-dev/quickisland-shell/commit/" + root.commitInfo]);
                 }
               }
             }
@@ -463,7 +463,7 @@ ColumnLayout {
         // Latest Version (Shell)
         NText {
           visible: root.updateAvailable
-          text: I18n.tr("panels.about.noctalia-available")
+          text: I18n.tr("panels.about.quickisland-available")
           color: Color.mOnSurfaceVariant
           Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
         }
@@ -485,7 +485,7 @@ ColumnLayout {
         // Quickshell Version
         NText {
           visible: root.qsVersion !== ""
-          text: "Noctalia QS:"
+          text: "Quickisland QS:"
           color: Color.mOnSurfaceVariant
           Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
         }
@@ -517,7 +517,7 @@ ColumnLayout {
               onEntered: TooltipService.show(qsRevisionText, I18n.tr("panels.about.view-commit"))
               onExited: TooltipService.hide()
               onClicked: {
-                Quickshell.execDetached(["xdg-open", "https://github.com/noctalia-dev/noctalia-qs/commit/" + root.qsRevision]);
+                Quickshell.execDetached(["xdg-open", "https://github.com/quickisland-dev/quickisland-qs/commit/" + root.qsRevision]);
               }
             }
           }
@@ -557,7 +557,7 @@ ColumnLayout {
         // Latest Quickshell Version
         NText {
           visible: root.qsUpdateAvailable
-          text: I18n.tr("panels.about.noctalia-available")
+          text: I18n.tr("panels.about.quickisland-available")
           color: Color.mOnSurfaceVariant
           Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
         }
@@ -611,7 +611,7 @@ ColumnLayout {
       outlined: true
       Layout.alignment: Qt.AlignHCenter
       onClicked: {
-        Quickshell.execDetached(["xdg-open", "https://buymeacoffee.com/noctalia"]);
+        Quickshell.execDetached(["xdg-open", "https://buymeacoffee.com/quickisland"]);
         ToastService.showNotice(I18n.tr("panels.about.support"), I18n.tr("toast.donation-opened"));
       }
     }
@@ -979,7 +979,7 @@ ColumnLayout {
       icon: "shield-lock"
       text: I18n.tr("panels.about.privacy-policy")
       outlined: true
-      onClicked: Quickshell.execDetached(["xdg-open", "https://noctalia.dev/privacy"])
+      onClicked: Quickshell.execDetached(["xdg-open", "https://quickisland.dev/privacy"])
     }
   }
 }

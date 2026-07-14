@@ -7,8 +7,8 @@ import urllib.parse
 from pathlib import Path
 
 # Registry URL for color schemes
-REGISTRY_URL = "https://raw.githubusercontent.com/noctalia-dev/noctalia-colorschemes/main/registry.json"
-RAW_BASE_URL = "https://raw.githubusercontent.com/noctalia-dev/noctalia-colorschemes/main/"
+REGISTRY_URL = "https://raw.githubusercontent.com/quickisland-dev/quickisland-colorschemes/main/registry.json"
+RAW_BASE_URL = "https://raw.githubusercontent.com/quickisland-dev/quickisland-colorschemes/main/"
 
 def is_valid_format(data):
     """Check if the scheme data has the new terminal format."""

@@ -218,9 +218,9 @@ Singleton {
 
   function addWallpaperTheming(lines, mode) {
     const homeDir = Quickshell.env("HOME");
-    // Noctalia colors JSON
-    lines.push("[templates.noctalia]");
-    lines.push('input_path = "' + Quickshell.shellDir + '/Assets/Templates/noctalia.json"');
+    // Quickisland colors JSON
+    lines.push("[templates.quickisland]");
+    lines.push('input_path = "' + Quickshell.shellDir + '/Assets/Templates/quickisland.json"');
     lines.push('output_path = "' + Settings.configDir + 'colors.json"');
 
     // Terminal templates
@@ -251,7 +251,7 @@ Singleton {
                                                                                          lines.push(`\n[templates.discord_${themeSuffix}_${client.name}]`);
                                                                                          lines.push(`input_path = "${Quickshell.shellDir}/Assets/Templates/${inputFile}"`);
                                                                                          // First input uses legacy name for backward compatibility
-                                                                                         const outputFile = idx === 0 ? "noctalia.theme.css" : `noctalia-${themeSuffix}.theme.css`;
+                                                                                         const outputFile = idx === 0 ? "quickisland.theme.css" : `quickisland-${themeSuffix}.theme.css`;
                                                                                          const outputPath = client.path.replace("~", homeDir) + `/themes/${outputFile}`;
                                                                                          lines.push(`output_path = "${outputPath}"`);
                                                                                        }
@@ -279,7 +279,7 @@ Singleton {
                                                 ProgramCheckerService.availableEmacsClients.forEach(client => {
                                                                                                       lines.push(`\n[templates.emacs_${client.name}]`);
                                                                                                       lines.push(`input_path = "${Quickshell.shellDir}/Assets/Templates/${app.input}"`);
-                                                                                                      const expandedPath = client.path.replace("~", homeDir) + "/themes/noctalia-theme.el";
+                                                                                                      const expandedPath = client.path.replace("~", homeDir) + "/themes/quickisland-theme.el";
                                                                                                       lines.push(`output_path = "${expandedPath}"`);
                                                                                                       if (app.postProcess) {
                                                                                                         const postHook = escapeTomlString(app.postProcess(mode));
