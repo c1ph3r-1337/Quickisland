@@ -5320,13 +5320,13 @@ ShellRoot {
                                 var curr = shell.currentState;
                                 var idx = states.indexOf(curr);
 
-                                if (delta > 0) { // Swipe left -> Move forward
+                                if (delta < 0) { // Swipe left (inverted delta) -> Move forward
                                     if (idx === -1) {
                                         shell.setState(5);
                                     } else if (idx < states.length - 1) {
                                         shell.setState(states[idx + 1]);
                                     }
-                                } else if (delta < 0) { // Swipe right -> Move backward
+                                } else if (delta > 0) { // Swipe right (inverted delta) -> Move backward
                                     if (idx !== -1) {
                                         if (idx > 0) {
                                             shell.setState(states[idx - 1]);
@@ -5354,13 +5354,13 @@ ShellRoot {
                                     var curr = shell.currentState;
                                     var idx = states.indexOf(curr);
 
-                                    if (delta > 0) { // Scroll up -> Move forward
+                                    if (delta < 0) { // Scroll up (inverted delta) -> Move forward
                                         if (idx === -1) {
                                             shell.setState(5);
                                         } else if (idx < states.length - 1) {
                                             shell.setState(states[idx + 1]);
                                         }
-                                    } else if (delta < 0) { // Scroll down -> Move backward
+                                    } else if (delta > 0) { // Scroll down (inverted delta) -> Move backward
                                         if (idx !== -1) {
                                             if (idx > 0) {
                                                 shell.setState(states[idx - 1]);
