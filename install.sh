@@ -370,7 +370,13 @@ if [ -f "$HYPR_CONF" ]; then
         answer="${answer:-Y}"
         if [[ "$answer" =~ ^[Yy]$ ]]; then
             echo -e "\n# QuickIsland Morphing Shell\n$LAUNCH_CMD" >> "$HYPR_CONF"
-            success "Added to autostart"
+            
+            # Disable default Hyprland logo/splash if not already configured
+            if ! grep -q "disable_hyprland_logo" "$HYPR_CONF" 2>/dev/null; then
+                echo -e "\nmisc {\n    disable_hyprland_logo = true\n    disable_splash_rendering = true\n}" >> "$HYPR_CONF"
+            fi
+            
+            success "Added to autostart and disabled logo"
         else
             info "Skipped — you can add it manually later"
         fi
@@ -386,7 +392,13 @@ elif [ -f "$HYPR_LUA" ]; then
         answer="${answer:-Y}"
         if [[ "$answer" =~ ^[Yy]$ ]]; then
             echo -e "\n-- QuickIsland Morphing Shell\nhl.on(\"hyprland.start\", function ()\n    hl.exec_cmd(\"~/.config/quickshell/quickisland/launch.sh\")\nend)" >> "$HYPR_LUA"
-            success "Added to autostart (Lua)"
+            
+            # Disable default Hyprland logo/splash if not already configured
+            if ! grep -q "disable_hyprland_logo" "$HYPR_LUA" 2>/dev/null; then
+                echo -e "\n-- Disable default Hyprland logo/splash\nhl.config({\n    misc = {\n        disable_hyprland_logo = true,\n        disable_splash_rendering = true\n    }\n})" >> "$HYPR_LUA"
+            fi
+            
+            success "Added to autostart and disabled logo (Lua)"
         else
             info "Skipped — you can add it manually later"
         fi
