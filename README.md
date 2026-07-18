@@ -8,7 +8,7 @@ A premium, Wayland-native desktop shell, status bar, and Dynamic Island for the 
 
 ---
 
-[![Quickisland Preview](https://img.youtube.com/vi/uPwyolLwxvs/maxresdefault.jpg)](https://youtu.be/uPwyolLwxvs)
+[![Quickisland Preview](https://img.youtube.com/vi/Fv100o7fDag/maxresdefault.jpg)](https://youtu.be/Fv100o7fDag)
 
 ---
 
