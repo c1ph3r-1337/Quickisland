@@ -79,11 +79,11 @@ install_arch() {
     local total_mem_gb=$(( total_mem_kb / 1024 / 1024 ))
     local build_jobs=1
     
-    if [ "$total_mem_gb" -ge 30 ]; then
+    if [ "$total_mem_gb" -ge 32 ]; then
         build_jobs=8
-    elif [ "$total_mem_gb" -ge 14 ]; then
+    elif [ "$total_mem_gb" -ge 16 ]; then
         build_jobs=4
-    elif [ "$total_mem_gb" -ge 7 ]; then
+    elif [ "$total_mem_gb" -ge 10 ]; then
         build_jobs=2
     else
         build_jobs=1
