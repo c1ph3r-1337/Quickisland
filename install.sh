@@ -355,6 +355,7 @@ fi
 header "Step 6/6 — Autostart Configuration"
 
 HYPR_CONF="$HYPR_DIR/hyprland.conf"
+HYPR_LUA="$HYPR_DIR/hyprland.lua"
 LAUNCH_CMD="exec-once = ~/.config/quickshell/quickisland/launch.sh"
 
 if [ -f "$HYPR_CONF" ]; then
@@ -373,9 +374,27 @@ if [ -f "$HYPR_CONF" ]; then
             info "Skipped — you can add it manually later"
         fi
     fi
+elif [ -f "$HYPR_LUA" ]; then
+    if grep -q "quickisland/launch.sh" "$HYPR_LUA" 2>/dev/null; then
+        success "Autostart already configured in hyprland.lua"
+    else
+        echo ""
+        echo -e "  ${BOLD}Would you like to add QuickIsland to Hyprland autostart?${NC}"
+        echo -e "  ${DIM}This adds the launch command to your hyprland.lua${NC}"
+        read -rp "  Add to autostart? [Y/n] " answer
+        answer="${answer:-Y}"
+        if [[ "$answer" =~ ^[Yy]$ ]]; then
+            echo -e "\n-- QuickIsland Morphing Shell\nhl.on(\"hyprland.start\", function ()\n    hl.exec_cmd(\"~/.config/quickshell/quickisland/launch.sh\")\nend)" >> "$HYPR_LUA"
+            success "Added to autostart (Lua)"
+        else
+            info "Skipped — you can add it manually later"
+        fi
+    fi
 else
-    warn "hyprland.conf not found. Add this line to your config to autostart:"
+    warn "hyprland.conf or hyprland.lua not found. Add this line to your config to autostart:"
     echo -e "  ${CYAN}$LAUNCH_CMD${NC}"
+    echo -e "  ${DIM}or for Lua configuration (hyprland.lua):${NC}"
+    echo -e "  ${CYAN}hl.on(\"hyprland.start\", function () hl.exec_cmd(\"~/.config/quickshell/quickisland/launch.sh\") end)${NC}"
 fi
 
 # ── Done ─────────────────────────────────────────────────────────────────────
