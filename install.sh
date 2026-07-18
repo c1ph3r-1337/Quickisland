@@ -183,22 +183,28 @@ install_arch() {
 
         # Install wl-screenrec if missing
         if ! command -v wl-screenrec &>/dev/null; then
-            info "Installing wl-screenrec from AUR..."
-            $aur_helper -S --noconfirm wl-screenrec 2>/dev/null || warn "Could not install wl-screenrec from AUR."
+            info "Installing wl-screenrec..."
+            if sudo pacman -S --needed --noconfirm wl-screenrec 2>/dev/null; then
+                success "Successfully installed pre-compiled wl-screenrec"
+            else
+                info "Pre-compiled wl-screenrec not found. Building from AUR..."
+                $aur_helper -S --noconfirm wl-screenrec 2>/dev/null || warn "Could not install wl-screenrec from AUR."
+            fi
         fi
 
         # Install Quickshell (FFTW/spectrum support)
         if command -v quickshell &>/dev/null; then
             success "Quickshell is already installed"
-            info "Rebuilding to ensure Qt version match and FFTW support..."
-            $aur_helper -S --rebuild --noconfirm noctalia-qs 2>/dev/null \
-                || $aur_helper -S --rebuild --noconfirm noctalia-qs-git 2>/dev/null \
-                || warn "Could not rebuild quickshell. If you experience crashes, rebuild it manually."
         else
-            info "Installing Quickshell from AUR..."
-            $aur_helper -S --noconfirm noctalia-qs 2>/dev/null \
-                || $aur_helper -S --noconfirm noctalia-qs-git 2>/dev/null \
-                || { fail "Failed to install Quickshell. Install it manually from the AUR."; exit 1; }
+            info "Attempting to install pre-compiled Quickshell from repositories..."
+            if sudo pacman -S --needed --noconfirm quickshell 2>/dev/null || sudo pacman -S --needed --noconfirm noctalia-qs 2>/dev/null; then
+                success "Successfully installed pre-compiled Quickshell"
+            else
+                info "Pre-compiled package not found. Building Quickshell from AUR (this may take some time)..."
+                $aur_helper -S --noconfirm noctalia-qs 2>/dev/null \
+                    || $aur_helper -S --noconfirm noctalia-qs-git 2>/dev/null \
+                    || { fail "Failed to install Quickshell. Install it manually from the AUR."; exit 1; }
+            fi
         fi
     else
         warn "No AUR helper available."
