@@ -79,7 +79,7 @@ Singleton {
       isMango = true;
       isLabwc = false;
       isExtWorkspace = false;
-      backendLoader.sourceComponent = mangoComponent;
+      backendLoader.source = "MangoService.qml";
     } else if (labwcPid && labwcPid.length > 0) {
       isHyprland = false;
       isNiri = false;
@@ -87,7 +87,7 @@ Singleton {
       isMango = false;
       isLabwc = true;
       isExtWorkspace = false;
-      backendLoader.sourceComponent = labwcComponent;
+      backendLoader.source = "LabwcService.qml";
       Logger.i("CompositorService", "Detected LabWC with PID: " + labwcPid);
     } else if (niriSocket && niriSocket.length > 0) {
       isHyprland = false;
@@ -96,7 +96,7 @@ Singleton {
       isMango = false;
       isLabwc = false;
       isExtWorkspace = false;
-      backendLoader.sourceComponent = niriComponent;
+      backendLoader.source = "NiriService.qml";
     } else if (hyprlandSignature && hyprlandSignature.length > 0) {
       isHyprland = true;
       isNiri = false;
@@ -104,7 +104,7 @@ Singleton {
       isMango = false;
       isLabwc = false;
       isExtWorkspace = false;
-      backendLoader.sourceComponent = hyprlandComponent;
+      backendLoader.source = "HyprlandService.qml";
     } else if (swaySock && swaySock.length > 0) {
       isHyprland = false;
       isNiri = false;
@@ -113,7 +113,7 @@ Singleton {
       isLabwc = false;
       isExtWorkspace = false;
       isScroll = currentDesktop && currentDesktop.toLowerCase().includes("scroll");
-      backendLoader.sourceComponent = swayComponent;
+      backendLoader.source = "SwayService.qml";
     } else {
       // Always fallback to ext-workspace-v1
       isHyprland = false;
@@ -122,7 +122,7 @@ Singleton {
       isMango = false;
       isLabwc = false;
       isExtWorkspace = true;
-      backendLoader.sourceComponent = extWorkspaceComponent;
+      backendLoader.source = "ExtWorkspaceService.qml";
       Logger.i("CompositorService", "Using generic ext-workspace backend (no recognized compositor env)");
     }
   }
@@ -156,54 +156,6 @@ Singleton {
     } catch (error) {
       Logger.e("CompositorService", "Failed to load display scales:", error);
       displayScalesLoaded = true;
-    }
-  }
-
-  // Hyprland backend component
-  Component {
-    id: hyprlandComponent
-    HyprlandService {
-      id: hyprlandBackend
-    }
-  }
-
-  // Niri backend component
-  Component {
-    id: niriComponent
-    NiriService {
-      id: niriBackend
-    }
-  }
-
-  // Sway backend component
-  Component {
-    id: swayComponent
-    SwayService {
-      id: swayBackend
-    }
-  }
-
-  // Mango backend component
-  Component {
-    id: mangoComponent
-    MangoService {
-      id: mangoBackend
-    }
-  }
-
-  // Labwc backend component
-  Component {
-    id: labwcComponent
-    LabwcService {
-      id: labwcBackend
-    }
-  }
-
-  // Generic ext-workspace (WindowManager) when compositor env is unknown
-  Component {
-    id: extWorkspaceComponent
-    ExtWorkspaceService {
-      id: extWorkspaceBackend
     }
   }
 
