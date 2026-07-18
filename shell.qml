@@ -874,7 +874,7 @@ ShellRoot {
 
     // ── Battery (BatteryService) ─────────────────────────────────────────
     readonly property real batteryPercent: BatteryService.primaryDevice ? BatteryService.batteryPercentage : -1
-    readonly property bool batteryCharging: BatteryService.primaryDevice ? BatteryService.batteryCharging : false
+    readonly property bool batteryCharging: BatteryService.primaryDevice ? (BatteryService.batteryCharging || BatteryService.batteryPluggedIn) : false
 
     // ── System Notifications ─────────────────────────────────────────────
     // Fires shell notifications when key system states change.
