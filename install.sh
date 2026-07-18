@@ -107,6 +107,7 @@ install_arch() {
         jq
         bc
         xdg-utils
+        awww
 
         # Clipboard history
         cliphist
