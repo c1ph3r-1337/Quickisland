@@ -9,9 +9,46 @@ import qs.Services.UI
 Singleton {
   id: root
 
-  // TODO Remove in may 2026
+  property var spectrumObj: null
+
   Component.onCompleted: {
-    _setBandsCount();
+    createSpectrumObj();
+  }
+
+  function createSpectrumObj() {
+    try {
+      spectrumObj = Qt.createQmlObject(
+        'import Quickshell; ' +
+        'import Quickshell.Services.Pipewire; ' +
+        'PwAudioSpectrum { ' +
+        '  lowerCutoff: 50; ' +
+        '  upperCutoff: 12000; ' +
+        '  noiseReduction: 0.77; ' +
+        '  smoothing: true; ' +
+        '}',
+        root,
+        "dynamicSpectrum"
+      );
+
+      if (spectrumObj) {
+        // Setup properties and dynamic bindings
+        spectrumObj.node = Pipewire.defaultAudioSink;
+        spectrumObj.enabled = Qt.binding(function() { return root._shouldRun; });
+        spectrumObj.frameRate = Qt.binding(function() { return Settings.data.audio.spectrumFrameRate; });
+
+        // Connect signals
+        spectrumObj.valuesChanged.connect(function() {
+          root.values = spectrumObj.values;
+        });
+        spectrumObj.idleChanged.connect(function() {
+          root.isIdle = spectrumObj.idle;
+        });
+
+        _setBandsCount();
+      }
+    } catch (e) {
+      Logger.d("Spectrum", "PwAudioSpectrum is not available. Audio spectrum visualizer will be disabled.");
+    }
   }
 
   // Register a component that needs audio data, call this when a visualizer becomes active.
@@ -42,27 +79,6 @@ Singleton {
   property var values: []
   property bool isIdle: true
 
-  PwAudioSpectrum {
-    id: spectrum
-    node: Pipewire.defaultAudioSink
-    enabled: root._shouldRun
-    // TODO Uncomment this in may 2026
-    // bandCount: Settings.data.audio.spectrumMirrored ? 32 : 64
-    frameRate: Settings.data.audio.spectrumFrameRate
-    lowerCutoff: 50
-    upperCutoff: 12000
-    noiseReduction: 0.77
-    smoothing: true
-
-    onValuesChanged: {
-      root.values = spectrum.values;
-    }
-
-    onIdleChanged: {
-      root.isIdle = spectrum.idle;
-    }
-  }
-
   // TODO Remove in may 2026 - temporary until quickisland-qs is fully propagated
   Connections {
     target: Settings.data.audio
@@ -71,11 +87,12 @@ Singleton {
     }
   }
   function _setBandsCount() {
+    if (!spectrumObj) return;
     const bandCount = Settings.data.audio.spectrumMirrored ? 32 : 64;
-    if (spectrum.bandCount !== undefined) {
-      spectrum.bandCount = bandCount;
-    } else if (spectrum.barCount !== undefined) {
-      spectrum.barCount = bandCount;
+    if (spectrumObj.bandCount !== undefined) {
+      spectrumObj.bandCount = bandCount;
+    } else if (spectrumObj.barCount !== undefined) {
+      spectrumObj.barCount = bandCount;
     }
   }
 }
