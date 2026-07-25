@@ -39,7 +39,7 @@ Singleton {
   property string wallpaperCacheFile: ""
 
   readonly property bool scanning: (scanningCount > 0)
-  readonly property string quickislandDefaultWallpaper: Quickshell.shellDir + "/Assets/Wallpaper/quickisland.png"
+  readonly property string quickislandDefaultWallpaper: Quickshell.shellDir + "/Assets/Wallpaper/quickisland-wallpaper.png"
   property string defaultWallpaper: quickislandDefaultWallpaper
 
   // Signals for reactive UI updates
