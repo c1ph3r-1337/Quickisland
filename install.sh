@@ -322,6 +322,7 @@ if [ -d "$HYPR_DIR" ]; then
 
     configure_keybind "A"      "toggle launcher"        "state toggle 4"                      "ipc call state toggle 4"
     configure_keybind "N"      "toggle control center"  "state toggle 5"                      "ipc call state toggle 5"
+    configure_keybind "M"      "toggle settings"        "state toggle 17"                     "ipc call state toggle 17"
     configure_keybind "V"      "clipboard"              "clipboard toggle"                    "ipc call clipboard toggle"
     configure_keybind "period"  "emoji picker"          "emoji toggle"                        "ipc call emoji toggle"
     configure_keybind "slash"   "toggle keybindings help" "state toggle 16"                     "ipc call state toggle 16"

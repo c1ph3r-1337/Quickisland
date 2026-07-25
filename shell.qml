@@ -19,6 +19,43 @@ import "ScreenToolkit" as ST
 ShellRoot {
     id: shell
 
+    // ======    // ======    // ======    // =========================================================================
+    // MULTI-MONITOR DISPLAY CONFIGURATION
+    // =========================================================================
+    property var monitorsList: []
+
+    Process {
+        id: getMonitorsProc
+        command: ["python3", Qt.resolvedUrl("scripts/monitor_config.py").toString().replace("file://", ""), "get"]
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    shell.monitorsList = JSON.parse(text);
+                } catch(e) {
+                    console.log("Failed to parse monitors JSON: " + e);
+                }
+            }
+        }
+    }
+
+    Process {
+        id: saveMonitorsProc
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                getMonitorsProc.running = false;
+                getMonitorsProc.running = true;
+            }
+        }
+    }
+
+    function saveMonitorsConfig(config) {
+        saveMonitorsProc.command = ["python3", Qt.resolvedUrl("scripts/monitor_config.py").toString().replace("file://", ""), "set", JSON.stringify(config)];
+        saveMonitorsProc.running = false;
+        saveMonitorsProc.running = true;
+    }
+
     // =========================================================================
     // GLOBAL THEME PALETTE
     // =========================================================================
@@ -1658,6 +1695,9 @@ ShellRoot {
         if (currentState === 1) {
             refreshBrightness();
         }
+        if (currentState === 17) {
+            getMonitorsProc.running = false; getMonitorsProc.running = true;
+        }
     }
 
     Connections {
@@ -1817,6 +1857,21 @@ ShellRoot {
             property bool isSystemReady: false
             property bool workspaceCircleActive: false
 
+            readonly property bool isFocusedScreen: {
+                if (Quickshell.screens.length <= 1) return true;
+                if (!panelWindow.screen) return false;
+                if (!Hyprland.focusedMonitor) return true;
+                return panelWindow.screen.name === Hyprland.focusedMonitor.name;
+            }
+
+            readonly property int activeState: isFocusedScreen ? shell.currentState : 0
+
+            onIsFocusedScreenChanged: {
+                if (isFocusedScreen && shell.currentState > 1 && shell.currentState !== 4 && shell.currentState !== 15 && shell.currentState !== 16) {
+                    island.forceActiveFocus();
+                }
+            }
+
             Connections {
                 target: Hyprland
                 function onFocusedWorkspaceChanged() {
@@ -1850,7 +1905,7 @@ ShellRoot {
             }
 
             onWorkspaceIdChanged: {
-                if (isSystemReady && !mainHoverArea.containsMouse && shell.currentState === 0) {
+                if (isSystemReady && !mainHoverArea.containsMouse && panelWindow.activeState === 0) {
                     workspaceTimer.stop();
                     workspaceCircleActive = true;
                     workspaceTimer.restart();
@@ -1870,7 +1925,7 @@ ShellRoot {
             Connections {
                 target: shell
                 function onCurrentStateChanged() {
-                    if (shell.currentState !== 0) {
+                    if (panelWindow.activeState !== 0) {
                         panelWindow.workspaceCircleActive = false;
                         workspaceTimer.stop();
                     }
@@ -1896,7 +1951,7 @@ ShellRoot {
             WlrLayershell.namespace: "morphing-island"
             WlrLayershell.layer: WlrLayer.Top
             WlrLayershell.exclusionMode: ExclusionMode.Ignore
-            WlrLayershell.keyboardFocus: (shell.currentState === 13) ? WlrKeyboardFocus.Exclusive : ((shell.currentState !== 0 && shell.currentState !== 1 && shell.currentState !== 2 && shell.currentState !== 3) ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None)
+            WlrLayershell.keyboardFocus: (panelWindow.activeState === 13) ? WlrKeyboardFocus.Exclusive : ((panelWindow.activeState !== 0 && panelWindow.activeState !== 1 && panelWindow.activeState !== 2 && panelWindow.activeState !== 3) ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None)
             anchors { top: true; left: true; right: true }
             implicitHeight: 720
 
@@ -1952,10 +2007,10 @@ ShellRoot {
             }
 
             HyprlandFocusGrab {
-                active: shell.currentState > 1 && shell.currentState !== 13
+                active: panelWindow.activeState > 1 && panelWindow.activeState !== 13
                 windows: [ panelWindow ]
                 onCleared: {
-                    console.log("[Focus Grab Debug] Focus grab cleared. Current state: " + shell.currentState);
+                    console.log("[Focus Grab Debug] Focus grab cleared. Current state: " + panelWindow.activeState);
                     shell.setState(0);
                 }
             }
@@ -1979,9 +2034,9 @@ ShellRoot {
                 shadowEnabled: true
                 shadowColor: Qt.rgba(0, 0, 0, 0.4)
                 shadowBlur: 0.65
-                shadowVerticalOffset: shell.currentState === 0 ? 2 : 6
+                shadowVerticalOffset: panelWindow.activeState === 0 ? 2 : 6
                 shadowHorizontalOffset: 0
-                opacity: shell.currentState === 0 ? 0.45 : 1.0
+                opacity: panelWindow.activeState === 0 ? 0.45 : 1.0
                 visible: !Settings.data.colorSchemes.hyprglass
                 Behavior on opacity { NumberAnimation { duration: shell.animFast } }
                 Behavior on shadowVerticalOffset { NumberAnimation { duration: shell.animFast } }
@@ -1995,7 +2050,7 @@ ShellRoot {
                 anchors.topMargin: 6
                 color: "transparent"
                 property real islandRadius: {
-                    switch (shell.currentState) {
+                    switch (panelWindow.activeState) {
                         case 0: return 15;
                         case 1: return 22;
                         case 2: return 16;
@@ -2017,23 +2072,23 @@ ShellRoot {
 
                 focus: true
                 Component.onCompleted: {
-                    shell.currentStateChanged.connect(function() {
-                        if (shell.currentState > 1 && shell.currentState !== 4 && shell.currentState !== 15 && shell.currentState !== 16) {
+                    panelWindow.activeStateChanged.connect(function() {
+                        if (panelWindow.activeState > 1 && panelWindow.activeState !== 4 && panelWindow.activeState !== 15 && panelWindow.activeState !== 16) {
                             island.forceActiveFocus();
                         }
                     });
                 }
                 Keys.onPressed: event => {
                     if (event.key === Qt.Key_Right || event.key === Qt.Key_Down) {
-                        if (shell.currentState === 5) { shell.setState(4); event.accepted = true; }
-                        else if (shell.currentState === 4) { shell.setState(6); event.accepted = true; }
-                        else if (shell.currentState === 6) { shell.setState(5); event.accepted = true; }
-                        else if (shell.currentState <= 1) { shell.setState(5); event.accepted = true; }
+                        if (panelWindow.activeState === 5) { shell.setState(4); event.accepted = true; }
+                        else if (panelWindow.activeState === 4) { shell.setState(6); event.accepted = true; }
+                        else if (panelWindow.activeState === 6) { shell.setState(5); event.accepted = true; }
+                        else if (panelWindow.activeState <= 1) { shell.setState(5); event.accepted = true; }
                     } else if (event.key === Qt.Key_Left || event.key === Qt.Key_Up) {
-                        if (shell.currentState === 5) { shell.setState(6); event.accepted = true; }
-                        else if (shell.currentState === 6) { shell.setState(4); event.accepted = true; }
-                        else if (shell.currentState === 4) { shell.setState(5); event.accepted = true; }
-                        else if (shell.currentState <= 1) { shell.setState(6); event.accepted = true; }
+                        if (panelWindow.activeState === 5) { shell.setState(6); event.accepted = true; }
+                        else if (panelWindow.activeState === 6) { shell.setState(4); event.accepted = true; }
+                        else if (panelWindow.activeState === 4) { shell.setState(5); event.accepted = true; }
+                        else if (panelWindow.activeState <= 1) { shell.setState(6); event.accepted = true; }
                     } else if (event.key === Qt.Key_Escape) {
                         shell.setState(0);
                         event.accepted = true;
@@ -2041,7 +2096,7 @@ ShellRoot {
                 }
 
                 property real islandWidth: {
-                    switch (shell.currentState) {
+                    switch (panelWindow.activeState) {
                         case 0: return 110;
                         case 1: return 380;
                         case 2: return 230;
@@ -2059,11 +2114,12 @@ ShellRoot {
                         case 14: return 440;
                         case 15: return 440;
                         case 16: return 440;
+                        case 17: return 440;
                         default: return 110;
                     }
                 }
                 property real islandHeight: {
-                    switch (shell.currentState) {
+                    switch (panelWindow.activeState) {
                         case 0: return 30;
                         case 1: return 44;
                         case 2: return 32;
@@ -2081,6 +2137,7 @@ ShellRoot {
                         case 14: return Math.min(680, (typeof screenToolkitCol !== "undefined" ? screenToolkitCol.height + 28 : 450));
                         case 15: return Math.min(680, (typeof emojiCol !== "undefined" ? emojiCol.height + 28 : 350));
                         case 16: return Math.min(680, (typeof keybindCol !== "undefined" ? keybindCol.height + 28 : 220));
+                        case 17: return Math.min(680, (typeof settingsCol !== "undefined" ? settingsCol.height + 28 : 380));
                         default: return 30;
                     }
                 }
@@ -2095,7 +2152,7 @@ ShellRoot {
                 // =============================================================
                 Item {
                     anchors.fill: parent
-                    opacity: shell.currentState === 0 ? 1 : 0; scale: shell.currentState === 0 ? 1 : 0.92; visible: opacity > 0.01
+                    opacity: panelWindow.activeState === 0 ? 1 : 0; scale: panelWindow.activeState === 0 ? 1 : 0.92; visible: opacity > 0.01
                     Behavior on opacity { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
                     Behavior on scale   { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
 
@@ -2159,7 +2216,7 @@ ShellRoot {
                 // =============================================================
                 Item {
                     anchors.fill: parent
-                    opacity: shell.currentState === 1 ? 1 : 0; scale: shell.currentState === 1 ? 1 : 0.92; visible: opacity > 0.01
+                    opacity: panelWindow.activeState === 1 ? 1 : 0; scale: panelWindow.activeState === 1 ? 1 : 0.92; visible: opacity > 0.01
                     Behavior on opacity { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
                     Behavior on scale   { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
 
@@ -2272,7 +2329,7 @@ ShellRoot {
                 // =============================================================
                 Item {
                     anchors.fill: parent
-                    opacity: shell.currentState === 2 ? 1 : 0; scale: shell.currentState === 2 ? 1 : 0.92; visible: opacity > 0.01
+                    opacity: panelWindow.activeState === 2 ? 1 : 0; scale: panelWindow.activeState === 2 ? 1 : 0.92; visible: opacity > 0.01
                     Behavior on opacity { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
                     Behavior on scale   { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
 
@@ -2315,7 +2372,7 @@ ShellRoot {
                 Item {
                     anchors.fill: parent
                     height: 76
-                    opacity: shell.currentState === 3 ? 1 : 0; scale: shell.currentState === 3 ? 1 : 0.92; visible: opacity > 0.01
+                    opacity: panelWindow.activeState === 3 ? 1 : 0; scale: panelWindow.activeState === 3 ? 1 : 0.92; visible: opacity > 0.01
                     Behavior on opacity { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
                     Behavior on scale   { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
 
@@ -2395,7 +2452,7 @@ ShellRoot {
                 // =============================================================
                 Item {
                     id: launcherView; anchors.fill: parent
-                    opacity: shell.currentState === 4 ? 1 : 0; scale: shell.currentState === 4 ? 1 : 0.96; visible: opacity > 0.01
+                    opacity: panelWindow.activeState === 4 ? 1 : 0; scale: panelWindow.activeState === 4 ? 1 : 0.96; visible: opacity > 0.01
                     Behavior on opacity { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
                     Behavior on scale   { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
 
@@ -2534,7 +2591,7 @@ ShellRoot {
                                                   NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic }
                                               }
                                              fillMode: Image.PreserveAspectFit
-                                             layer.enabled: shell.currentState === 4 && Settings.data.colorSchemes.themedIcons
+                                             layer.enabled: panelWindow.activeState === 4 && Settings.data.colorSchemes.themedIcons
                                              layer.effect: MultiEffect {
                                                  colorization: 1.0; colorizationColor: shell.accent
                                              }
@@ -2604,7 +2661,7 @@ ShellRoot {
                 // =============================================================
                 Item {
                     id: ccView; anchors.fill: parent
-                    readonly property bool ccActive: shell.currentState === 5
+                    readonly property bool ccActive: panelWindow.activeState === 5
                     opacity: ccActive ? 1 : 0; scale: ccActive ? 1 : 0.96; visible: opacity > 0.01
                     Behavior on opacity { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
                     Behavior on scale   { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
@@ -2844,16 +2901,16 @@ ShellRoot {
                                  // Personalization (Left)
                                  Rectangle {
                                      width: (parent.width - 8) / 2; height: 45; radius: 22.5
-                                     color: persBtnMa.containsMouse ? shell.surfaceBright : ((shell.currentState === 12 || shell.currentState === 11) ? shell.accentDim : shell.surfaceAlt)
+                                     color: persBtnMa.containsMouse ? shell.surfaceBright : ((panelWindow.activeState === 12 || panelWindow.activeState === 11) ? shell.accentDim : shell.surfaceAlt)
                                      border.width: 1
-                                     border.color: (shell.currentState === 12 || shell.currentState === 11) ? Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.2) : shell.surfaceBorder
+                                     border.color: (panelWindow.activeState === 12 || panelWindow.activeState === 11) ? Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.2) : shell.surfaceBorder
                                      Behavior on color { ColorAnimation { duration: shell.animFast } }
 
                                      Row {
                                          anchors.fill: parent; anchors.margins: 8; spacing: 6
                                          Rectangle {
                                              width: 28; height: 28; radius: 14; anchors.verticalCenter: parent.verticalCenter
-                                             color: (shell.currentState === 12 || shell.currentState === 11) ? shell.accent : shell.surfaceBright
+                                             color: (panelWindow.activeState === 12 || panelWindow.activeState === 11) ? shell.accent : shell.surfaceBright
                                              Image {
                                                  anchors.centerIn: parent; width: 16; height: 16
                                                  source: "icons/palette.png"
@@ -2862,7 +2919,7 @@ ShellRoot {
                                                  layer.effect: MultiEffect {
                                                      brightness: 1.0
                                                      colorization: 1.0
-                                                     colorizationColor: (shell.currentState === 12 || shell.currentState === 11) ? shell.surface : shell.textMuted
+                                                     colorizationColor: (panelWindow.activeState === 12 || panelWindow.activeState === 11) ? shell.surface : shell.textMuted
                                                  }
                                              }
                                          }
@@ -2885,16 +2942,16 @@ ShellRoot {
                                  // Screen Toolkit (Right)
                                  Rectangle {
                                      width: (parent.width - 8) / 2; height: 45; radius: 22.5
-                                     color: screenToolkitBtnMa.containsMouse ? shell.surfaceBright : (shell.currentState === 14 ? shell.accentDim : shell.surfaceAlt)
+                                     color: screenToolkitBtnMa.containsMouse ? shell.surfaceBright : (panelWindow.activeState === 14 ? shell.accentDim : shell.surfaceAlt)
                                      border.width: 1
-                                     border.color: shell.currentState === 14 ? Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.2) : shell.surfaceBorder
+                                     border.color: panelWindow.activeState === 14 ? Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.2) : shell.surfaceBorder
                                      Behavior on color { ColorAnimation { duration: shell.animFast } }
 
                                      Row {
                                          anchors.fill: parent; anchors.margins: 8; spacing: 6
                                          Rectangle {
                                              width: 28; height: 28; radius: 14; anchors.verticalCenter: parent.verticalCenter
-                                             color: shell.currentState === 14 ? shell.accent : shell.surfaceBright
+                                             color: panelWindow.activeState === 14 ? shell.accent : shell.surfaceBright
                                               Image {
                                                   anchors.centerIn: parent; width: 16; height: 16
                                                   source: "icons/screentools.png"
@@ -2903,7 +2960,7 @@ ShellRoot {
                                                   layer.effect: MultiEffect {
                                                       brightness: 1.0
                                                       colorization: 1.0
-                                                      colorizationColor: shell.currentState === 14 ? shell.surface : shell.textMuted
+                                                      colorizationColor: panelWindow.activeState === 14 ? shell.surface : shell.textMuted
                                                   }
                                               }
                                          }
@@ -3290,7 +3347,7 @@ ShellRoot {
                 // =============================================================
                 Item {
                     anchors.fill: parent
-                    opacity: shell.currentState === 6 ? 1 : 0; scale: shell.currentState === 6 ? 1 : 0.92; visible: opacity > 0.01
+                    opacity: panelWindow.activeState === 6 ? 1 : 0; scale: panelWindow.activeState === 6 ? 1 : 0.92; visible: opacity > 0.01
                     Behavior on opacity { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
                     Behavior on scale   { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
 
@@ -3326,7 +3383,7 @@ ShellRoot {
                                         width: 24; height: 24; anchors.horizontalCenter: parent.horizontalCenter
                                         source: modelData.icon
                                         fillMode: Image.PreserveAspectFit
-                                        layer.enabled: shell.currentState === 6
+                                        layer.enabled: panelWindow.activeState === 6
                                         layer.effect: MultiEffect {
                                             brightness: 1.0
                                             colorization: 1.0
@@ -3357,7 +3414,7 @@ ShellRoot {
                 // =============================================================
                 Item {
                     anchors.fill: parent
-                    opacity: shell.currentState === 7 ? 1 : 0; scale: shell.currentState === 7 ? 1 : 0.96; visible: opacity > 0.01
+                    opacity: panelWindow.activeState === 7 ? 1 : 0; scale: panelWindow.activeState === 7 ? 1 : 0.96; visible: opacity > 0.01
                     Behavior on opacity { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
                     Behavior on scale   { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
 
@@ -3401,7 +3458,7 @@ ShellRoot {
                 // =============================================================
                 Item {
                     anchors.fill: parent
-                    opacity: shell.currentState === 8 ? 1 : 0; scale: shell.currentState === 8 ? 1 : 0.96; visible: opacity > 0.01
+                    opacity: panelWindow.activeState === 8 ? 1 : 0; scale: panelWindow.activeState === 8 ? 1 : 0.96; visible: opacity > 0.01
                     Behavior on opacity { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
                     Behavior on scale   { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
 
@@ -3429,7 +3486,7 @@ ShellRoot {
                                         anchors.centerIn: parent; width: 20; height: 20
                                         source: "icons/back.png"
                                         fillMode: Image.PreserveAspectFit
-                                        layer.enabled: shell.currentState === 8
+                                        layer.enabled: panelWindow.activeState === 8
                                         layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: shell.textPrimary }
                                     }
                                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: shell.setState(5) }
@@ -3446,7 +3503,7 @@ ShellRoot {
                                         anchors.centerIn: parent; width: 14; height: 14
                                         source: "icons/restart.png"
                                         fillMode: Image.PreserveAspectFit
-                                        layer.enabled: shell.currentState === 8
+                                        layer.enabled: panelWindow.activeState === 8
                                         layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: (wifiScanProc.running && !wifiFirstScan) ? shell.textMuted : shell.textPrimary }
                                         RotationAnimator on rotation {
                                             loops: Animation.Infinite
@@ -3481,7 +3538,7 @@ ShellRoot {
                                         Image {
                                             anchors.centerIn: parent; width: 14; height: 14
                                             source: "icons/wifi.png"
-                                            layer.enabled: shell.currentState === 8
+                                            layer.enabled: panelWindow.activeState === 8
                                             layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: shell.wifiEnabled ? shell.surface : shell.textMuted }
                                         }
                                     }
@@ -3499,7 +3556,7 @@ ShellRoot {
                                         source: "icons/on.png"
                                         mirror: !shell.wifiEnabled
                                         fillMode: Image.PreserveAspectFit
-                                        layer.enabled: shell.currentState === 8
+                                        layer.enabled: panelWindow.activeState === 8
                                         layer.effect: MultiEffect {
                                             brightness: 1.0
                                             colorization: 1.0
@@ -3537,7 +3594,7 @@ ShellRoot {
                                             Image {
                                                 anchors.centerIn: parent; width: 16; height: 16
                                                 source: "icons/wifi.png"
-                                                layer.enabled: shell.currentState === 8
+                                                layer.enabled: panelWindow.activeState === 8
                                                 layer.effect: MultiEffect {
                                                     brightness: 1.0
                                                     colorization: 1.0
@@ -3636,7 +3693,7 @@ ShellRoot {
                                             width: 14; height: 14
                                             anchors.left: parent.left; anchors.leftMargin: 12; anchors.verticalCenter: parent.verticalCenter
                                             source: "icons/wifi.png"
-                                            layer.enabled: shell.currentState === 8
+                                            layer.enabled: panelWindow.activeState === 8
                                             layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: shell.textSecondary }
                                         }
 
@@ -3794,7 +3851,7 @@ ShellRoot {
                 // =============================================================
                 Item {
                     anchors.fill: parent
-                    opacity: shell.currentState === 9 ? 1 : 0; scale: shell.currentState === 9 ? 1 : 0.96; visible: opacity > 0.01
+                    opacity: panelWindow.activeState === 9 ? 1 : 0; scale: panelWindow.activeState === 9 ? 1 : 0.96; visible: opacity > 0.01
                     Behavior on opacity { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
                     Behavior on scale   { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
 
@@ -3821,7 +3878,7 @@ ShellRoot {
                                         anchors.centerIn: parent; width: 20; height: 20
                                         source: "icons/back.png"
                                         fillMode: Image.PreserveAspectFit
-                                        layer.enabled: shell.currentState === 9
+                                        layer.enabled: panelWindow.activeState === 9
                                         layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: shell.textPrimary }
                                     }
                                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: shell.setState(5) }
@@ -3842,7 +3899,7 @@ ShellRoot {
                                         Image {
                                             anchors.centerIn: parent; width: 14; height: 14
                                             source: "icons/bluetooth.png"
-                                            layer.enabled: shell.currentState === 9
+                                            layer.enabled: panelWindow.activeState === 9
                                             layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: shell.btPowered ? shell.surface : shell.textMuted }
                                         }
                                     }
@@ -3860,7 +3917,7 @@ ShellRoot {
                                         source: "icons/on.png"
                                         mirror: !shell.btPowered
                                         fillMode: Image.PreserveAspectFit
-                                        layer.enabled: shell.currentState === 9
+                                        layer.enabled: panelWindow.activeState === 9
                                         layer.effect: MultiEffect {
                                             brightness: 1.0
                                             colorization: 1.0
@@ -3889,7 +3946,7 @@ ShellRoot {
                                             width: 14; height: 14
                                             anchors.left: parent.left; anchors.leftMargin: 12; anchors.verticalCenter: parent.verticalCenter
                                             source: "icons/bluetooth.png"
-                                            layer.enabled: shell.currentState === 9
+                                            layer.enabled: panelWindow.activeState === 9
                                             layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: shell.textSecondary }
                                         }
 
@@ -3933,7 +3990,7 @@ ShellRoot {
                 Item {
                     id: wallpaperSelectorView
                     anchors.fill: parent
-                    opacity: shell.currentState === 10 ? 1 : 0; scale: shell.currentState === 10 ? 1 : 0.96; visible: opacity > 0.01
+                    opacity: panelWindow.activeState === 10 ? 1 : 0; scale: panelWindow.activeState === 10 ? 1 : 0.96; visible: opacity > 0.01
                     Behavior on opacity { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
                     Behavior on scale   { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
 
@@ -3990,7 +4047,7 @@ ShellRoot {
                                          anchors.centerIn: parent; width: 20; height: 20
                                          source: "icons/back.png"
                                          fillMode: Image.PreserveAspectFit
-                                         layer.enabled: shell.currentState === 10
+                                         layer.enabled: panelWindow.activeState === 10
                                          layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: shell.textPrimary }
                                      }
                                      MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: shell.setState(12) }
@@ -4020,7 +4077,7 @@ ShellRoot {
                                              ? Quickshell.iconPath("folder")
                                              : ""
                                          fillMode: Image.PreserveAspectFit
-                                         layer.enabled: shell.currentState === 10
+                                         layer.enabled: panelWindow.activeState === 10
                                          layer.effect: MultiEffect {
                                              brightness: 1.0; colorization: 1.0
                                              colorizationColor: folderBtnMa.containsMouse ? shell.textPrimary : shell.textSecondary
@@ -4079,7 +4136,7 @@ ShellRoot {
                                       radius: card.radius
                                       color: "transparent"
 
-                                      layer.enabled: shell.currentState === 10
+                                      layer.enabled: panelWindow.activeState === 10
                                       layer.smooth: true
                                       layer.effect: MultiEffect {
                                           maskEnabled: true
@@ -4135,7 +4192,7 @@ ShellRoot {
                 Item {
                     id: customPaletteView
                     anchors.fill: parent
-                    opacity: shell.currentState === 11 ? 1 : 0; scale: shell.currentState === 11 ? 1 : 0.96; visible: opacity > 0.01
+                    opacity: panelWindow.activeState === 11 ? 1 : 0; scale: panelWindow.activeState === 11 ? 1 : 0.96; visible: opacity > 0.01
                     Behavior on opacity { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
                     Behavior on scale   { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
 
@@ -4164,7 +4221,7 @@ ShellRoot {
                                         anchors.centerIn: parent; width: 20; height: 20
                                         source: "icons/back.png"
                                         fillMode: Image.PreserveAspectFit
-                                        layer.enabled: shell.currentState === 11
+                                        layer.enabled: panelWindow.activeState === 11
                                         layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: shell.textPrimary }
                                     }
                                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: shell.setState(12) }
@@ -4398,7 +4455,7 @@ ShellRoot {
                 Item {
                     id: personalizationView
                     anchors.fill: parent
-                    opacity: shell.currentState === 12 ? 1 : 0; scale: shell.currentState === 12 ? 1 : 0.96; visible: opacity > 0.01
+                    opacity: panelWindow.activeState === 12 ? 1 : 0; scale: panelWindow.activeState === 12 ? 1 : 0.96; visible: opacity > 0.01
                     Behavior on opacity { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
                     Behavior on scale   { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
 
@@ -4425,7 +4482,7 @@ ShellRoot {
                                         anchors.centerIn: parent; width: 20; height: 20
                                         source: "icons/back.png"
                                         fillMode: Image.PreserveAspectFit
-                                        layer.enabled: shell.currentState === 12
+                                        layer.enabled: panelWindow.activeState === 12
                                         layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: shell.textPrimary }
                                     }
                                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: shell.setState(5) }
@@ -4453,7 +4510,7 @@ ShellRoot {
                                              radius: wpThumbCard.radius
                                              color: "transparent"
 
-                                             layer.enabled: shell.currentState === 12
+                                             layer.enabled: panelWindow.activeState === 12
                                              layer.smooth: true
                                              layer.effect: MultiEffect {
                                                  maskEnabled: true
@@ -4490,7 +4547,7 @@ ShellRoot {
                                              source: "icons/palette.png"
                                              fillMode: Image.PreserveAspectFit
                                              visible: !wpThumbClip.children[0].visible
-                                             layer.enabled: shell.currentState === 12
+                                             layer.enabled: panelWindow.activeState === 12
                                              layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: shell.accent }
                                          }
                                     }
@@ -4606,7 +4663,7 @@ ShellRoot {
                                         Image {
                                             anchors.centerIn: parent; width: 14; height: 14
                                             source: "icons/palette.png"
-                                            layer.enabled: shell.currentState === 12
+                                            layer.enabled: panelWindow.activeState === 12
                                             layer.effect: MultiEffect {
                                                 brightness: 1.0; colorization: 1.0
                                                 colorizationColor: Settings.data.colorSchemes.themedIcons ? shell.surface : shell.textMuted
@@ -4627,7 +4684,7 @@ ShellRoot {
                                         source: "icons/on.png"
                                         mirror: !Settings.data.colorSchemes.themedIcons
                                         fillMode: Image.PreserveAspectFit
-                                        layer.enabled: shell.currentState === 12
+                                        layer.enabled: panelWindow.activeState === 12
                                         layer.effect: MultiEffect {
                                             brightness: 1.0
                                             colorization: 1.0
@@ -4656,7 +4713,7 @@ ShellRoot {
                                         Image {
                                             anchors.centerIn: parent; width: 14; height: 14
                                             source: "icons/palette.png"
-                                            layer.enabled: shell.currentState === 12
+                                            layer.enabled: panelWindow.activeState === 12
                                             layer.effect: MultiEffect {
                                                 brightness: 1.0; colorization: 1.0
                                                 colorizationColor: Settings.data.colorSchemes.hyprglass ? shell.surface : shell.textMuted
@@ -4677,7 +4734,7 @@ ShellRoot {
                                         source: "icons/on.png"
                                         mirror: !Settings.data.colorSchemes.hyprglass
                                         fillMode: Image.PreserveAspectFit
-                                        layer.enabled: shell.currentState === 12
+                                        layer.enabled: panelWindow.activeState === 12
                                         layer.effect: MultiEffect {
                                             brightness: 1.0
                                             colorization: 1.0
@@ -4703,7 +4760,7 @@ ShellRoot {
                 Item {
                     id: clipboardHistoryView
                     anchors.fill: parent
-                    opacity: shell.currentState === 13 ? 1 : 0; scale: shell.currentState === 13 ? 1 : 0.96; visible: opacity > 0.01
+                    opacity: panelWindow.activeState === 13 ? 1 : 0; scale: panelWindow.activeState === 13 ? 1 : 0.96; visible: opacity > 0.01
                     Behavior on opacity { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
                     Behavior on scale   { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
 
@@ -4738,7 +4795,7 @@ ShellRoot {
                                         anchors.centerIn: parent; width: 20; height: 20
                                         source: "icons/back.png"
                                         fillMode: Image.PreserveAspectFit
-                                        layer.enabled: shell.currentState === 13
+                                        layer.enabled: panelWindow.activeState === 13
                                         layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: shell.textPrimary }
                                     }
                                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: shell.setState(5) }
@@ -4848,7 +4905,7 @@ ShellRoot {
                                                         if (modelData.contentType === "link") return "icons/wifi.png";
                                                         return "icons/palette.png";
                                                     }
-                                                    layer.enabled: shell.currentState === 13
+                                                    layer.enabled: panelWindow.activeState === 13
                                                     layer.effect: MultiEffect {
                                                         brightness: 1.0; colorization: 1.0
                                                         colorizationColor: shell.accent
@@ -4936,7 +4993,7 @@ ShellRoot {
                 Item {
                     id: screenToolkitView
                     anchors.fill: parent
-                    opacity: shell.currentState === 14 ? 1 : 0; scale: shell.currentState === 14 ? 1 : 0.96; visible: shell.currentState === 14 || opacity > 0.01
+                    opacity: panelWindow.activeState === 14 ? 1 : 0; scale: panelWindow.activeState === 14 ? 1 : 0.96; visible: panelWindow.activeState === 14 || opacity > 0.01
                     Behavior on opacity { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
                     Behavior on scale   { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
 
@@ -4952,7 +5009,7 @@ ShellRoot {
                         clip: true; boundsBehavior: Flickable.StopAtBounds
 
                         transform: Translate {
-                            y: shell.currentState === 14 ? 0 : 20
+                            y: panelWindow.activeState === 14 ? 0 : 20
                             Behavior on y { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
                         }
 
@@ -4982,7 +5039,7 @@ ShellRoot {
                 Item {
                     id: emojiBoardView
                     anchors.fill: parent
-                    opacity: shell.currentState === 15 ? 1 : 0; scale: shell.currentState === 15 ? 1 : 0.96; visible: shell.currentState === 15 || opacity > 0.01
+                    opacity: panelWindow.activeState === 15 ? 1 : 0; scale: panelWindow.activeState === 15 ? 1 : 0.96; visible: panelWindow.activeState === 15 || opacity > 0.01
                     Behavior on opacity { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
                     Behavior on scale   { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
 
@@ -5019,7 +5076,7 @@ ShellRoot {
                                     anchors.centerIn: parent; width: 20; height: 20
                                     source: "icons/back.png"
                                     fillMode: Image.PreserveAspectFit
-                                    layer.enabled: shell.currentState === 15
+                                    layer.enabled: panelWindow.activeState === 15
                                     layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: shell.textPrimary }
                                 }
                                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: shell.setState(5) }
@@ -5046,7 +5103,7 @@ ShellRoot {
                                     source: "icons/search.png"
                                     anchors.verticalCenter: parent.verticalCenter
                                     fillMode: Image.PreserveAspectFit
-                                    layer.enabled: shell.currentState === 15
+                                    layer.enabled: panelWindow.activeState === 15
                                     layer.effect: MultiEffect {
                                         brightness: 1.0
                                         colorization: 1.0
@@ -5179,7 +5236,7 @@ ShellRoot {
                 Item {
                     id: keybindHelpView
                     anchors.fill: parent
-                    opacity: shell.currentState === 16 ? 1 : 0; scale: shell.currentState === 16 ? 1 : 0.96; visible: shell.currentState === 16 || opacity > 0.01
+                    opacity: panelWindow.activeState === 16 ? 1 : 0; scale: panelWindow.activeState === 16 ? 1 : 0.96; visible: panelWindow.activeState === 16 || opacity > 0.01
                     Behavior on opacity { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
                     Behavior on scale   { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
 
@@ -5206,7 +5263,7 @@ ShellRoot {
                                     anchors.centerIn: parent; width: 20; height: 20
                                     source: "icons/back.png"
                                     fillMode: Image.PreserveAspectFit
-                                    layer.enabled: shell.currentState === 16
+                                    layer.enabled: panelWindow.activeState === 16
                                     layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: shell.textPrimary }
                                 }
                                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: shell.setState(0) }
@@ -5233,6 +5290,7 @@ ShellRoot {
                                     { keys: "Super + V", desc: "Toggle Clipboard" },
                                     { keys: "Super + .", desc: "Toggle Emoji Board" },
                                     { keys: "Super + /", desc: "Toggle Keybindings" },
+                                    { keys: "Super + M", desc: "Toggle Settings" },
                                     { keys: "Super + L", desc: "Lock Screen" },
                                     { keys: "Ctrl + Alt + Del", desc: "Logout / Power Menu" },
                                     { keys: "Swipe Left/Right", desc: "Switch CC/Launcher/Power" }
@@ -5275,13 +5333,907 @@ ShellRoot {
                 }
 
                 // =============================================================
+                // =============================================================
+                // =============================================================
+                // =============================================================
+                // =============================================================
+                // =============================================================
+                // =============================================================
+                // STATE 17: SETTINGS POPUP (MONITOR CONFIGURATION)
+                // =============================================================
+                Item {
+                    id: settingsPopupView
+                    anchors.fill: parent
+                    opacity: panelWindow.activeState === 17 ? 1 : 0; scale: panelWindow.activeState === 17 ? 1 : 0.96; visible: panelWindow.activeState === 17 || opacity > 0.01
+                    Behavior on opacity { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
+                    Behavior on scale   { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
+
+                    property int selectedMonitorIdx: 0
+                    property int currentSubView: 0 // 0 = Main View, 1 = Monitor Edit View
+                    property var availableScales: [1.0, 1.2, 1.25, 1.5, 1.6, 2.0]
+                    property var availableRotations: [
+                        { val: 0, text: "Landscape (0°)" },
+                        { val: 1, text: "Portrait (90°)" },
+                        { val: 2, text: "Flipped (180°)" },
+                        { val: 3, text: "Flipped Portrait (270°)" }
+                    ]
+
+                    function getSelectedMonitor() {
+                        if (shell.monitorsList && selectedMonitorIdx < shell.monitorsList.length) {
+                            return shell.monitorsList[selectedMonitorIdx];
+                        }
+                        return null;
+                    }
+
+                    function isWorkspaceAssigned(ws, m) {
+                        if (!m || !m.workspaces) return false;
+                        return m.workspaces.indexOf(ws) >= 0;
+                    }
+
+                    // Reset subview when state changes or opens
+                    Connections {
+                        target: shell
+                        function onCurrentStateChanged() {
+                            if (shell.currentState === 17) {
+                                settingsPopupView.currentSubView = 0;
+                            }
+                        }
+                    }
+
+                    function snapMonitor(draggedIdx, currentTempX, currentTempY) {
+                        var list = [];
+                        for (var i = 0; i < shell.monitorsList.length; i++) {
+                            var m = shell.monitorsList[i];
+                            list.push({
+                                name: m.name, description: m.description, make: m.make, model: m.model, serial: m.serial,
+                                width: m.width, height: m.height, refreshRate: m.refreshRate, x: m.x, y: m.y,
+                                scale: m.scale, transform: m.transform, disabled: m.disabled, mirrorOf: m.mirrorOf,
+                                availableModes: m.availableModes, workspaces: m.workspaces
+                            });
+                        }
+
+                        var m_i = list[draggedIdx];
+                        var m_i_lw = m_i.width / m_i.scale;
+                        var m_i_lh = m_i.height / m_i.scale;
+
+                        var min_dist = 999999;
+                        var best_x = currentTempX;
+                        var best_y = currentTempY;
+
+                        for (var j = 0; j < list.length; j++) {
+                            if (j === draggedIdx || list[j].disabled) continue;
+                            var m_ref = list[j];
+                            var m_ref_lw = m_ref.width / m_ref.scale;
+                            var m_ref_lh = m_ref.height / m_ref.scale;
+
+                            // 1. Left of j
+                            var target_left_x = m_ref.x - m_i_lw;
+                            var target_left_y = m_ref.y;
+                            var dist_left = Math.abs(currentTempX - target_left_x) + Math.abs(currentTempY - target_left_y);
+                            if (dist_left < min_dist) {
+                                min_dist = dist_left;
+                                best_x = target_left_x;
+                                best_y = target_left_y;
+                            }
+
+                            // 2. Right of j
+                            var target_right_x = m_ref.x + m_ref_lw;
+                            var target_right_y = m_ref.y;
+                            var dist_right = Math.abs(currentTempX - target_right_x) + Math.abs(currentTempY - target_right_y);
+                            if (dist_right < min_dist) {
+                                min_dist = dist_right;
+                                best_x = target_right_x;
+                                best_y = target_right_y;
+                            }
+
+                            // 3. Above j
+                            var target_above_x = m_ref.x;
+                            var target_above_y = m_ref.y - m_i_lh;
+                            var dist_above = Math.abs(currentTempX - target_above_x) + Math.abs(currentTempY - target_above_y);
+                            if (dist_above < min_dist) {
+                                min_dist = dist_above;
+                                best_x = target_above_x;
+                                best_y = target_above_y;
+                            }
+
+                            // 4. Below j
+                            var target_below_x = m_ref.x;
+                            var target_below_y = m_ref.y + m_ref_lh;
+                            var dist_below = Math.abs(currentTempX - target_below_x) + Math.abs(currentTempY - target_below_y);
+                            if (dist_below < min_dist) {
+                                min_dist = dist_below;
+                                best_x = target_below_x;
+                                best_y = target_below_y;
+                            }
+                        }
+
+                        m_i.x = best_x;
+                        m_i.y = best_y;
+                        shell.monitorsList = list;
+                    }
+
+                    function alignMonitor(dir, draggedIdx, refIdx) {
+                        var list = [];
+                        for (var i = 0; i < shell.monitorsList.length; i++) {
+                            var m = shell.monitorsList[i];
+                            list.push({
+                                name: m.name, description: m.description, make: m.make, model: m.model, serial: m.serial,
+                                width: m.width, height: m.height, refreshRate: m.refreshRate, x: m.x, y: m.y,
+                                scale: m.scale, transform: m.transform, disabled: m.disabled, mirrorOf: m.mirrorOf,
+                                availableModes: m.availableModes, workspaces: m.workspaces
+                            });
+                        }
+
+                        var m_i = list[draggedIdx];
+                        var m_ref = list[refIdx];
+
+                        var m_i_lw = m_i.width / m_i.scale;
+                        var m_i_lh = m_i.height / m_i.scale;
+                        var m_ref_lw = m_ref.width / m_ref.scale;
+                        var m_ref_lh = m_ref.height / m_ref.scale;
+
+                        if (dir === "left") {
+                            m_i.x = m_ref.x - m_i_lw;
+                            m_i.y = m_ref.y;
+                        } else if (dir === "right") {
+                            m_i.x = m_ref.x + m_ref_lw;
+                            m_i.y = m_ref.y;
+                        } else if (dir === "above") {
+                            m_i.x = m_ref.x;
+                            m_i.y = m_ref.y - m_i_lh;
+                        } else if (dir === "below") {
+                            m_i.x = m_ref.x;
+                            m_i.y = m_ref.y + m_ref_lh;
+                        }
+
+                        shell.monitorsList = list;
+                    }
+
+                    function getMatchingModeIdx(m) {
+                        var modes = m.availableModes;
+                        if (!modes) return 0;
+                        var target = m.width + "x" + m.height;
+                        for (var i = 0; i < modes.length; i++) {
+                            if (modes[i].indexOf(target) >= 0) {
+                                var ratePart = modes[i].split("@")[1];
+                                if (ratePart) {
+                                    var rateVal = parseFloat(ratePart.replace("Hz", ""));
+                                    if (Math.abs(rateVal - m.refreshRate) < 1.0) {
+                                        return i;
+                                    }
+                                }
+                            }
+                        }
+                        for (var i = 0; i < modes.length; i++) {
+                            if (modes[i].indexOf(target) >= 0) {
+                                return i;
+                            }
+                        }
+                        return 0;
+                    }
+
+                    function cycleMode(dir, mIdx) {
+                        var list = [];
+                        for (var i = 0; i < shell.monitorsList.length; i++) {
+                            var m = shell.monitorsList[i];
+                            list.push({
+                                name: m.name, description: m.description, make: m.make, model: m.model, serial: m.serial,
+                                width: m.width, height: m.height, refreshRate: m.refreshRate, x: m.x, y: m.y,
+                                scale: m.scale, transform: m.transform, disabled: m.disabled, mirrorOf: m.mirrorOf,
+                                availableModes: m.availableModes, workspaces: m.workspaces
+                            });
+                        }
+                        var m_i = list[mIdx];
+                        var modes = m_i.availableModes;
+                        if (!modes || modes.length === 0) return;
+
+                        var currentIdx = settingsPopupView.getMatchingModeIdx(m_i);
+                        var newIdx = currentIdx;
+                        if (dir === "next") {
+                            newIdx = (currentIdx + 1) % modes.length;
+                        } else {
+                            newIdx = (currentIdx - 1 + modes.length) % modes.length;
+                        }
+
+                        var modeStr = modes[newIdx];
+                        var parts = modeStr.split("@");
+                        if (parts.length >= 1) {
+                            var resParts = parts[0].split("x");
+                            if (resParts.length === 2) {
+                                m_i.width = parseInt(resParts[0]);
+                                m_i.height = parseInt(resParts[1]);
+                            }
+                        }
+                        if (parts.length >= 2) {
+                            var hzVal = parseFloat(parts[1].replace("Hz", "").replace("hz", ""));
+                            m_i.refreshRate = hzVal;
+                        }
+
+                        shell.monitorsList = list;
+                    }
+
+                    function getScaleIdx(scale) {
+                        for (var i = 0; i < settingsPopupView.availableScales.length; i++) {
+                            if (Math.abs(settingsPopupView.availableScales[i] - scale) < 0.05) {
+                                return i;
+                            }
+                        }
+                        return 0;
+                    }
+
+                    function cycleScale(dir, mIdx) {
+                        var list = [];
+                        for (var i = 0; i < shell.monitorsList.length; i++) {
+                            var m = shell.monitorsList[i];
+                            list.push({
+                                name: m.name, description: m.description, make: m.make, model: m.model, serial: m.serial,
+                                width: m.width, height: m.height, refreshRate: m.refreshRate, x: m.x, y: m.y,
+                                scale: m.scale, transform: m.transform, disabled: m.disabled, mirrorOf: m.mirrorOf,
+                                availableModes: m.availableModes, workspaces: m.workspaces
+                            });
+                        }
+                        var m_i = list[mIdx];
+                        var currentIdx = settingsPopupView.getScaleIdx(m_i.scale);
+                        var newIdx = currentIdx;
+                        if (dir === "next") {
+                            newIdx = (currentIdx + 1) % settingsPopupView.availableScales.length;
+                        } else {
+                            newIdx = (currentIdx - 1 + settingsPopupView.availableScales.length) % settingsPopupView.availableScales.length;
+                        }
+                        m_i.scale = settingsPopupView.availableScales[newIdx];
+                        shell.monitorsList = list;
+                    }
+
+                    function getRotationIdx(rot) {
+                        for (var i = 0; i < settingsPopupView.availableRotations.length; i++) {
+                            if (settingsPopupView.availableRotations[i].val === rot) return i;
+                        }
+                        return 0;
+                    }
+
+                    function cycleRotation(dir, mIdx) {
+                        var list = [];
+                        for (var i = 0; i < shell.monitorsList.length; i++) {
+                            var m = shell.monitorsList[i];
+                            list.push({
+                                name: m.name, description: m.description, make: m.make, model: m.model, serial: m.serial,
+                                width: m.width, height: m.height, refreshRate: m.refreshRate, x: m.x, y: m.y,
+                                scale: m.scale, transform: m.transform, disabled: m.disabled, mirrorOf: m.mirrorOf,
+                                availableModes: m.availableModes, workspaces: m.workspaces
+                            });
+                        }
+                        var m_i = list[mIdx];
+                        var currentIdx = settingsPopupView.getRotationIdx(m_i.transform);
+                        var newIdx = currentIdx;
+                        if (dir === "next") {
+                            newIdx = (currentIdx + 1) % settingsPopupView.availableRotations.length;
+                        } else {
+                            newIdx = (currentIdx - 1 + settingsPopupView.availableRotations.length) % settingsPopupView.availableRotations.length;
+                        }
+                        m_i.transform = settingsPopupView.availableRotations[newIdx].val;
+                        shell.monitorsList = list;
+                    }
+
+                    function cycleMirror(dir, mIdx) {
+                        var list = [];
+                        for (var i = 0; i < shell.monitorsList.length; i++) {
+                            var m = shell.monitorsList[i];
+                            list.push({
+                                name: m.name, description: m.description, make: m.make, model: m.model, serial: m.serial,
+                                width: m.width, height: m.height, refreshRate: m.refreshRate, x: m.x, y: m.y,
+                                scale: m.scale, transform: m.transform, disabled: m.disabled, mirrorOf: m.mirrorOf,
+                                availableModes: m.availableModes, workspaces: m.workspaces
+                            });
+                        }
+                        var m_i = list[mIdx];
+                        var options = ["none"];
+                        for (var k = 0; k < list.length; k++) {
+                            if (k !== mIdx) {
+                                options.push(list[k].name);
+                            }
+                        }
+                        var currentIdx = options.indexOf(m_i.mirrorOf || "none");
+                        if (currentIdx === -1) currentIdx = 0;
+                        var newIdx = currentIdx;
+                        if (dir === "next") {
+                            newIdx = (currentIdx + 1) % options.length;
+                        } else {
+                            newIdx = (currentIdx - 1 + options.length) % options.length;
+                        }
+                        m_i.mirrorOf = options[newIdx];
+                        shell.monitorsList = list;
+                    }
+
+                    function toggleDisplayStatus(mIdx) {
+                        var list = [];
+                        for (var i = 0; i < shell.monitorsList.length; i++) {
+                            var m = shell.monitorsList[i];
+                            list.push({
+                                name: m.name, description: m.description, make: m.make, model: m.model, serial: m.serial,
+                                width: m.width, height: m.height, refreshRate: m.refreshRate, x: m.x, y: m.y,
+                                scale: m.scale, transform: m.transform, disabled: m.disabled, mirrorOf: m.mirrorOf,
+                                availableModes: m.availableModes, workspaces: m.workspaces
+                            });
+                        }
+                        list[mIdx].disabled = !list[mIdx].disabled;
+                        shell.monitorsList = list;
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: shell.setState(0)
+                    }
+
+                    Flickable {
+                        anchors.fill: parent; anchors.margins: 12
+                        contentHeight: settingsCol.height
+                        contentWidth: width
+                        clip: true; boundsBehavior: Flickable.StopAtBounds
+
+                        Column {
+                            id: settingsCol; width: parent.width; spacing: 10
+
+                            // =========================================================
+                            // VIEW 0: MAIN DISPLAY CONFIGURATION VIEW
+                            // =========================================================
+                            Column {
+                                id: mainSubCol
+                                width: parent.width; spacing: 10
+                                visible: settingsPopupView.currentSubView === 0
+                                height: visible ? implicitHeight : 0
+
+                                // Header (Fixed Left Alignment)
+                                Item {
+                                    width: parent.width; height: 32
+
+                                    Image {
+                                        id: backBtnIcon
+                                        width: 18; height: 18
+                                        anchors.left: parent.left; anchors.leftMargin: 12
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        source: "icons/back.png"
+                                        fillMode: Image.PreserveAspectFit
+                                        layer.enabled: panelWindow.activeState === 17
+                                        layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: shell.textPrimary }
+                                        
+                                        MouseArea {
+                                            anchors.fill: parent; anchors.margins: -6
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: shell.setState(0)
+                                        }
+                                    }
+                                    
+                                    Text { 
+                                        text: "Display Configuration"
+                                        color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold
+                                        anchors.left: backBtnIcon.right; anchors.leftMargin: 10
+                                        anchors.verticalCenter: parent.verticalCenter 
+                                    }
+                                }
+
+                                // Interactive Snapping Canvas
+                                Rectangle {
+                                    id: canvas
+                                    width: parent.width; height: 110; radius: 12
+                                    color: shell.surfaceAlt
+                                    border.width: 1; border.color: shell.surfaceBorder
+                                    clip: true
+
+                                    property real minX: 0
+                                    property real maxX: 1920
+                                    property real minY: 0
+                                    property real maxY: 1080
+                                    property real scaleFactor: 0.05
+
+                                    function updateBounds() {
+                                        var list = shell.monitorsList;
+                                        if (!list || list.length === 0) return;
+                                        var mx = list[0].x;
+                                        var my = list[0].y;
+                                        var lwidth = list[0].width / list[0].scale;
+                                        var lheight = list[0].height / list[0].scale;
+                                        var max_x = mx + lwidth;
+                                        var max_y = my + lheight;
+
+                                        for (var i = 1; i < list.length; i++) {
+                                            var m = list[i];
+                                            if (m.disabled) continue;
+                                            var mlw = m.width / m.scale;
+                                            var mlh = m.height / m.scale;
+                                            if (m.x < mx) mx = m.x;
+                                            if (m.y < my) my = m.y;
+                                            if (m.x + mlw > max_x) max_x = m.x + mlw;
+                                            if (m.y + mlh > max_y) max_y = my + mlh;
+                                        }
+
+                                        minX = mx;
+                                        minY = my;
+                                        maxX = max_x;
+                                        maxY = max_y;
+
+                                        var span_x = maxX - minX;
+                                        var span_y = maxY - minY;
+                                        if (span_x <= 0) span_x = 1920;
+                                        if (span_y <= 0) span_y = 1080;
+
+                                        var sf_x = (canvas.width - 24) / span_x;
+                                        var sf_y = (canvas.height - 24) / span_y;
+                                        scaleFactor = Math.min(sf_x, sf_y);
+                                    }
+
+                                    Component.onCompleted: updateBounds()
+                                    onWidthChanged: updateBounds()
+                                    Connections {
+                                        target: shell
+                                        function onMonitorsListChanged() { canvas.updateBounds(); }
+                                    }
+
+                                    Repeater {
+                                        model: shell.monitorsList
+                                        delegate: Rectangle {
+                                            id: rectDelegate
+                                            visible: !modelData.disabled
+                                            
+                                            property real tempX: modelData.x
+                                            property real tempY: modelData.y
+
+                                            Connections {
+                                                target: shell
+                                                function onMonitorsListChanged() {
+                                                    if (!dragArea.pressed) {
+                                                        rectDelegate.tempX = modelData.x;
+                                                        rectDelegate.tempY = modelData.y;
+                                                    }
+                                                }
+                                            }
+
+                                            x: 12 + (tempX - canvas.minX) * canvas.scaleFactor
+                                            y: 12 + (tempY - canvas.minY) * canvas.scaleFactor
+                                            width: Math.max(20, (modelData.width / modelData.scale) * canvas.scaleFactor)
+                                            height: Math.max(20, (modelData.height / modelData.scale) * canvas.scaleFactor)
+                                            radius: 6
+                                            color: settingsPopupView.selectedMonitorIdx === index ? shell.accent : shell.surfaceBright
+                                            border.width: 1
+                                            border.color: settingsPopupView.selectedMonitorIdx === index ? "transparent" : shell.surfaceBorder
+
+                                            Text {
+                                                anchors.centerIn: parent
+                                                text: modelData.name
+                                                color: settingsPopupView.selectedMonitorIdx === index ? shell.surface : shell.textPrimary
+                                                font.pixelSize: 9; font.weight: Font.Bold
+                                            }
+
+                                            MouseArea {
+                                                id: dragArea
+                                                anchors.fill: parent
+                                                cursorShape: Qt.SizeAllCursor
+                                                
+                                                property real startMouseX: 0
+                                                property real startMouseY: 0
+                                                property real startTempX: 0
+                                                property real startTempY: 0
+
+                                                onPressed: {
+                                                    settingsPopupView.selectedMonitorIdx = index
+                                                    startMouseX = mouse.x
+                                                    startMouseY = mouse.y
+                                                    startTempX = rectDelegate.tempX
+                                                    startTempY = rectDelegate.tempY
+                                                }
+
+                                                onPositionChanged: {
+                                                    if (pressed) {
+                                                        var deltaCanvasX = mouse.x - startMouseX
+                                                        var deltaCanvasY = mouse.y - startMouseY
+                                                        var deltaLogicalX = deltaCanvasX / canvas.scaleFactor
+                                                        var deltaLogicalY = deltaCanvasY / canvas.scaleFactor
+                                                        
+                                                        rectDelegate.tempX = startTempX + deltaLogicalX
+                                                        rectDelegate.tempY = startTempY + deltaLogicalY
+                                                    }
+                                                }
+
+                                                onReleased: {
+                                                    settingsPopupView.snapMonitor(index, rectDelegate.tempX, rectDelegate.tempY)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // List of Display Buttons (Including Snap Alignment Directly With Displays)
+                                Repeater {
+                                    model: shell.monitorsList
+                                    delegate: Rectangle {
+                                        id: monitorRow
+                                        width: parent.width
+                                        height: (shell.monitorsList.length > 1 && !modelData.disabled) ? 68 : 42
+                                        radius: 10
+                                        color: shell.surfaceAlt
+                                        border.width: 1; border.color: shell.surfaceBorder
+
+                                        property int monitorIndex: index
+
+                                        // Line 1: Name and Configure button
+                                        Text {
+                                            id: nameText
+                                            text: modelData.name + (modelData.disabled ? " [Off]" : " [" + modelData.width + "x" + modelData.height + "]")
+                                            color: shell.textPrimary; font.pixelSize: 11; font.weight: Font.Bold
+                                            anchors.left: parent.left; anchors.leftMargin: 12
+                                            anchors.top: (shell.monitorsList.length > 1 && !modelData.disabled) ? parent.top : undefined
+                                            anchors.topMargin: (shell.monitorsList.length > 1 && !modelData.disabled) ? 10 : 0
+                                            anchors.verticalCenter: (shell.monitorsList.length > 1 && !modelData.disabled) ? undefined : parent.verticalCenter
+                                        }
+
+                                        Text {
+                                            text: modelData.make + " " + modelData.model
+                                            color: shell.textMuted; font.pixelSize: 9; font.weight: Font.Medium
+                                            anchors.left: nameText.right; anchors.leftMargin: 8
+                                            anchors.right: configureBtn.left; anchors.rightMargin: 10
+                                            anchors.verticalCenter: nameText.verticalCenter
+                                            elide: Text.ElideRight
+                                        }
+
+                                        Rectangle {
+                                            id: configureBtn
+                                            width: 80; height: 26; radius: 6
+                                            color: shell.accent
+                                            anchors.right: parent.right; anchors.rightMargin: 12
+                                            anchors.top: (shell.monitorsList.length > 1 && !modelData.disabled) ? parent.top : undefined
+                                            anchors.topMargin: (shell.monitorsList.length > 1 && !modelData.disabled) ? 8 : 0
+                                            anchors.verticalCenter: (shell.monitorsList.length > 1 && !modelData.disabled) ? undefined : parent.verticalCenter
+
+                                            Text {
+                                                anchors.centerIn: parent
+                                                text: "Configure"
+                                                color: shell.surface
+                                                font.pixelSize: 9; font.weight: Font.Bold
+                                            }
+
+                                            MouseArea {
+                                                anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                                onClicked: {
+                                                    settingsPopupView.selectedMonitorIdx = index
+                                                    settingsPopupView.currentSubView = 1
+                                                }
+                                            }
+                                        }
+
+                                        // Line 2: Manual snaps associated directly inside the display card
+                                        Row {
+                                            visible: shell.monitorsList.length > 1 && !modelData.disabled
+                                            anchors.left: parent.left; anchors.leftMargin: 12
+                                            anchors.bottom: parent.bottom; anchors.bottomMargin: 8
+                                            spacing: 6
+
+                                            Text {
+                                                text: "Align: "
+                                                color: shell.textMuted; font.pixelSize: 8; font.weight: Font.Bold
+                                                anchors.verticalCenter: parent.verticalCenter
+                                            }
+
+                                            Repeater {
+                                                model: shell.monitorsList
+                                                delegate: Row {
+                                                    visible: index !== monitorRow.monitorIndex
+                                                    spacing: 4
+                                                    anchors.verticalCenter: parent.verticalCenter
+                                                    
+                                                    Text {
+                                                        text: "with " + modelData.name + ":"
+                                                        color: shell.textMuted; font.pixelSize: 8; font.weight: Font.Medium
+                                                        anchors.verticalCenter: parent.verticalCenter
+                                                    }
+                                                    
+                                                    Repeater {
+                                                        model: ["left", "right", "above", "below"]
+                                                        delegate: Rectangle {
+                                                            width: 18; height: 18; radius: 9
+                                                            color: ma_dir.containsMouse ? shell.accent : shell.surfaceBright
+                                                            Text {
+                                                                anchors.centerIn: parent
+                                                                text: modelData === "left" ? "←" : modelData === "right" ? "→" : modelData === "above" ? "↑" : "↓"
+                                                                color: ma_dir.containsMouse ? shell.surface : shell.textPrimary
+                                                                font.pixelSize: 9; font.weight: Font.Bold
+                                                            }
+                                                            MouseArea {
+                                                                id: ma_dir
+                                                                anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                                                onClicked: settingsPopupView.alignMonitor(modelData, monitorRow.monitorIndex, index)
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Save & Apply Button
+                                Rectangle {
+                                    width: parent.width; height: 38; radius: 12
+                                    color: shell.accent
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "Save & Apply Changes"
+                                        color: shell.surface
+                                        font.pixelSize: 12; font.weight: Font.Bold
+                                    }
+                                    MouseArea {
+                                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            shell.saveMonitorsConfig(shell.monitorsList);
+                                        }
+                                    }
+                                }
+                            }
+
+                            // =========================================================
+                            // VIEW 1: DETAILED MONITOR EDIT VIEW (POPUP FOR ONE MONITOR)
+                            // =========================================================
+                            Column {
+                                id: editSubCol
+                                width: parent.width; spacing: 10
+                                visible: settingsPopupView.currentSubView === 1
+                                height: visible ? implicitHeight : 0
+
+                                // Header (Fixed Left Alignment)
+                                Item {
+                                    width: parent.width; height: 32
+
+                                    Image {
+                                        id: editBackIcon
+                                        width: 18; height: 18
+                                        anchors.left: parent.left; anchors.leftMargin: 12
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        source: "icons/back.png"
+                                        fillMode: Image.PreserveAspectFit
+                                        layer.enabled: panelWindow.activeState === 17
+                                        layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: shell.textPrimary }
+                                        
+                                        MouseArea {
+                                            anchors.fill: parent; anchors.margins: -6
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: settingsPopupView.currentSubView = 0
+                                        }
+                                    }
+                                    
+                                    Text { 
+                                        text: "Configure " + (settingsPopupView.getSelectedMonitor() ? settingsPopupView.getSelectedMonitor().name : "")
+                                        color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold
+                                        anchors.left: editBackIcon.right; anchors.leftMargin: 10
+                                        anchors.verticalCenter: parent.verticalCenter 
+                                    }
+                                }
+
+                                // Enable Display Status Toggle
+                                Rectangle {
+                                    width: parent.width; height: 42; radius: 12; color: shell.surfaceAlt
+                                    border.width: 1; border.color: shell.surfaceBorder
+                                    visible: settingsPopupView.getSelectedMonitor() !== null
+
+                                    Text {
+                                        text: "Enable Display"
+                                        color: shell.textPrimary; font.pixelSize: 11; font.weight: Font.Bold
+                                        anchors.left: parent.left; anchors.leftMargin: 12
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+
+                                    Image {
+                                        width: 36; height: 20
+                                        anchors.right: parent.right; anchors.rightMargin: 12
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        source: "icons/on.png"
+                                        mirror: settingsPopupView.getSelectedMonitor() ? settingsPopupView.getSelectedMonitor().disabled : false
+                                        fillMode: Image.PreserveAspectFit
+                                        layer.enabled: panelWindow.activeState === 17
+                                        layer.effect: MultiEffect {
+                                            brightness: 1.0; colorization: 1.0
+                                            colorizationColor: (settingsPopupView.getSelectedMonitor() && !settingsPopupView.getSelectedMonitor().disabled) ? shell.accent : shell.textMuted
+                                        }
+                                        MouseArea {
+                                            anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                            onClicked: settingsPopupView.toggleDisplayStatus(settingsPopupView.selectedMonitorIdx)
+                                        }
+                                    }
+                                }
+
+                                // Mode selection
+                                Rectangle {
+                                    width: parent.width; height: 42; radius: 12; color: shell.surfaceAlt
+                                    border.width: 1; border.color: shell.surfaceBorder
+                                    visible: settingsPopupView.getSelectedMonitor() !== null && !settingsPopupView.getSelectedMonitor().disabled
+
+                                    Text {
+                                        text: "Resolution"
+                                        color: shell.textPrimary; font.pixelSize: 11; font.weight: Font.Bold
+                                        anchors.left: parent.left; anchors.leftMargin: 12
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+                                        
+                                    Row {
+                                        spacing: 6
+                                        anchors.right: parent.right; anchors.rightMargin: 12
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        Item {
+                                            width: 20; height: 20; anchors.verticalCenter: parent.verticalCenter
+                                            Image {
+                                                anchors.centerIn: parent; width: 12; height: 12; source: "icons/back.png"
+                                                layer.enabled: panelWindow.activeState === 17
+                                                layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: shell.textPrimary }
+                                            }
+                                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: settingsPopupView.cycleMode("prev", settingsPopupView.selectedMonitorIdx) }
+                                        }
+                                        Text {
+                                            text: settingsPopupView.getSelectedMonitor() ? (settingsPopupView.getSelectedMonitor().width + "x" + settingsPopupView.getSelectedMonitor().height + " @ " + Math.round(settingsPopupView.getSelectedMonitor().refreshRate) + "Hz") : ""
+                                            color: shell.textPrimary; font.pixelSize: 10; font.weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter
+                                        }
+                                        Item {
+                                            width: 20; height: 20; anchors.verticalCenter: parent.verticalCenter
+                                            Image {
+                                                anchors.centerIn: parent; width: 12; height: 12; source: "icons/back.png"; mirror: true
+                                                layer.enabled: panelWindow.activeState === 17
+                                                layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: shell.textPrimary }
+                                            }
+                                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: settingsPopupView.cycleMode("next", settingsPopupView.selectedMonitorIdx) }
+                                        }
+                                    }
+                                }
+
+                                // Scale Card
+                                Rectangle {
+                                    width: parent.width; height: 42; radius: 12; color: shell.surfaceAlt
+                                    border.width: 1; border.color: shell.surfaceBorder
+                                    visible: settingsPopupView.getSelectedMonitor() !== null && !settingsPopupView.getSelectedMonitor().disabled
+
+                                    Text {
+                                        text: "Scale"
+                                        color: shell.textPrimary; font.pixelSize: 11; font.weight: Font.Bold
+                                        anchors.left: parent.left; anchors.leftMargin: 12
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+                                        
+                                    Row {
+                                        spacing: 6
+                                        anchors.right: parent.right; anchors.rightMargin: 12
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        Item {
+                                            width: 20; height: 20; anchors.verticalCenter: parent.verticalCenter
+                                            Image {
+                                                anchors.centerIn: parent; width: 12; height: 12; source: "icons/back.png"
+                                                layer.enabled: panelWindow.activeState === 17
+                                                layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: shell.textPrimary }
+                                            }
+                                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: settingsPopupView.cycleScale("prev", settingsPopupView.selectedMonitorIdx) }
+                                        }
+                                        Text {
+                                            text: settingsPopupView.getSelectedMonitor() ? Number(settingsPopupView.getSelectedMonitor().scale).toFixed(2) : "1.00"
+                                            color: shell.textPrimary; font.pixelSize: 10; font.weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter
+                                        }
+                                        Item {
+                                            width: 20; height: 20; anchors.verticalCenter: parent.verticalCenter
+                                            Image {
+                                                anchors.centerIn: parent; width: 12; height: 12; source: "icons/back.png"; mirror: true
+                                                layer.enabled: panelWindow.activeState === 17
+                                                layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: shell.textPrimary }
+                                            }
+                                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: settingsPopupView.cycleScale("next", settingsPopupView.selectedMonitorIdx) }
+                                        }
+                                    }
+                                }
+
+                                // Rotation/Orientation Card
+                                Rectangle {
+                                    width: parent.width; height: 42; radius: 12; color: shell.surfaceAlt
+                                    border.width: 1; border.color: shell.surfaceBorder
+                                    visible: settingsPopupView.getSelectedMonitor() !== null && !settingsPopupView.getSelectedMonitor().disabled
+
+                                    Text {
+                                        text: "Orientation"
+                                        color: shell.textPrimary; font.pixelSize: 11; font.weight: Font.Bold
+                                        anchors.left: parent.left; anchors.leftMargin: 12
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+                                        
+                                    Row {
+                                        spacing: 6
+                                        anchors.right: parent.right; anchors.rightMargin: 12
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        Item {
+                                            width: 20; height: 20; anchors.verticalCenter: parent.verticalCenter
+                                            Image {
+                                                anchors.centerIn: parent; width: 12; height: 12; source: "icons/back.png"
+                                                layer.enabled: panelWindow.activeState === 17
+                                                layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: shell.textPrimary }
+                                            }
+                                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: settingsPopupView.cycleRotation("prev", settingsPopupView.selectedMonitorIdx) }
+                                        }
+                                        Text {
+                                            text: settingsPopupView.getSelectedMonitor() ? settingsPopupView.availableRotations[settingsPopupView.getRotationIdx(settingsPopupView.getSelectedMonitor().transform)].text : "Landscape (0°)"
+                                            color: shell.textPrimary; font.pixelSize: 10; font.weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter
+                                        }
+                                        Item {
+                                            width: 20; height: 20; anchors.verticalCenter: parent.verticalCenter
+                                            Image {
+                                                anchors.centerIn: parent; width: 12; height: 12; source: "icons/back.png"; mirror: true
+                                                layer.enabled: panelWindow.activeState === 17
+                                                layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: shell.textPrimary }
+                                            }
+                                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: settingsPopupView.cycleRotation("next", settingsPopupView.selectedMonitorIdx) }
+                                        }
+                                    }
+                                }
+
+                                // Mirroring Card
+                                Rectangle {
+                                    width: parent.width; height: 42; radius: 12; color: shell.surfaceAlt
+                                    border.width: 1; border.color: shell.surfaceBorder
+                                    visible: settingsPopupView.getSelectedMonitor() !== null && !settingsPopupView.getSelectedMonitor().disabled
+
+                                    Text {
+                                        text: "Mirror Display"
+                                        color: shell.textPrimary; font.pixelSize: 11; font.weight: Font.Bold
+                                        anchors.left: parent.left; anchors.leftMargin: 12
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+                                        
+                                    Row {
+                                        spacing: 6
+                                        anchors.right: parent.right; anchors.rightMargin: 12
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        Item {
+                                            width: 20; height: 20; anchors.verticalCenter: parent.verticalCenter
+                                            Image {
+                                                anchors.centerIn: parent; width: 12; height: 12; source: "icons/back.png"
+                                                layer.enabled: panelWindow.activeState === 17
+                                                layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: shell.textPrimary }
+                                            }
+                                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: settingsPopupView.cycleMirror("prev", settingsPopupView.selectedMonitorIdx) }
+                                        }
+                                        Text {
+                                            text: settingsPopupView.getSelectedMonitor() ? (settingsPopupView.getSelectedMonitor().mirrorOf === "none" ? "No (Extend)" : settingsPopupView.getSelectedMonitor().mirrorOf) : "No (Extend)"
+                                            color: shell.textPrimary; font.pixelSize: 10; font.weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter
+                                        }
+                                        Item {
+                                            width: 20; height: 20; anchors.verticalCenter: parent.verticalCenter
+                                            Image {
+                                                anchors.centerIn: parent; width: 12; height: 12; source: "icons/back.png"; mirror: true
+                                                layer.enabled: panelWindow.activeState === 17
+                                                layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: shell.textPrimary }
+                                            }
+                                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: settingsPopupView.cycleMirror("next", settingsPopupView.selectedMonitorIdx) }
+                                        }
+                                    }
+                                }
+
+                                // Apply button to close edit view and go back to main screen
+                                Rectangle {
+                                    width: parent.width; height: 38; radius: 12
+                                    color: shell.accent
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "Done"
+                                        color: shell.surface
+                                        font.pixelSize: 12; font.weight: Font.Bold
+                                    }
+                                    MouseArea {
+                                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                        onClicked: settingsPopupView.currentSubView = 0
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // =============================================================
                 // INTERACTION LAYER
                 // =============================================================
                 MouseArea {
                     id: mainHoverArea
-                    anchors.fill: parent; hoverEnabled: shell.currentState === 0 || shell.currentState === 1
-                    acceptedButtons: (shell.currentState <= 1) ? Qt.LeftButton : Qt.NoButton
-                    enabled: shell.currentState === 0 || shell.currentState === 1 || shell.currentState === 4 || shell.currentState === 5 || shell.currentState === 6
+                    anchors.fill: parent; hoverEnabled: panelWindow.activeState === 0 || panelWindow.activeState === 1
+                    acceptedButtons: (panelWindow.activeState <= 1) ? Qt.LeftButton : Qt.NoButton
+                    enabled: panelWindow.activeState === 0 || panelWindow.activeState === 1 || panelWindow.activeState === 4 || panelWindow.activeState === 5 || panelWindow.activeState === 6
 
                     property bool swipeCooldown: false
 
@@ -5291,15 +6243,15 @@ ShellRoot {
                         onTriggered: mainHoverArea.swipeCooldown = false
                     }
 
-                    onEntered: { if (shell.currentState === 0 && !shell.hoverCooldown) shell.setState(1); }
+                    onEntered: { if (panelWindow.activeState === 0 && !shell.hoverCooldown) shell.setState(1); }
                     onExited:  {
                         var elapsed = Date.now() - shell.lastState1Time;
                         if (elapsed > 50) {
-                            if (shell.currentState === 1) shell.setState(0);
+                            if (panelWindow.activeState === 1) shell.setState(0);
                         }
                     }
                     onClicked: mouse => {
-                        if (shell.currentState <= 1) { shell.setState(5); }
+                        if (panelWindow.activeState <= 1) { shell.setState(5); }
                     }
 
                     onWheel: (wheel) => {
@@ -5317,7 +6269,7 @@ ShellRoot {
                                 swipeCooldownTimer.start();
 
                                 var states = [5, 4, 6];
-                                var curr = shell.currentState;
+                                var curr = panelWindow.activeState;
                                 var idx = states.indexOf(curr);
 
                                 if (delta > 0) { // Swipe left -> Move forward
@@ -5341,7 +6293,7 @@ ShellRoot {
                             // Vertical scroll:
                             // If we are in the App Launcher (4) or Control Center (5),
                             // we want to scroll the menus, so let the event pass through.
-                            if (shell.currentState === 4 || shell.currentState === 5) {
+                            if (panelWindow.activeState === 4 || panelWindow.activeState === 5) {
                                 wheel.accepted = false; // Propagate to Flickable underneath
                             } else {
                                 // In other states (idle/hovered 0 or 1, or power menu 6), we can switch states
@@ -5351,7 +6303,7 @@ ShellRoot {
                                     swipeCooldownTimer.start();
 
                                     var states = [5, 4, 6];
-                                    var curr = shell.currentState;
+                                    var curr = panelWindow.activeState;
                                     var idx = states.indexOf(curr);
 
                                     if (delta < 0) { // Scroll up (inverted delta) -> Move forward
@@ -5378,7 +6330,7 @@ ShellRoot {
                     Connections {
                         target: shell
                         function onHoverCooldownChanged() {
-                            if (!shell.hoverCooldown && shell.currentState === 0 && mainHoverArea.containsMouse) {
+                            if (!shell.hoverCooldown && panelWindow.activeState === 0 && mainHoverArea.containsMouse) {
                                 shell.setState(1);
                             }
                         }
@@ -5444,9 +6396,9 @@ ShellRoot {
                     shadowEnabled: true
                     shadowColor: Qt.rgba(0, 0, 0, 0.4)
                     shadowBlur: 0.65
-                    shadowVerticalOffset: shell.currentState === 0 ? 2 : 6
+                    shadowVerticalOffset: panelWindow.activeState === 0 ? 2 : 6
                     shadowHorizontalOffset: 0
-                    opacity: panelWindow.wsCircleOpacity * (shell.currentState === 0 ? 0.45 : 1.0)
+                    opacity: panelWindow.wsCircleOpacity * (panelWindow.activeState === 0 ? 0.45 : 1.0)
                     visible: !Settings.data.colorSchemes.hyprglass
                     Behavior on opacity { NumberAnimation { duration: shell.animFast } }
                     Behavior on shadowVerticalOffset { NumberAnimation { duration: shell.animFast } }
