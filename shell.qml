@@ -1905,7 +1905,7 @@ ShellRoot {
             }
 
             onWorkspaceIdChanged: {
-                if (isSystemReady && !mainHoverArea.containsMouse && panelWindow.activeState === 0) {
+                if (isSystemReady && isFocusedScreen && !mainHoverArea.containsMouse && panelWindow.activeState === 0) {
                     workspaceTimer.stop();
                     workspaceCircleActive = true;
                     workspaceTimer.restart();
