@@ -520,13 +520,24 @@ ShellRoot {
         }
     }
 
+function getCurrentThemeStateKey() {
+        if (!Settings.isLoaded) return "inactive";
+        if (Settings.data.colorSchemes.hyprglass) {
+            return Settings.data.colorSchemes.hyprglassStyle;
+        }
+        return "inactive";
+    }
+
     function saveCustomPalette() {
         if (_loadingTheme) return;
         var path = shell.lastExtractedWallpaperPath;
         if (!path) return;
 
+        var modeKey = getCurrentThemeStateKey();
+        var fullKey = path + "_" + modeKey;
+
         var dict = customPaletteAdapter.palettes || {};
-        dict[path] = {
+        dict[fullKey] = {
             "themeMode": shell.themeMode,
             "customAccent": shell.customAccent.toString(),
             "customSurface": shell.customSurface.toString(),
@@ -547,7 +558,11 @@ ShellRoot {
     function loadThemeForWallpaper(path) {
         if (!path) return;
         _loadingTheme = true;
-        var saved = (customPaletteAdapter.palettes && customPaletteAdapter.palettes[path]) ? customPaletteAdapter.palettes[path] : null;
+        
+        var modeKey = getCurrentThemeStateKey();
+        var fullKey = path + "_" + modeKey;
+
+        var saved = (customPaletteAdapter.palettes && customPaletteAdapter.palettes[fullKey]) ? customPaletteAdapter.palettes[fullKey] : null;
         if (saved) {
             shell.customAccent = saved.customAccent || shell.wpAccent;
             shell.customSurface = saved.customSurface || shell.wpSurface;
@@ -646,6 +661,7 @@ ShellRoot {
     property color wpAccent:        "#cba6f7"
     property color wpSurface:       "#11111b"
     property color wpSurfaceAlt:    "#1e1e2e"
+    property bool  wpIsLight:       false
     property color wpSurfaceBright: "#313244"
     property color wpTextPrimary:   "#cdd6f4"
     property color wpTextSecondary: "#a6adc8"
@@ -659,22 +675,22 @@ ShellRoot {
     property color accent:          themeMode === "wallpaper" ? wpAccent        : customAccent
     property color accentDim:       Qt.rgba(accent.r, accent.g, accent.b, 0.15)
     // Base opaque colors for calculations
-    readonly property color _baseSurface:       themeMode === "wallpaper" ? wpSurface       : customSurface
-    readonly property color _baseSurfaceAlt:    themeMode === "wallpaper" ? wpSurfaceAlt    : customSurfaceAlt
-    readonly property color _baseSurfaceBright: themeMode === "wallpaper" ? wpSurfaceBright : customSurfaceBright
+    readonly property color _baseSurface:       themeMode === "wallpaper" ? (Settings.isLoaded && Settings.data.colorSchemes.hyprglass ? wpSurface : Qt.rgba(wpSurface.r, wpSurface.g, wpSurface.b, 1.0)) : (Settings.isLoaded && Settings.data.colorSchemes.hyprglass ? customSurface : Qt.rgba(customSurface.r, customSurface.g, customSurface.b, 1.0))
+    readonly property color _baseSurfaceAlt:    themeMode === "wallpaper" ? (Settings.isLoaded && Settings.data.colorSchemes.hyprglass ? wpSurfaceAlt : Qt.rgba(wpSurfaceAlt.r, wpSurfaceAlt.g, wpSurfaceAlt.b, 1.0)) : (Settings.isLoaded && Settings.data.colorSchemes.hyprglass ? customSurfaceAlt : Qt.rgba(customSurfaceAlt.r, customSurfaceAlt.g, customSurfaceAlt.b, 1.0))
+    readonly property color _baseSurfaceBright: themeMode === "wallpaper" ? (Settings.isLoaded && Settings.data.colorSchemes.hyprglass ? wpSurfaceBright : Qt.rgba(wpSurfaceBright.r, wpSurfaceBright.g, wpSurfaceBright.b, 1.0)) : (Settings.isLoaded && Settings.data.colorSchemes.hyprglass ? customSurfaceBright : Qt.rgba(customSurfaceBright.r, customSurfaceBright.g, customSurfaceBright.b, 1.0))
 
     // Translucent Liquid Glass / Matte Blur equivalents
     property real _effectiveIntensity: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0.76 : 0.0
 
     property color surface:         _effectiveIntensity > 0.0
                                     ? Qt.rgba(_baseSurface.r, _baseSurface.g, _baseSurface.b, 1.0 - _effectiveIntensity)
-                                    : _baseSurface
+                                    : Qt.rgba(_baseSurface.r, _baseSurface.g, _baseSurface.b, 1.0)
     property color surfaceAlt:      _effectiveIntensity > 0.0
                                     ? Qt.rgba(_baseSurfaceAlt.r, _baseSurfaceAlt.g, _baseSurfaceAlt.b, (1.0 - _effectiveIntensity) * (1.0 + _effectiveIntensity * 0.3))
-                                    : _baseSurfaceAlt
+                                    : Qt.rgba(_baseSurfaceAlt.r, _baseSurfaceAlt.g, _baseSurfaceAlt.b, 1.0)
     property color surfaceBright:   _effectiveIntensity > 0.0
                                     ? Qt.rgba(_baseSurfaceBright.r, _baseSurfaceBright.g, _baseSurfaceBright.b, (1.0 - _effectiveIntensity) * (1.0 + _effectiveIntensity * 0.6))
-                                    : _baseSurfaceBright
+                                    : Qt.rgba(_baseSurfaceBright.r, _baseSurfaceBright.g, _baseSurfaceBright.b, 1.0)
     property color surfaceBorder:   _effectiveIntensity > 0.0
                                     ? Qt.rgba(1, 1, 1, 0.06 + _effectiveIntensity * 0.08)
                                     : Qt.rgba(1, 1, 1, 0.06)
@@ -735,6 +751,7 @@ ShellRoot {
                     shell.wpGreen         = palette.green;
                     shell.wpPeach         = palette.peach;
                     shell.wpBlue          = palette.blue;
+                    shell.wpIsLight       = palette.isLight;
                     shell.lastExtractedWallpaperPath = shell._pendingWallpaperPath;
                     shell.loadThemeForWallpaper(shell.lastExtractedWallpaperPath);
                 } catch(e) { console.log("Color parse error:", e, text); }
@@ -769,6 +786,32 @@ ShellRoot {
     property int prevState: 0
     property bool hoverCooldown: false
     property double lastState1Time: 0
+
+    function applyHyprglassSettings(blur, refract, chroma, edge) {
+        var presetCmd = "preset = name:island_glass, inherits:glass, blur_strength:" + blur.toFixed(2) + 
+                        ", refraction_strength:" + refract.toFixed(2) + 
+                        ", lens_distortion:0.0, chromatic_aberration:" + chroma.toFixed(2) + 
+                        ", edge_thickness:" + edge.toFixed(2) + 
+                        ", fresnel_strength:0.0, specular_strength:0.0, brightness:0.85, contrast:1.0, saturation:1.0, adaptive_dim:0.0";
+        var presetDarkCmd = "preset = name:island_glass:dark, inherits:glass:dark, blur_strength:" + blur.toFixed(2) + 
+                            ", refraction_strength:" + refract.toFixed(2) + 
+                            ", lens_distortion:0.0, chromatic_aberration:" + chroma.toFixed(2) + 
+                            ", edge_thickness:" + edge.toFixed(2) + 
+                            ", fresnel_strength:0.0, specular_strength:0.0, brightness:0.85, contrast:1.0, saturation:1.0, adaptive_dim:0.0";
+        
+        Quickshell.execDetached(["hyprctl", "keyword", "plugin:hyprglass:preset", presetCmd]);
+        Quickshell.execDetached(["hyprctl", "keyword", "plugin:hyprglass:preset", presetDarkCmd]);
+        Quickshell.execDetached(["hyprctl", "dispatch", "hyprglass:clear_cache", ""]);
+
+        var sedCmd = "sed -i 's/preset = name:island_glass, .*/preset = name:island_glass, inherits:glass, blur_strength:" + blur.toFixed(2) + 
+                     ", refraction_strength:" + refract.toFixed(2) + ", lens_distortion:0.0, chromatic_aberration:" + chroma.toFixed(2) + 
+                     ", edge_thickness:" + edge.toFixed(2) + ", fresnel_strength:0.0, specular_strength:0.0, brightness:0.85, contrast:1.0, saturation:1.0, adaptive_dim:0.0/' ~/.config/profiles/hyde/hypr/userprefs.conf && " +
+                     "sed -i 's/preset = name:island_glass:dark, .*/preset = name:island_glass:dark, inherits:glass:dark, blur_strength:" + blur.toFixed(2) + 
+                     ", refraction_strength:" + refract.toFixed(2) + ", lens_distortion:0.0, chromatic_aberration:" + chroma.toFixed(2) + 
+                     ", edge_thickness:" + edge.toFixed(2) + ", fresnel_strength:0.0, specular_strength:0.0, brightness:0.85, contrast:1.0, saturation:1.0, adaptive_dim:0.0/' ~/.config/profiles/hyde/hypr/userprefs.conf";
+        Quickshell.execDetached(["bash", "-c", sedCmd]);
+    }
+
     function setState(s) {
         console.log("[State Debug] setState called: " + currentState + " -> " + s);
         prevState = currentState;
@@ -1204,7 +1247,8 @@ ShellRoot {
                             }
                         }
                     }
-                }
+                    }
+
                 shell.wifiDevice = dev;
                 shell.wifiSSID = ssid;
                 shell.wifiConnected = wifi;
@@ -1408,27 +1452,53 @@ ShellRoot {
 
     function applyCompositorRules() {
         if (!Settings.isLoaded) return;
-        var isHyprglass = Settings.data.colorSchemes.hyprglass;
-        var blurActive = isHyprglass;
-
-        if (isHyprglass === _lastHyprglassLoaded && blurActive === _lastCompositorRulesActive) {
-            return;
-        }
-
-        _lastHyprglassLoaded = isHyprglass;
-        _lastCompositorRulesActive = blurActive;
+        var glassEnabled = Settings.data.colorSchemes.hyprglass;
+        var style = Settings.data.colorSchemes.hyprglassStyle;
+        var useLiquid = glassEnabled && style === "liquid";
+        var useFrosted = glassEnabled && style === "frosted";
 
         hyprglassProc.running = false;
         var cmd = "";
-        if (isHyprglass) {
+        
+        // 1. Manage hyprglass plugin loading/unloading
+        if (useLiquid) {
             cmd = "hyprctl plugin load " + Quickshell.env("HOME") + "/hyprglass/hyprglass.so";
+            var blur = Settings.data.colorSchemes.hyprglassBlur;
+            var refract = Settings.data.colorSchemes.hyprglassRefraction;
+            var chroma = Settings.data.colorSchemes.hyprglassChroma;
+            var edge = Settings.data.colorSchemes.hyprglassEdge;
+            var preset = "preset = name:island_glass, inherits:glass, blur_strength:" + blur.toFixed(2) + 
+                         ", refraction_strength:" + refract.toFixed(2) + 
+                         ", lens_distortion:0.0, chromatic_aberration:" + chroma.toFixed(2) + 
+                         ", edge_thickness:" + edge.toFixed(2) + 
+                         ", fresnel_strength:0.0, specular_strength:0.0, brightness:0.85, contrast:1.0, saturation:1.0, adaptive_dim:0.0";
+            var presetDark = "preset = name:island_glass:dark, inherits:glass:dark, blur_strength:" + blur.toFixed(2) + 
+                             ", refraction_strength:" + refract.toFixed(2) + 
+                             ", lens_distortion:0.0, chromatic_aberration:" + chroma.toFixed(2) + 
+                             ", edge_thickness:" + edge.toFixed(2) + 
+                             ", fresnel_strength:0.0, specular_strength:0.0, brightness:0.85, contrast:1.0, saturation:1.0, adaptive_dim:0.0";
+            cmd += " && hyprctl keyword plugin:hyprglass:preset '" + preset + "'";
+            cmd += " && hyprctl keyword plugin:hyprglass:preset '" + presetDark + "'";
+            cmd += " && hyprctl dispatch hyprglass:clear_cache ''";
         } else {
             cmd = "hyprctl plugin unload " + Quickshell.env("HOME") + "/hyprglass/hyprglass.so";
         }
 
-        if (blurActive) {
-            cmd += " && hyprctl keyword layerrule 'blur, morphing-island' && hyprctl keyword layerrule 'ignorezero, morphing-island'";
+        // 2. Manage flat compositor blur rules
+        if (useFrosted) {
+            cmd += " && hyprctl keyword blurls morphing-island && hyprctl keyword ignorealpha 0.1,morphing-island";
         } else {
+            cmd += " && hyprctl keyword blurls '' && hyprctl keyword ignorealpha 0.0,''";
+        }
+
+        // 2. Manage flat compositor blur rules
+        if (useFrosted) {
+            cmd += " && hyprctl keyword layerrule 'blur, morphing-island' && hyprctl keyword layerrule 'ignorezero, morphing-island'";
+        } else if (useLiquid) {
+            // Under liquid glass, only set ignorezero to enable mask-based refraction
+            cmd += " && hyprctl keyword layerrule 'ignorezero, morphing-island'";
+        } else {
+            // Completely disabled
             cmd += " && hyprctl keyword layerrule 'unset, morphing-island'";
         }
 
@@ -1449,6 +1519,11 @@ ShellRoot {
         target: Settings.data.colorSchemes
         function onHyprglassChanged() {
             shell.applyCompositorRules();
+            shell.loadThemeForWallpaper(shell.lastExtractedWallpaperPath);
+        }
+        function onHyprglassStyleChanged() {
+            shell.applyCompositorRules();
+            shell.loadThemeForWallpaper(shell.lastExtractedWallpaperPath);
         }
     }
 
@@ -1905,7 +1980,7 @@ ShellRoot {
             }
 
             onWorkspaceIdChanged: {
-                if (isSystemReady && isFocusedScreen && !mainHoverArea.containsMouse && panelWindow.activeState === 0) {
+                if (isSystemReady && isFocusedScreen && !mainHoverArea.containsMouse && panelWindow.activeState === 0 && !(typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode)) {
                     workspaceTimer.stop();
                     workspaceCircleActive = true;
                     workspaceTimer.restart();
@@ -1942,9 +2017,11 @@ ShellRoot {
 
             // Animated actual values for the workspace circle
             property real wsCircleWidth: 30
-            property real wsCircleSpacing: workspaceCircleActive ? 8 : -38
-            property real wsCircleOpacity: 1.0
+            property real wsCircleSpacing: workspaceCircleActive ? 8 : -30
+            property real wsCircleOpacity: workspaceCircleActive ? 1.0 : 0.0
             property real wsCircleScale: 1.0
+
+            Behavior on wsCircleOpacity { NumberAnimation { duration: 120; easing.type: Easing.OutQuad } }
 
             Behavior on wsCircleSpacing { NumberAnimation { duration: 180; easing.type: Easing.OutQuart } }
 
@@ -1952,14 +2029,15 @@ ShellRoot {
             WlrLayershell.layer: WlrLayer.Top
             WlrLayershell.exclusionMode: ExclusionMode.Ignore
             WlrLayershell.keyboardFocus: (panelWindow.activeState === 13) ? WlrKeyboardFocus.Exclusive : ((panelWindow.activeState !== 0 && panelWindow.activeState !== 1 && panelWindow.activeState !== 2 && panelWindow.activeState !== 3) ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None)
+            BackgroundEffect.blurRegion: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass && Settings.data.colorSchemes.hyprglassStyle === "frosted") ? animatedBlurRegion : null
             anchors { top: true; left: true; right: true }
             implicitHeight: 720
 
-            property real targetMaskWidth: island ? (island.islandWidth + (workspaceCircleActive ? (30 + 8) : 0)) : 110
-            property real targetMaskHeight: island ? Math.max(island.islandHeight, workspaceCircleActive ? 30 : 0) : 30
+            property real targetMaskWidth: island ? (island.islandWidth + (workspaceCircleActive ? (30 + 8) : 0)) : ((Settings.isLoaded && Settings.data.islandConfig.notchMode) ? Settings.data.islandConfig.collapsedWidth : 110)
+            property real targetMaskHeight: island ? Math.max(island.islandHeight, workspaceCircleActive ? 30 : 0) : ((Settings.isLoaded && Settings.data.islandConfig.notchMode) ? Settings.data.islandConfig.barHeight : 30)
 
-            property real maskWidth: 110
-            property real maskHeight: 30
+            property real maskWidth: (Settings.isLoaded && Settings.data.islandConfig.notchMode) ? Settings.data.islandConfig.collapsedWidth : 110
+            property real maskHeight: (Settings.isLoaded && Settings.data.islandConfig.notchMode) ? Settings.data.islandConfig.barHeight : 30
 
             Timer {
                 id: maskDelayTimer
@@ -1996,14 +2074,50 @@ ShellRoot {
                 id: islandMask
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.top
-                anchors.topMargin: 6
+                anchors.topMargin: (Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 0 : 6
                 width: panelWindow.maskWidth
                 height: panelWindow.maskHeight
             }
 
+            Item {
+                id: islandMaskTopSquare
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.top: parent.top
+                anchors.topMargin: (Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 0 : 6
+                width: panelWindow.maskWidth
+                height: typeof island !== "undefined" ? island.islandRadius : 0
+                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode
+            }
+
             mask: Region {
                 id: islandRegion
-                item: islandMask
+                Region {
+                    item: islandMask
+                    radius: island ? island.islandRadius : 0
+                }
+                Region {
+                    item: islandMaskTopSquare
+                }
+                Region {
+                    item: leftFlare
+                }
+                Region {
+                    item: rightFlare
+                }
+            }
+
+            Region {
+                id: animatedBlurRegion
+                Region {
+                    item: island
+                    radius: island ? island.islandRadius : 0
+                }
+                Region {
+                    item: leftFlare
+                }
+                Region {
+                    item: rightFlare
+                }
             }
 
             HyprlandFocusGrab {
@@ -2017,15 +2131,24 @@ ShellRoot {
 
 
             // Drop Shadow for the floating pill
-            Rectangle {
+            Item {
                 id: islandShadowSource
                 width: island.width
                 height: island.height
                 anchors.horizontalCenter: island.horizontalCenter
                 anchors.top: island.top
-                radius: island.radius
-                color: "black"
                 visible: false
+                clip: true
+
+                Rectangle {
+                    anchors.top: parent.top
+                    anchors.topMargin: (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) ? -island.islandRadius : 0
+                    anchors.bottom: parent.bottom
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    radius: typeof island !== "undefined" ? island.islandRadius : 0
+                    color: "black"
+                }
             }
 
             MultiEffect {
@@ -2042,12 +2165,122 @@ ShellRoot {
                 Behavior on shadowVerticalOffset { NumberAnimation { duration: shell.animFast } }
             }
 
+            // Left Notch Flare
+            Item {
+                id: leftFlare
+                anchors.right: island.left
+                anchors.top: island.top
+                width: Settings.isLoaded ? Settings.data.islandConfig.notchFlare : 16
+                height: width
+                visible: Settings.isLoaded && Settings.data.islandConfig.notchMode
+                clip: true // Prevent LiquidGlassBackground from expanding the layer effect
+
+                LiquidGlassBackground {
+                    anchors.top: parent.top
+                    anchors.topMargin: (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) ? -island.islandRadius : 0
+                    anchors.left: parent.left
+                    width: leftFlare.width + island.width + rightFlare.width
+                    height: typeof liquidGlassBg !== "undefined" ? liquidGlassBg.height : parent.height
+                    
+                    radius: 0
+                    surfaceColor: shell.surface
+                    accentColor: shell.accent
+                    borderColor: "transparent"
+                    active: Settings.isLoaded && Settings.data.colorSchemes.hyprglass
+                    isFlare: true
+                }
+                
+                Rectangle {
+                    anchors.fill: parent
+                    color: shell.surface
+                    visible: !(Settings.isLoaded && Settings.data.colorSchemes.hyprglass)
+                }
+
+                layer.enabled: true
+                layer.effect: MultiEffect {
+                    maskEnabled: true
+                    maskSource: ShaderEffectSource {
+                        sourceItem: Shape {
+                            width: leftFlare.width
+                            height: leftFlare.height
+                            layer.enabled: true
+                            layer.samples: 4
+                            ShapePath {
+                                fillColor: "white"
+                                strokeColor: "transparent"
+                                startX: leftFlare.width; startY: leftFlare.height
+                                PathLine { x: leftFlare.width + 1; y: leftFlare.height }
+                                PathLine { x: leftFlare.width + 1; y: -1 }
+                                PathLine { x: -1; y: -1 }
+                                PathLine { x: 0; y: 0 }
+                                PathArc { x: leftFlare.width; y: leftFlare.height; radiusX: leftFlare.width; radiusY: leftFlare.height; useLargeArc: false; direction: PathArc.CounterClockwise }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Right Notch Flare
+            Item {
+                id: rightFlare
+                anchors.left: island.right
+                anchors.top: island.top
+                width: Settings.isLoaded ? Settings.data.islandConfig.notchFlare : 16
+                height: width
+                visible: Settings.isLoaded && Settings.data.islandConfig.notchMode
+                clip: true // Prevent LiquidGlassBackground from expanding the layer effect
+
+                LiquidGlassBackground {
+                    anchors.top: parent.top
+                    anchors.topMargin: (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) ? -island.islandRadius : 0
+                    anchors.right: parent.right
+                    width: leftFlare.width + island.width + rightFlare.width
+                    height: typeof liquidGlassBg !== "undefined" ? liquidGlassBg.height : parent.height
+
+                    radius: 0
+                    surfaceColor: shell.surface
+                    accentColor: shell.accent
+                    borderColor: "transparent"
+                    active: Settings.isLoaded && Settings.data.colorSchemes.hyprglass
+                    isFlare: true
+                }
+
+                Rectangle {
+                    anchors.fill: parent
+                    color: shell.surface
+                    visible: !(Settings.isLoaded && Settings.data.colorSchemes.hyprglass)
+                }
+
+                layer.enabled: true
+                layer.effect: MultiEffect {
+                    maskEnabled: true
+                    maskSource: ShaderEffectSource {
+                        sourceItem: Shape {
+                            width: rightFlare.width
+                            height: rightFlare.height
+                            layer.enabled: true
+                            layer.samples: 4
+                            ShapePath {
+                                fillColor: "white"
+                                strokeColor: "transparent"
+                                startX: 0; startY: rightFlare.height
+                                PathArc { x: rightFlare.width; y: 0; radiusX: rightFlare.width; radiusY: rightFlare.height; useLargeArc: false; direction: PathArc.CounterClockwise }
+                                PathLine { x: rightFlare.width; y: -1 }
+                                PathLine { x: -1; y: -1 }
+                                PathLine { x: -1; y: rightFlare.height }
+                                PathLine { x: 0; y: rightFlare.height }
+                            }
+                        }
+                    }
+                }
+            }
+
             Rectangle {
                 id: island
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.horizontalCenterOffset: -((panelWindow.wsCircleSpacing + panelWindow.wsCircleWidth) / 2)
                 anchors.top: parent.top
-                anchors.topMargin: 6
+                anchors.topMargin: (Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 0 : 6
                 color: "transparent"
                 property real islandRadius: {
                     switch (panelWindow.activeState) {
@@ -2062,11 +2295,15 @@ ShellRoot {
 
                 LiquidGlassBackground {
                     id: liquidGlassBg
-                    anchors.fill: parent
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    x: -(leftFlare.visible ? leftFlare.width : 0)
+                    width: (leftFlare.visible ? leftFlare.width : 0) + parent.width + (rightFlare.visible ? rightFlare.width : 0)
+                    
                     radius: island.radius
                     surfaceColor: shell.surface
                     accentColor: shell.accent
-                    borderColor: shell.surfaceBorder
+                    borderColor: "transparent"
                     active: Settings.isLoaded && Settings.data.colorSchemes.hyprglass
                 }
 
@@ -2115,6 +2352,8 @@ ShellRoot {
                         case 15: return 440;
                         case 16: return 440;
                         case 17: return 440;
+                        case 18: return 440;
+                        case 19: return 440;
                         default: return 110;
                     }
                 }
@@ -2138,6 +2377,8 @@ ShellRoot {
                         case 15: return Math.min(680, (typeof emojiCol !== "undefined" ? emojiCol.height + 28 : 350));
                         case 16: return Math.min(680, (typeof keybindCol !== "undefined" ? keybindCol.height + 28 : 220));
                         case 17: return Math.min(680, (typeof settingsCol !== "undefined" ? settingsCol.height + 28 : 380));
+                        case 18: return Math.min(680, (typeof settingsContent !== "undefined" ? settingsContent.height + 80 : 380));
+                        case 19: return Math.min(680, (typeof barIslandCol !== "undefined" ? barIslandCol.height + 28 : 350));
                         default: return 30;
                     }
                 }
@@ -2205,7 +2446,7 @@ ShellRoot {
 
                         Text {
                             id: idleClock; text: shell.currentTime12h
-                            color: shell.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold; font.letterSpacing: 0.5
+                            color: shell.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold; font.letterSpacing: 0.5; font.family: "Varela Round"
                             anchors.verticalCenter: parent.verticalCenter
                         }
                     }
@@ -2258,7 +2499,8 @@ ShellRoot {
                                 }
                                 Text {
                                     text: shell.mediaPlaying ? "Playing" : "Paused"
-                                    color: shell.textMuted; font.pixelSize: 10; font.weight: Font.Medium
+                                    color: shell.wpIsLight ? shell._baseSurface : shell.textPrimary
+                                    font.pixelSize: 10; font.weight: Font.Medium
                                     anchors.bottom: parent.bottom
                                     anchors.bottomMargin: -2
                                 }
@@ -2271,7 +2513,7 @@ ShellRoot {
                             Text {
                                 id: heroClock; anchors.centerIn: parent
                                 text: shell.currentTime12h
-                                color: shell.textPrimary; font.pixelSize: 16; font.weight: Font.Bold; font.letterSpacing: 1.5
+                                color: shell.textPrimary; font.pixelSize: 16; font.weight: Font.Bold; font.letterSpacing: 1.5; font.family: "Varela Round"
                             }
                         }
 
@@ -2303,7 +2545,7 @@ ShellRoot {
 
                                     Rectangle {
                                         width: 24; height: 12; radius: 3; color: "transparent"
-                                        border.width: 1.5; border.color: shell.textMuted
+                                        border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1.5); border.color: shell.textMuted
                                         Rectangle {
                                             x: 2.5; y: 2.5
                                             width: (parent.width - 5) * Math.max(0, Math.min(1, shell.batteryPercent / 100))
@@ -2684,24 +2926,36 @@ ShellRoot {
                             id: ccColumn; width: parent.width; spacing: 10
 
                             // Header
-                            Row {
-                                width: parent.width; spacing: 10
+                            Item {
+                                width: parent.width; height: 32
+                                
+                                Row {
+                                    anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter; spacing: 10
+                                    Item {
+                                        width: 32; height: 32
+                                        Image {
+                                            anchors.centerIn: parent; width: 20; height: 20
+                                            source: "icons/back.png"
+                                            fillMode: Image.PreserveAspectFit
+                                            layer.enabled: ccView.ccActive
+                                            layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: shell.textPrimary }
+                                        }
+                                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: shell.setState(0) }
+                                    }
+                                    Text { text: "Control Center"; color: shell.textPrimary; font.pixelSize: 16; font.weight: Font.Bold; anchors.verticalCenter: parent.verticalCenter }
+                                }
+                                
                                 Item {
-                                    width: 32; height: 32; anchors.verticalCenter: parent.verticalCenter
+                                    width: 32; height: 32; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
                                     Image {
                                         anchors.centerIn: parent; width: 20; height: 20
-                                        source: "icons/back.png"
+                                        source: "icons/settings.svg"
                                         fillMode: Image.PreserveAspectFit
                                         layer.enabled: ccView.ccActive
-                                        layer.effect: MultiEffect {
-                                            brightness: 1.0
-                                            colorization: 1.0
-                                            colorizationColor: shell.textPrimary
-                                        }
+                                        layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: shell.textPrimary }
                                     }
-                                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: shell.setState(0) }
+                                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: shell.setState(19) }
                                 }
-                                Text { text: "Control Center"; color: shell.textPrimary; font.pixelSize: 16; font.weight: Font.Bold; anchors.verticalCenter: parent.verticalCenter }
                             }
 
                             // Row 1: Wi-Fi + Audio
@@ -2711,7 +2965,7 @@ ShellRoot {
                                 Rectangle {
                                     width: 130; height: 45; radius: 22.5
                                     color: wma.containsMouse ? shell.surfaceBright : (shell.wifiEnabled ? shell.accentDim : shell.surfaceAlt)
-                                    border.width: shell.wifiEnabled ? 1 : 0
+                                    border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (shell.wifiEnabled ? 1 : 0)
                                     border.color: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.2)
 
                                     Row {
@@ -2725,16 +2979,16 @@ ShellRoot {
                                                 fillMode: Image.PreserveAspectFit
                                                 layer.enabled: ccView.ccActive
                                                 layer.effect: MultiEffect {
-                                                    brightness: 1.0
+                                                    brightness: shell.wifiEnabled ? -0.8 : 1.0
                                                     colorization: 1.0
-                                                    colorizationColor: shell.wifiEnabled ? shell.surface : shell.textMuted
+                                                    colorizationColor: shell.wifiEnabled ? shell._baseSurface : "#ffffff"
                                                 }
                                             }
                                         }
                                         Column {
                                             anchors.verticalCenter: parent.verticalCenter
-                                            Text { text: "Wi-Fi"; color: shell.textPrimary; font.pixelSize: 11; font.weight: Font.DemiBold }
-                                            Text { text: shell.wifiEnabled ? (shell.wifiConnected ? shell.wifiSSID : "Disconnected") : "Off"; color: shell.textSecondary; font.pixelSize: 9; elide: Text.ElideRight; width: 70 }
+                                            Text { text: "Wi-Fi"; color: "#ffffff"; font.pixelSize: 11; font.weight: Font.DemiBold }
+                                            Text { text: shell.wifiEnabled ? (shell.wifiConnected ? shell.wifiSSID : "Disconnected") : "Off"; color: "#dddddd"; font.pixelSize: 9; elide: Text.ElideRight; width: 70 }
                                         }
                                     }
 
@@ -2750,7 +3004,7 @@ ShellRoot {
                                 Rectangle {
                                     width: parent.width - 130 - parent.spacing; height: 45; radius: 22.5
                                     color: audma.containsMouse ? shell.surfaceBright : (!shell.sysMuted ? shell.accentDim : shell.surfaceAlt)
-                                    border.width: !shell.sysMuted ? 1 : 0
+                                    border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (!shell.sysMuted ? 1 : 0)
                                     border.color: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.2)
 
                                     Row {
@@ -2764,15 +3018,15 @@ ShellRoot {
                                                 fillMode: Image.PreserveAspectFit
                                                 layer.enabled: ccView.ccActive
                                                 layer.effect: MultiEffect {
-                                                    brightness: 1.0
+                                                    brightness: !shell.sysMuted ? -0.8 : 1.0
                                                     colorization: 1.0
-                                                    colorizationColor: !shell.sysMuted ? shell.surface : shell.textMuted
+                                                    colorizationColor: !shell.sysMuted ? shell._baseSurface : "#ffffff"
                                                 }
                                             }
                                         }
                                         Column {
                                             anchors.verticalCenter: parent.verticalCenter
-                                            Text { text: "Audio"; color: shell.textPrimary; font.pixelSize: 11; font.weight: Font.DemiBold }
+                                            Text { text: "Audio"; color: "#ffffff"; font.pixelSize: 11; font.weight: Font.DemiBold }
                                             Text { text: shell.sysMuted ? "Muted" : Math.round(shell.sysVolume * 100) + "%"; color: shell.textSecondary; font.pixelSize: 9 }
                                         }
                                     }
@@ -2795,7 +3049,7 @@ ShellRoot {
                                     id: btBtn
                                     width: Math.floor((parent.width - (parent.spacing * 2)) / 3); height: 45; radius: 22.5
                                     color: bta.containsMouse ? shell.surfaceBright : (shell.btPowered ? shell.accentDim : shell.surfaceAlt)
-                                    border.width: shell.btPowered ? 1 : 0
+                                    border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (shell.btPowered ? 1 : 0)
                                     border.color: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.2)
 
                                     Row {
@@ -2814,7 +3068,7 @@ ShellRoot {
                                                 }
                                             }
                                         }
-                                        Column { anchors.verticalCenter: parent.verticalCenter; Text { text: "Bluetooth"; color: shell.textPrimary; font.pixelSize: 10; font.weight: Font.DemiBold } Text { text: shell.btPowered ? "On" : "Off"; color: shell.textMuted; font.pixelSize: 8 } }
+                                        Column { anchors.verticalCenter: parent.verticalCenter; Text { text: "Bluetooth"; color: "#ffffff"; font.pixelSize: 10; font.weight: Font.DemiBold } Text { text: shell.btPowered ? "On" : "Off"; color: "#dddddd"; font.pixelSize: 8 } }
                                     }
 
                                     MouseArea {
@@ -2829,7 +3083,7 @@ ShellRoot {
                                     id: peaceBtn
                                     width: Math.floor((parent.width - (parent.spacing * 2)) / 3); height: 45; radius: 22.5
                                     color: pea.containsMouse ? shell.surfaceBright : (shell.peaceMode ? shell.accentDim : shell.surfaceAlt)
-                                    border.width: shell.peaceMode ? 1 : 0
+                                    border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (shell.peaceMode ? 1 : 0)
                                     border.color: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.2)
 
                                     Row {
@@ -2848,7 +3102,7 @@ ShellRoot {
                                                 }
                                             }
                                         }
-                                        Column { anchors.verticalCenter: parent.verticalCenter; Text { text: "Peace"; color: shell.textPrimary; font.pixelSize: 10; font.weight: Font.DemiBold } Text { text: shell.peaceMode ? "On" : "Off"; color: shell.textMuted; font.pixelSize: 8 } }
+                                        Column { anchors.verticalCenter: parent.verticalCenter; Text { text: "Peace"; color: "#ffffff"; font.pixelSize: 10; font.weight: Font.DemiBold } Text { text: shell.peaceMode ? "On" : "Off"; color: "#dddddd"; font.pixelSize: 8 } }
                                     }
 
                                     MouseArea {
@@ -2862,7 +3116,7 @@ ShellRoot {
                                 Rectangle {
                                     width: parent.width - btBtn.width - peaceBtn.width - (parent.spacing * 2); height: 45; radius: 22.5
                                     color: nia.containsMouse ? shell.surfaceBright : (shell.nightMode ? shell.accentDim : shell.surfaceAlt)
-                                    border.width: shell.nightMode ? 1 : 0
+                                    border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (shell.nightMode ? 1 : 0)
                                     border.color: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.2)
 
                                     Row {
@@ -2881,7 +3135,7 @@ ShellRoot {
                                                 }
                                             }
                                         }
-                                        Column { anchors.verticalCenter: parent.verticalCenter; Text { text: "Night"; color: shell.textPrimary; font.pixelSize: 10; font.weight: Font.DemiBold } Text { text: shell.nightMode ? "On" : "Off"; color: shell.textMuted; font.pixelSize: 8 } }
+                                        Column { anchors.verticalCenter: parent.verticalCenter; Text { text: "Night"; color: "#ffffff"; font.pixelSize: 10; font.weight: Font.DemiBold } Text { text: shell.nightMode ? "On" : "Off"; color: "#dddddd"; font.pixelSize: 8 } }
                                     }
 
                                     MouseArea {
@@ -2902,7 +3156,7 @@ ShellRoot {
                                  Rectangle {
                                      width: (parent.width - 8) / 2; height: 45; radius: 22.5
                                      color: persBtnMa.containsMouse ? shell.surfaceBright : ((panelWindow.activeState === 12 || panelWindow.activeState === 11) ? shell.accentDim : shell.surfaceAlt)
-                                     border.width: 1
+                                     border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1)
                                      border.color: (panelWindow.activeState === 12 || panelWindow.activeState === 11) ? Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.2) : shell.surfaceBorder
                                      Behavior on color { ColorAnimation { duration: shell.animFast } }
 
@@ -2925,8 +3179,8 @@ ShellRoot {
                                          }
                                          Column {
                                              anchors.verticalCenter: parent.verticalCenter
-                                             Text { text: "Personalization"; color: shell.textPrimary; font.pixelSize: 10; font.weight: Font.DemiBold }
-                                             Text { text: "Wallpaper, themes..."; color: shell.textSecondary; font.pixelSize: 8 }
+                                             Text { text: "Personalization"; color: "#ffffff"; font.pixelSize: 10; font.weight: Font.DemiBold }
+                                             Text { text: "Wallpaper, themes..."; color: "#dddddd"; font.pixelSize: 8 }
                                          }
                                      }
 
@@ -2943,7 +3197,7 @@ ShellRoot {
                                  Rectangle {
                                      width: (parent.width - 8) / 2; height: 45; radius: 22.5
                                      color: screenToolkitBtnMa.containsMouse ? shell.surfaceBright : (panelWindow.activeState === 14 ? shell.accentDim : shell.surfaceAlt)
-                                     border.width: 1
+                                     border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1)
                                      border.color: panelWindow.activeState === 14 ? Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.2) : shell.surfaceBorder
                                      Behavior on color { ColorAnimation { duration: shell.animFast } }
 
@@ -2966,7 +3220,7 @@ ShellRoot {
                                          }
                                          Column {
                                              anchors.verticalCenter: parent.verticalCenter
-                                             Text { text: "Screen Toolkit"; color: shell.textPrimary; font.pixelSize: 10; font.weight: Font.DemiBold }
+                                             Text { text: "Screen Toolkit"; color: "#ffffff"; font.pixelSize: 10; font.weight: Font.DemiBold }
                                              Text { text: "Capture, record, OCR..."; color: shell.textSecondary; font.pixelSize: 8 }
                                          }
                                      }
@@ -2979,25 +3233,23 @@ ShellRoot {
                                          onClicked: shell.setState(14)
                                      }
                                  }
+                         }
+                         
+                         // Audio Slider
+                         Rectangle {
+                             width: parent.width; height: 36; radius: 18
+                             color: shell.surfaceAlt
+                             border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : 1
+                             border.color: shell.surfaceBorder
+
+                             Rectangle {
+                                 width: Math.max(18, parent.width * shell.sysVolume)
+                                 height: parent.height; radius: 18
+                                 color: shell.accent
+                                 Behavior on width { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
                              }
 
-                            // Volume Slider (real)
-                            Rectangle {
-                                width: parent.width; height: 30; radius: 15; color: shell.surfaceBright; clip: true
-
-                                // Fill
-                                Rectangle {
-                                    width: parent.width * shell.sysVolume
-                                    height: parent.height
-                                    radius: parent.radius
-                                    color: shell.accent
-                                    Behavior on width {
-                                        enabled: !shell.volDragging
-                                        NumberAnimation { duration: 100; easing.type: Easing.OutCubic }
-                                    }
-                                }
-
-                                // Icon (overlayed on left)
+                             // Icon (overlayed on left)
                                 Image {
                                     width: 15; height: 15
                                     anchors.left: parent.left; anchors.leftMargin: 12; anchors.verticalCenter: parent.verticalCenter
@@ -3005,9 +3257,9 @@ ShellRoot {
                                     fillMode: Image.PreserveAspectFit
                                     layer.enabled: ccView.ccActive
                                     layer.effect: MultiEffect {
-                                        brightness: 1.0
+                                        brightness: shell.sysVolume > 0.08 && !shell.sysMuted ? -0.8 : 1.0
                                         colorization: 1.0
-                                        colorizationColor: shell.sysMuted ? shell.textMuted : (shell.sysVolume > 0.08 ? shell.surface : shell.accent)
+                                        colorizationColor: shell.sysVolume > 0.08 && !shell.sysMuted ? shell._baseSurface : "#ffffff"
                                     }
                                 }
 
@@ -3069,9 +3321,9 @@ ShellRoot {
                                     fillMode: Image.PreserveAspectFit
                                     layer.enabled: ccView.ccActive
                                     layer.effect: MultiEffect {
-                                        brightness: 1.0
+                                        brightness: shell.sysBrightness > 0.08 ? -0.8 : 1.0
                                         colorization: 1.0
-                                        colorizationColor: shell.sysBrightness > 0.08 ? shell.surface : shell.peach
+                                        colorizationColor: shell.sysBrightness > 0.08 ? shell._baseSurface : "#ffffff"
                                     }
                                 }
 
@@ -3225,7 +3477,7 @@ ShellRoot {
                                                     source: shell.mediaPlaying ? "icons/pause.png" : "icons/play-button.png"
                                                     fillMode: Image.PreserveAspectFit
                                                     layer.enabled: ccView.ccActive
-                                                    layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: shell.surface }
+                                                    layer.effect: MultiEffect { brightness: -0.8; colorization: 1.0; colorizationColor: shell._baseSurface }
                                                 }
                                                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { if (shell.mediaPlayer) { if (shell.mediaPlaying) shell.mediaPlayer.pause(); else shell.mediaPlayer.play(); } } }
                                             }
@@ -3301,9 +3553,9 @@ ShellRoot {
                                                         }
                                                         layer.enabled: ccView.ccActive
                                                         layer.effect: MultiEffect {
-                                                            brightness: 1.0
+                                                            brightness: -0.8
                                                             colorization: 1.0
-                                                            colorizationColor: shell.surface
+                                                            colorizationColor: shell._baseSurface
                                                         }
                                                     }
 
@@ -3318,9 +3570,9 @@ ShellRoot {
                                                         }
                                                         layer.enabled: ccView.ccActive
                                                         layer.effect: MultiEffect {
-                                                            brightness: 1.0
+                                                            brightness: -0.8
                                                             colorization: 1.0
-                                                            colorizationColor: shell.surface
+                                                            colorizationColor: shell._baseSurface
                                                         }
                                                     }
                                                 }
@@ -3374,7 +3626,7 @@ ShellRoot {
                                     ? (modelData.danger ? Qt.rgba(shell.red.r, shell.red.g, shell.red.b, 0.2) : shell.surfaceBright)
                                     : (modelData.danger ? Qt.rgba(shell.red.r, shell.red.g, shell.red.b, 0.08) : shell.surfaceAlt)
                                 Behavior on color { ColorAnimation { duration: shell.animFast } }
-                                border.width: modelData.danger ? 1 : 0
+                                border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (modelData.danger ? 1 : 0)
                                 border.color: Qt.rgba(shell.red.r, shell.red.g, shell.red.b, 0.2)
 
                                 Column {
@@ -3431,7 +3683,7 @@ ShellRoot {
 
                         Rectangle {
                             width: parent.width; height: 34; radius: 10; color: shell.surfaceAlt
-                            border.width: 1; border.color: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.3)
+                            border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.3)
                             Text { anchors.centerIn: parent; text: "• • • • • • • •"; color: shell.textMuted; font.pixelSize: 14; font.letterSpacing: 2 }
                         }
 
@@ -3528,7 +3780,7 @@ ShellRoot {
                             // Switch Card (WiFi Toggle)
                             Rectangle {
                                 width: parent.width; height: 50; radius: 14; color: shell.surfaceAlt
-                                border.width: 1; border.color: shell.surfaceBorder
+                                border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
 
                                 Row {
                                     anchors.fill: parent; anchors.margins: 12; spacing: 12
@@ -3580,7 +3832,7 @@ ShellRoot {
                                 Rectangle {
                                     width: wifiCol.width; height: shell.wifiIPAddress !== "" ? 75 : 60; radius: 12
                                     color: shell.wifiConnectionState === "Failed" ? Qt.rgba(shell.red.r, shell.red.g, shell.red.b, 0.1) : shell.surfaceAlt
-                                    border.width: 1
+                                    border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1)
                                     border.color: shell.wifiConnectionState === "Failed" ? shell.red : (shell.wifiConnectionState === "Connected" ? shell.accent : shell.surfaceBorder)
 
                                     Row {
@@ -3636,7 +3888,7 @@ ShellRoot {
                                         Rectangle {
                                             width: 70; height: 28; radius: 6
                                             color: shell.wifiConnectionState === "Failed" ? shell.surfaceBright : (shell.wifiConnectionState === "Connected" ? shell.surfaceBright : shell.red)
-                                            border.width: 1
+                                            border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1)
                                             border.color: shell.wifiConnectionState === "Failed" ? shell.surfaceBorder : "transparent"
                                             anchors.verticalCenter: parent.verticalCenter
 
@@ -3826,7 +4078,7 @@ ShellRoot {
                                 // Cancel button
                                 Rectangle {
                                     width: 65; height: 32; radius: 8; color: shell.surfaceBright
-                                    border.width: 1; border.color: shell.surfaceBorder
+                                    border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
                                     Text {
                                         anchors.centerIn: parent
                                         text: "Cancel"; color: shell.textSecondary; font.pixelSize: 11; font.weight: Font.Medium
@@ -3889,7 +4141,7 @@ ShellRoot {
                             // Switch Card (Bluetooth Toggle)
                             Rectangle {
                                 width: parent.width; height: 50; radius: 14; color: shell.surfaceAlt
-                                border.width: 1; border.color: shell.surfaceBorder
+                                border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
 
                                 Row {
                                     anchors.fill: parent; anchors.margins: 12; spacing: 12
@@ -4064,7 +4316,7 @@ ShellRoot {
                                  height: 26; radius: 13
                                  color: folderBtnMa.containsMouse ? shell.surfaceBright : shell.surfaceAlt
                                  Behavior on color { ColorAnimation { duration: shell.animFast } }
-                                 border.width: 1
+                                 border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1)
                                  border.color: shell.surfaceBorder
 
                                  Row {
@@ -4167,7 +4419,7 @@ ShellRoot {
                                       anchors.fill: parent
                                       radius: card.radius
                                       color: "transparent"
-                                      border.width: (modelData === WallpaperService.getWallpaper(panelWindow.modelData.name)) ? 2 : (wma.containsMouse ? 1 : 0)
+                                      border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : ((modelData === WallpaperService.getWallpaper(panelWindow.modelData.name)) ? 2 : (wma.containsMouse ? 1 : 0))
                                       border.color: (modelData === WallpaperService.getWallpaper(panelWindow.modelData.name)) ? shell.accent : "#585b70"
                                       Behavior on border.color { ColorAnimation { duration: 200 } }
                                   }
@@ -4240,22 +4492,22 @@ ShellRoot {
 
                                 Repeater {
                                     model: [
-                                        { name: "Accent", key: "customAccent" },
-                                        { name: "Surface", key: "customSurface" },
-                                        { name: "Surface Alt", key: "customSurfaceAlt" },
-                                        { name: "Surface Bright", key: "customSurfaceBright" },
-                                        { name: "Text Primary", key: "customTextPrimary" },
-                                        { name: "Text Secondary", key: "customTextSecondary" },
-                                        { name: "Text Muted", key: "customTextMuted" },
-                                        { name: "Red", key: "customRed" },
-                                        { name: "Green", key: "customGreen" },
-                                        { name: "Peach", key: "customPeach" },
-                                        { name: "Blue", key: "customBlue" }
+                                        { name: "Active Toggles / Accent", key: "customAccent" },
+                                        { name: "Main Background", key: "customSurface" },
+                                        { name: "Card Background", key: "customSurfaceAlt" },
+                                        { name: "Inactive Buttons", key: "customSurfaceBright" },
+                                        { name: "Primary Text", key: "customTextPrimary" },
+                                        { name: "Secondary Text", key: "customTextSecondary" },
+                                        { name: "Muted / Disabled", key: "customTextMuted" },
+                                        { name: "Danger / Error", key: "customRed" },
+                                        { name: "Success / Good", key: "customGreen" },
+                                        { name: "Warning / Sliders", key: "customPeach" },
+                                        { name: "Info / Active", key: "customBlue" }
                                     ]
                                     delegate: Rectangle {
                                         width: (customPaletteCol.width - 8) / 2; height: 38; radius: 8
                                         color: shell.activeColorKey === modelData.key ? shell.accentDim : shell.surfaceAlt
-                                        border.width: shell.activeColorKey === modelData.key ? 1 : 0
+                                        border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (shell.activeColorKey === modelData.key ? 1 : 0)
                                         border.color: shell.accent
 
                                         Rectangle {
@@ -4263,7 +4515,7 @@ ShellRoot {
                                             width: 14; height: 14; radius: 7; color: shell[modelData.key]
                                             anchors.left: parent.left; anchors.leftMargin: 8
                                             anchors.verticalCenter: parent.verticalCenter
-                                            border.width: 1; border.color: "#585b70"
+                                            border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: "#585b70"
                                         }
 
                                         Text {
@@ -4286,7 +4538,7 @@ ShellRoot {
                             // Active Editor Card
                             Rectangle {
                                 width: parent.width; height: 110; radius: 12; color: shell.surfaceAlt
-                                border.width: 1; border.color: shell.surfaceBorder
+                                border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
 
                                 Column {
                                     anchors.fill: parent; anchors.margins: 12; spacing: 8
@@ -4299,7 +4551,7 @@ ShellRoot {
                                             anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
                                             width: 45; height: 18; radius: 4
                                             color: shell[shell.activeColorKey]
-                                            border.width: 1; border.color: "#585b70"
+                                            border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: "#585b70"
                                         }
                                     }
 
@@ -4310,7 +4562,7 @@ ShellRoot {
                                         // Hex Input Field
                                         Rectangle {
                                             width: parent.width - 88; height: 32; radius: 8; color: shell.surfaceBright
-                                            border.width: 1
+                                            border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1)
                                             border.color: hexInput2.activeFocus ? shell.accent : shell.surfaceBorder
 
                                             TextInput {
@@ -4367,12 +4619,12 @@ ShellRoot {
                             // Intelligence Palette Card
                             Rectangle {
                                 width: parent.width; height: 68; radius: 12; color: shell.surfaceAlt
-                                border.width: 1; border.color: shell.surfaceBorder
+                                border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
 
                                 Column {
                                     anchors.fill: parent; anchors.margins: 12; spacing: 8
 
-                                    Text { text: "Intelligence Palette"; color: shell.textPrimary; font.pixelSize: 12; font.weight: Font.Bold }
+                                    Text { text: "Intelligence Palette"; color: "#ffffff"; font.pixelSize: 12; font.weight: Font.Bold }
 
                                     Rectangle {
                                         width: parent.width; height: 28; radius: 8
@@ -4400,12 +4652,12 @@ ShellRoot {
                             // Preset Themes Card
                             Rectangle {
                                 width: parent.width; height: 140; radius: 12; color: shell.surfaceAlt
-                                border.width: 1; border.color: shell.surfaceBorder
+                                border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
 
                                 Column {
                                     anchors.fill: parent; anchors.margins: 12; spacing: 10
 
-                                    Text { text: "Premium Presets"; color: shell.textPrimary; font.pixelSize: 12; font.weight: Font.Bold }
+                                    Text { text: "Premium Presets"; color: "#ffffff"; font.pixelSize: 12; font.weight: Font.Bold }
 
                                     Grid {
                                         columns: 2; spacing: 8; width: parent.width
@@ -4414,7 +4666,7 @@ ShellRoot {
                                             model: shell.presets
                                             delegate: Rectangle {
                                                 width: (customPaletteCol.width - 32) / 2; height: 32; radius: 8; color: presetMa2.containsMouse ? "#2c2c3e" : shell.surfaceBright
-                                                border.width: 1; border.color: shell.surfaceBorder
+                                                border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
 
                                                 Row {
                                                     anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; spacing: 6
@@ -4422,7 +4674,7 @@ ShellRoot {
                                                     Rectangle {
                                                         width: 12; height: 12; radius: 6; color: modelData.accent
                                                         anchors.verticalCenter: parent.verticalCenter
-                                                        border.width: 1; border.color: "#585b70"
+                                                        border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: "#585b70"
                                                     }
 
                                                     Text {
@@ -4459,6 +4711,10 @@ ShellRoot {
                     Behavior on opacity { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
                     Behavior on scale   { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
 
+                    property bool hyprglassSettingsOpen: false
+                    property bool showWallpaperConfirm: false
+
+
                     MouseArea {
                         anchors.fill: parent
                         onClicked: shell.setState(0)
@@ -4487,13 +4743,13 @@ ShellRoot {
                                     }
                                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: shell.setState(5) }
                                 }
-                                Text { text: "Personalization"; color: shell.textPrimary; font.pixelSize: 16; font.weight: Font.Bold; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: "Personalization"; color: "#ffffff"; font.pixelSize: 16; font.weight: Font.Bold; anchors.verticalCenter: parent.verticalCenter }
                             }
 
                             // 1. Wallpaper Card
                             Rectangle {
                                 width: parent.width; height: 64; radius: 14; color: wallpaperCardMa.containsMouse ? shell.surfaceBright : shell.surfaceAlt
-                                border.width: 1; border.color: shell.surfaceBorder
+                                border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
                                 Behavior on color { ColorAnimation { duration: shell.animFast } }
 
                                 Row {
@@ -4555,7 +4811,7 @@ ShellRoot {
                                     Column {
                                         width: parent.width - 40 - 24 - 12
                                         anchors.verticalCenter: parent.verticalCenter
-                                        Text { text: "Desktop Wallpaper"; color: shell.textPrimary; font.pixelSize: 12; font.weight: Font.Bold }
+                                        Text { text: "Desktop Wallpaper"; color: "#ffffff"; font.pixelSize: 12; font.weight: Font.Bold }
                                         Text { text: "Select a background image"; color: shell.textSecondary; font.pixelSize: 9 }
                                     }
                                 }
@@ -4572,14 +4828,14 @@ ShellRoot {
                             // 2. Color Theme Card
                             Rectangle {
                                 width: parent.width; height: 105; radius: 14; color: shell.surfaceAlt
-                                border.width: 1; border.color: shell.surfaceBorder
+                                border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
 
                                 Column {
                                     anchors.fill: parent; anchors.margins: 12; spacing: 10
 
                                     Column {
                                         spacing: 2
-                                        Text { text: "Color Theme"; color: shell.textPrimary; font.pixelSize: 12; font.weight: Font.Bold }
+                                        Text { text: "Color Theme"; color: "#ffffff"; font.pixelSize: 12; font.weight: Font.Bold }
                                         Text { text: "Choose theme mode or customize colors"; color: shell.textSecondary; font.pixelSize: 9 }
                                     }
 
@@ -4591,18 +4847,24 @@ ShellRoot {
                                         Rectangle {
                                             width: (parent.width - 8) / 2; height: parent.height; radius: 8
                                             color: shell.themeMode === "wallpaper" ? shell.accent : shell.surfaceBright
-                                            border.width: 1; border.color: shell.themeMode === "wallpaper" ? "transparent" : shell.surfaceBorder
+                                            border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.themeMode === "wallpaper" ? "transparent" : shell.surfaceBorder
 
                                             Text {
                                                 anchors.centerIn: parent
                                                 text: "Wallpaper Colors"
-                                                color: shell.themeMode === "wallpaper" ? shell.surface : shell.textPrimary
+                                                color: shell.themeMode === "wallpaper" ? (((0.299 * shell.accent.r + 0.587 * shell.accent.g + 0.114 * shell.accent.b) > 0.55) ? "#11111b" : "#ffffff") : shell.textPrimary
                                                 font.pixelSize: 10; font.weight: Font.DemiBold
                                             }
 
                                             MouseArea {
                                                 anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                                onClicked: shell.themeMode = "wallpaper"
+                                                onClicked: {
+                                                    if (shell.themeMode === "custom") {
+                                                        personalizationView.showWallpaperConfirm = true;
+                                                    } else {
+                                                        shell.themeMode = "wallpaper";
+                                                    }
+                                                }
                                             }
                                         }
 
@@ -4610,12 +4872,12 @@ ShellRoot {
                                         Rectangle {
                                             width: (parent.width - 8) / 2; height: parent.height; radius: 8
                                             color: shell.themeMode === "custom" ? shell.accent : shell.surfaceBright
-                                            border.width: 1; border.color: shell.themeMode === "custom" ? "transparent" : shell.surfaceBorder
+                                            border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.themeMode === "custom" ? "transparent" : shell.surfaceBorder
 
                                             Text {
                                                 anchors.centerIn: parent
                                                 text: "Custom Theme"
-                                                color: shell.themeMode === "custom" ? shell.surface : shell.textPrimary
+                                                color: shell.themeMode === "custom" ? (((0.299 * shell.accent.r + 0.587 * shell.accent.g + 0.114 * shell.accent.b) > 0.55) ? "#11111b" : "#ffffff") : shell.textPrimary
                                                 font.pixelSize: 10; font.weight: Font.DemiBold
                                             }
 
@@ -4651,7 +4913,7 @@ ShellRoot {
                             // 3. Themed Icons Toggle Card
                             Rectangle {
                                 width: parent.width; height: 50; radius: 14; color: shell.surfaceAlt
-                                border.width: 1; border.color: shell.surfaceBorder
+                                border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
 
                                 Row {
                                     anchors.fill: parent; anchors.margins: 12; spacing: 12
@@ -4674,7 +4936,7 @@ ShellRoot {
                                     Column {
                                         width: parent.width - 28 - 44 - 36
                                         anchors.verticalCenter: parent.verticalCenter
-                                        Text { text: "Themed Icons"; color: shell.textPrimary; font.pixelSize: 12; font.weight: Font.Bold }
+                                        Text { text: "Themed Icons"; color: "#ffffff"; font.pixelSize: 12; font.weight: Font.Bold }
                                         Text { text: "Tint desktop and launcher icons with accent"; color: shell.textSecondary; font.pixelSize: 9 }
                                     }
 
@@ -4698,58 +4960,126 @@ ShellRoot {
                                 }
                             }
 
-                            // 4. Liquid Glass (Hyprglass) Toggle Card
+                                                        // 4. Liquid Glass Toggle Card
                             Rectangle {
                                 width: parent.width; height: 50; radius: 14; color: shell.surfaceAlt
-                                border.width: 1; border.color: shell.surfaceBorder
+                                border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
 
                                 Row {
                                     anchors.fill: parent; anchors.margins: 12; spacing: 12
 
                                     Rectangle {
                                         width: 28; height: 28; radius: 14
-                                        color: Settings.data.colorSchemes.hyprglass ? shell.accent : shell.surfaceBright
+                                        color: (Settings.data.colorSchemes.hyprglass || Settings.data.colorSchemes.hyprglassIsland) ? shell.accent : shell.surfaceBright
                                         anchors.verticalCenter: parent.verticalCenter
                                         Image {
                                             anchors.centerIn: parent; width: 14; height: 14
                                             source: "icons/palette.png"
                                             layer.enabled: panelWindow.activeState === 12
                                             layer.effect: MultiEffect {
-                                                brightness: 1.0; colorization: 1.0
-                                                colorizationColor: Settings.data.colorSchemes.hyprglass ? shell.surface : shell.textMuted
+                                                brightness: 1.0; colorization: 1.0; colorizationColor: (Settings.data.colorSchemes.hyprglass || Settings.data.colorSchemes.hyprglassIsland) ? shell._baseSurface : shell.textMuted
                                             }
                                         }
                                     }
 
                                     Column {
-                                        width: parent.width - 28 - 44 - 36
+                                        width: parent.width - 28 - 44 - 28 - 36
                                         anchors.verticalCenter: parent.verticalCenter
-                                        Text { text: "Liquid Glass (Hyprglass)"; color: shell.textPrimary; font.pixelSize: 12; font.weight: Font.Bold }
-                                        Text { text: "Enable glass refraction and diffraction effects"; color: shell.textSecondary; font.pixelSize: 9 }
+                                        Text { text: "Liquid Glass"; color: "#ffffff"; font.pixelSize: 12; font.weight: Font.Bold }
+                                        Text { text: "Enable glass refraction on windows and the island"; color: shell.textSecondary; font.pixelSize: 9 }
                                     }
 
+                                    // Settings Button (opens config file separately)
+                                    Rectangle {
+                                        width: 28; height: 28; radius: 14; color: "transparent"
+                                        anchors.verticalCenter: parent.verticalCenter
+
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: "⚙"
+                                            color: settingsMa.containsMouse ? shell.accent : shell.textSecondary
+                                            font.pixelSize: 16
+                                        }
+
+                                        MouseArea {
+                                            id: settingsMa
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: shell.setState(18)
+                                        }
+                                    }
+
+                                    // Toggle Switch
                                     Image {
                                         width: 44; height: 24
                                         anchors.verticalCenter: parent.verticalCenter
                                         source: "icons/on.png"
-                                        mirror: !Settings.data.colorSchemes.hyprglass
+                                        mirror: !(Settings.data.colorSchemes.hyprglass || Settings.data.colorSchemes.hyprglassIsland)
                                         fillMode: Image.PreserveAspectFit
                                         layer.enabled: panelWindow.activeState === 12
                                         layer.effect: MultiEffect {
                                             brightness: 1.0
                                             colorization: 1.0
-                                            colorizationColor: Settings.data.colorSchemes.hyprglass ? shell.accent : shell.textMuted
+                                            colorizationColor: (Settings.data.colorSchemes.hyprglass || Settings.data.colorSchemes.hyprglassIsland) ? shell.accent : shell.textMuted
                                         }
                                         MouseArea {
                                             anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                            onClicked: Settings.data.colorSchemes.hyprglass = !Settings.data.colorSchemes.hyprglass
+                                            onClicked: {
+                                                var val = !(Settings.data.colorSchemes.hyprglass || Settings.data.colorSchemes.hyprglassIsland);
+                                                Settings.data.colorSchemes.hyprglass = val;
+                                                Settings.data.colorSchemes.hyprglassIsland = val;
+                                            }
                                         }
                                     }
                                 }
                             }
 
+                        }
+                    }
 
+                    // Wallpaper Reset Confirmation Overlay
+                    Rectangle {
+                        anchors.fill: parent
+                        color: Qt.rgba(0, 0, 0, 0.5)
+                        opacity: personalizationView.showWallpaperConfirm ? 1 : 0
+                        visible: opacity > 0
+                        Behavior on opacity { NumberAnimation { duration: 200 } }
+                        
+                        // Block clicks
+                        MouseArea { anchors.fill: parent; onClicked: personalizationView.showWallpaperConfirm = false }
 
+                        Rectangle {
+                            width: 300; height: 160; radius: 16
+                            color: shell.surfaceAlt
+                            border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : 1; border.color: shell.surfaceBorder
+                            anchors.centerIn: parent
+
+                            Column {
+                                anchors.fill: parent; anchors.margins: 20; spacing: 16
+                                Text { text: "Reset Theme?"; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold; anchors.horizontalCenter: parent.horizontalCenter }
+                                Text { text: "Are you sure you want to change to the wallpaper theme colors? Your custom colors for this mode will be overridden."; color: shell.textSecondary; font.pixelSize: 11; wrapMode: Text.WordWrap; width: parent.width; horizontalAlignment: Text.AlignHCenter }
+                                
+                                Row {
+                                    spacing: 12; anchors.horizontalCenter: parent.horizontalCenter
+                                    Rectangle {
+                                        width: 100; height: 32; radius: 8; color: shell.surfaceBright
+                                        Text { anchors.centerIn: parent; text: "Cancel"; color: shell.textPrimary; font.pixelSize: 11; font.weight: Font.DemiBold }
+                                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: personalizationView.showWallpaperConfirm = false }
+                                    }
+                                    Rectangle {
+                                        width: 100; height: 32; radius: 8; color: shell.red
+                                        Text { anchors.centerIn: parent; text: "Reset"; color: "#11111b"; font.pixelSize: 11; font.weight: Font.DemiBold }
+                                        MouseArea {
+                                            anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                shell.themeMode = "wallpaper";
+                                                personalizationView.showWallpaperConfirm = false;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -4757,8 +5087,603 @@ ShellRoot {
                 // =============================================================
                 // STATE 13: CLIPBOARD HISTORY POPUP
                 // =============================================================
+                // Glass Settings View (State 18)
+                
                 Item {
-                    id: clipboardHistoryView
+                    id: glassSettingsView
+                    anchors.fill: parent
+                    opacity: panelWindow.activeState === 18 ? 1 : 0; scale: panelWindow.activeState === 18 ? 1 : 0.96; visible: opacity > 0.01
+                    Behavior on opacity { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
+                    Behavior on scale   { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: shell.setState(0)
+                    }
+
+                    Flickable {
+                        anchors.fill: parent; anchors.margins: 14
+                        contentHeight: glassCol.height
+                        contentWidth: width
+                        clip: true; boundsBehavior: Flickable.StopAtBounds
+
+                        Column {
+                            id: glassCol; width: parent.width; spacing: 12
+                            // Header
+                            Row {
+                                width: parent.width; spacing: 10
+                                Item {
+                                    width: 32; height: 32; anchors.verticalCenter: parent.verticalCenter
+                                    Image {
+                                        anchors.centerIn: parent; width: 20; height: 20
+                                        source: "icons/back.png"
+                                        fillMode: Image.PreserveAspectFit
+                                        layer.enabled: panelWindow.activeState === 18
+                                        layer.effect: MultiEffect { brightness: shell.wpIsLight ? -0.8 : 1.0; colorization: 1.0; colorizationColor: shell.textPrimary }
+                                    }
+                                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: shell.setState(12) }
+                                }
+                                Text { text: "Glass Settings"; color: "#ffffff"; font.pixelSize: 16; font.weight: Font.Bold; anchors.verticalCenter: parent.verticalCenter }
+                            }
+
+                            // Style Selector
+                            Rectangle {
+                                width: parent.width; height: 32; radius: 8; color: shell.surfaceBright
+                                Row {
+                                    anchors.fill: parent; anchors.margins: 4; spacing: 4
+                                    
+                                    Rectangle {
+                                        width: (parent.width - 4) / 2; height: parent.height; radius: 6
+                                        color: Settings.data.colorSchemes.hyprglassStyle === "liquid" ? shell.accent : "transparent"
+                                        Behavior on color { ColorAnimation { duration: 150 } }
+                                        Text { anchors.centerIn: parent; text: "Liquid"; color: Settings.data.colorSchemes.hyprglassStyle === "liquid" ? shell.surface : shell.textPrimary; font.pixelSize: 11; font.weight: Font.DemiBold }
+                                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: Settings.data.colorSchemes.hyprglassStyle = "liquid" }
+                                    }
+                                    
+                                    Rectangle {
+                                        width: (parent.width - 4) / 2; height: parent.height; radius: 6
+                                        color: Settings.data.colorSchemes.hyprglassStyle === "frosted" ? shell.accent : "transparent"
+                                        Behavior on color { ColorAnimation { duration: 150 } }
+                                        Text { anchors.centerIn: parent; text: "Frosted"; color: Settings.data.colorSchemes.hyprglassStyle === "frosted" ? shell.surface : shell.textPrimary; font.pixelSize: 11; font.weight: Font.DemiBold }
+                                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: Settings.data.colorSchemes.hyprglassStyle = "frosted" }
+                                    }
+                                }
+                            }
+
+                            // Sliders Component Generator
+                            // Using a Repeater or just manual items since there's custom logic for applying settings
+                            
+                            // Blur Radius
+                            Item {
+                                width: parent.width; height: 26
+                                Text { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; text: "Blur Radius"; color: shell.textPrimary; font.pixelSize: 11; font.weight: Font.Bold }
+                                Row {
+                                    anchors.verticalCenter: parent.verticalCenter; anchors.right: parent.right; spacing: 4
+                                    Rectangle {
+                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        Text { text: "-"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
+                                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { var val = Math.max(0.0, Settings.data.colorSchemes.hyprglassBlur - 0.05); Settings.data.colorSchemes.hyprglassBlur = val; blurInput.text = val.toFixed(2); shell.applyHyprglassSettings(Settings.data.colorSchemes.hyprglassBlur, Settings.data.colorSchemes.hyprglassRefraction, Settings.data.colorSchemes.hyprglassChroma, Settings.data.colorSchemes.hyprglassEdge); } }
+                                    }
+                                    Rectangle {
+                                        width: 60; height: 26; radius: 6; color: shell.surfaceBright
+                                        TextInput { id: blurInput; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignCenter; color: shell.textPrimary; font.pixelSize: 11; font.family: "monospace"; text: Settings.data.colorSchemes.hyprglassBlur.toFixed(2); selectByMouse: true; inputMethodHints: Qt.ImhFormattedNumbersOnly; validator: DoubleValidator { bottom: 0.0; top: 1.0; decimals: 2 }
+                                            onEditingFinished: { var val = parseFloat(text); if (isNaN(val)) val = 0.0; val = Math.max(0.0, Math.min(1.0, val)); text = val.toFixed(2); Settings.data.colorSchemes.hyprglassBlur = val; shell.applyHyprglassSettings(Settings.data.colorSchemes.hyprglassBlur, Settings.data.colorSchemes.hyprglassRefraction, Settings.data.colorSchemes.hyprglassChroma, Settings.data.colorSchemes.hyprglassEdge); }
+                                            Connections { target: Settings.data.colorSchemes; function onHyprglassBlurChanged() { blurInput.text = Settings.data.colorSchemes.hyprglassBlur.toFixed(2); } }
+                                        }
+                                    }
+                                    Rectangle {
+                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        Text { text: "+"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
+                                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { var val = Math.min(1.0, Settings.data.colorSchemes.hyprglassBlur + 0.05); Settings.data.colorSchemes.hyprglassBlur = val; blurInput.text = val.toFixed(2); shell.applyHyprglassSettings(Settings.data.colorSchemes.hyprglassBlur, Settings.data.colorSchemes.hyprglassRefraction, Settings.data.colorSchemes.hyprglassChroma, Settings.data.colorSchemes.hyprglassEdge); } }
+                                    }
+                                }
+                            }
+
+                            // Refraction
+                            Item {
+                                width: parent.width; height: 26
+                                Text { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; text: "Refraction"; color: shell.textPrimary; font.pixelSize: 11; font.weight: Font.Bold }
+                                Row {
+                                    anchors.verticalCenter: parent.verticalCenter; anchors.right: parent.right; spacing: 4
+                                    Rectangle {
+                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        Text { text: "-"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
+                                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { var val = Math.max(0.0, Settings.data.colorSchemes.hyprglassRefraction - 0.05); Settings.data.colorSchemes.hyprglassRefraction = val; refrInput.text = val.toFixed(2); shell.applyHyprglassSettings(Settings.data.colorSchemes.hyprglassBlur, Settings.data.colorSchemes.hyprglassRefraction, Settings.data.colorSchemes.hyprglassChroma, Settings.data.colorSchemes.hyprglassEdge); } }
+                                    }
+                                    Rectangle {
+                                        width: 60; height: 26; radius: 6; color: shell.surfaceBright
+                                        TextInput { id: refrInput; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignCenter; color: shell.textPrimary; font.pixelSize: 11; font.family: "monospace"; text: Settings.data.colorSchemes.hyprglassRefraction.toFixed(2); selectByMouse: true; inputMethodHints: Qt.ImhFormattedNumbersOnly; validator: DoubleValidator { bottom: 0.0; top: 1.0; decimals: 2 }
+                                            onEditingFinished: { var val = parseFloat(text); if (isNaN(val)) val = 0.0; val = Math.max(0.0, Math.min(1.0, val)); text = val.toFixed(2); Settings.data.colorSchemes.hyprglassRefraction = val; shell.applyHyprglassSettings(Settings.data.colorSchemes.hyprglassBlur, Settings.data.colorSchemes.hyprglassRefraction, Settings.data.colorSchemes.hyprglassChroma, Settings.data.colorSchemes.hyprglassEdge); }
+                                            Connections { target: Settings.data.colorSchemes; function onHyprglassRefractionChanged() { refrInput.text = Settings.data.colorSchemes.hyprglassRefraction.toFixed(2); } }
+                                        }
+                                    }
+                                    Rectangle {
+                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        Text { text: "+"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
+                                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { var val = Math.min(1.0, Settings.data.colorSchemes.hyprglassRefraction + 0.05); Settings.data.colorSchemes.hyprglassRefraction = val; refrInput.text = val.toFixed(2); shell.applyHyprglassSettings(Settings.data.colorSchemes.hyprglassBlur, Settings.data.colorSchemes.hyprglassRefraction, Settings.data.colorSchemes.hyprglassChroma, Settings.data.colorSchemes.hyprglassEdge); } }
+                                    }
+                                }
+                            }
+                            
+                            // Chroma
+                            Item {
+                                width: parent.width; height: 26
+                                Text { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; text: "Chroma"; color: shell.textPrimary; font.pixelSize: 11; font.weight: Font.Bold }
+                                Row {
+                                    anchors.verticalCenter: parent.verticalCenter; anchors.right: parent.right; spacing: 4
+                                    Rectangle {
+                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        Text { text: "-"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
+                                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { var val = Math.max(0.0, Settings.data.colorSchemes.hyprglassChroma - 0.05); Settings.data.colorSchemes.hyprglassChroma = val; chromaInput.text = val.toFixed(2); shell.applyHyprglassSettings(Settings.data.colorSchemes.hyprglassBlur, Settings.data.colorSchemes.hyprglassRefraction, Settings.data.colorSchemes.hyprglassChroma, Settings.data.colorSchemes.hyprglassEdge); } }
+                                    }
+                                    Rectangle {
+                                        width: 60; height: 26; radius: 6; color: shell.surfaceBright
+                                        TextInput { id: chromaInput; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignCenter; color: shell.textPrimary; font.pixelSize: 11; font.family: "monospace"; text: Settings.data.colorSchemes.hyprglassChroma.toFixed(2); selectByMouse: true; inputMethodHints: Qt.ImhFormattedNumbersOnly; validator: DoubleValidator { bottom: 0.0; top: 1.0; decimals: 2 }
+                                            onEditingFinished: { var val = parseFloat(text); if (isNaN(val)) val = 0.0; val = Math.max(0.0, Math.min(1.0, val)); text = val.toFixed(2); Settings.data.colorSchemes.hyprglassChroma = val; shell.applyHyprglassSettings(Settings.data.colorSchemes.hyprglassBlur, Settings.data.colorSchemes.hyprglassRefraction, Settings.data.colorSchemes.hyprglassChroma, Settings.data.colorSchemes.hyprglassEdge); }
+                                            Connections { target: Settings.data.colorSchemes; function onHyprglassChromaChanged() { chromaInput.text = Settings.data.colorSchemes.hyprglassChroma.toFixed(2); } }
+                                        }
+                                    }
+                                    Rectangle {
+                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        Text { text: "+"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
+                                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { var val = Math.min(1.0, Settings.data.colorSchemes.hyprglassChroma + 0.05); Settings.data.colorSchemes.hyprglassChroma = val; chromaInput.text = val.toFixed(2); shell.applyHyprglassSettings(Settings.data.colorSchemes.hyprglassBlur, Settings.data.colorSchemes.hyprglassRefraction, Settings.data.colorSchemes.hyprglassChroma, Settings.data.colorSchemes.hyprglassEdge); } }
+                                    }
+                                }
+                            }
+
+                            // Edge Highlight
+                            Item {
+                                width: parent.width; height: 26
+                                Text { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; text: "Edge Highlight"; color: shell.textPrimary; font.pixelSize: 11; font.weight: Font.Bold }
+                                Row {
+                                    anchors.verticalCenter: parent.verticalCenter; anchors.right: parent.right; spacing: 4
+                                    Rectangle {
+                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        Text { text: "-"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
+                                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { var val = Math.max(0.0, Settings.data.colorSchemes.hyprglassEdge - 0.05); Settings.data.colorSchemes.hyprglassEdge = val; edgeInput.text = val.toFixed(2); shell.applyHyprglassSettings(Settings.data.colorSchemes.hyprglassBlur, Settings.data.colorSchemes.hyprglassRefraction, Settings.data.colorSchemes.hyprglassChroma, Settings.data.colorSchemes.hyprglassEdge); } }
+                                    }
+                                    Rectangle {
+                                        width: 60; height: 26; radius: 6; color: shell.surfaceBright
+                                        TextInput { id: edgeInput; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignCenter; color: shell.textPrimary; font.pixelSize: 11; font.family: "monospace"; text: Settings.data.colorSchemes.hyprglassEdge.toFixed(2); selectByMouse: true; inputMethodHints: Qt.ImhFormattedNumbersOnly; validator: DoubleValidator { bottom: 0.0; top: 1.0; decimals: 2 }
+                                            onEditingFinished: { var val = parseFloat(text); if (isNaN(val)) val = 0.0; val = Math.max(0.0, Math.min(1.0, val)); text = val.toFixed(2); Settings.data.colorSchemes.hyprglassEdge = val; shell.applyHyprglassSettings(Settings.data.colorSchemes.hyprglassBlur, Settings.data.colorSchemes.hyprglassRefraction, Settings.data.colorSchemes.hyprglassChroma, Settings.data.colorSchemes.hyprglassEdge); }
+                                            Connections { target: Settings.data.colorSchemes; function onHyprglassEdgeChanged() { edgeInput.text = Settings.data.colorSchemes.hyprglassEdge.toFixed(2); } }
+                                        }
+                                    }
+                                    Rectangle {
+                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        Text { text: "+"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
+                                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { var val = Math.min(1.0, Settings.data.colorSchemes.hyprglassEdge + 0.05); Settings.data.colorSchemes.hyprglassEdge = val; edgeInput.text = val.toFixed(2); shell.applyHyprglassSettings(Settings.data.colorSchemes.hyprglassBlur, Settings.data.colorSchemes.hyprglassRefraction, Settings.data.colorSchemes.hyprglassChroma, Settings.data.colorSchemes.hyprglassEdge); } }
+                                    }
+                                }
+                            }
+
+                            // Glass Darkness (Dynamic for liquid/frosted)
+                            Item {
+                                width: parent.width; height: 26
+                                Text { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; text: "Glass Darkness"; color: shell.textPrimary; font.pixelSize: 11; font.weight: Font.Bold }
+                                Row {
+                                    anchors.verticalCenter: parent.verticalCenter; anchors.right: parent.right; spacing: 4
+                                    Rectangle {
+                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        Text { text: "-"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
+                                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { 
+                                            var isFrosted = Settings.data.colorSchemes.hyprglassStyle === "frosted";
+                                            var val = isFrosted ? Settings.data.colorSchemes.frostedOpacity : Settings.data.colorSchemes.liquidOpacity;
+                                            val = Math.max(0.0, val - 0.05);
+                                            if (isFrosted) Settings.data.colorSchemes.frostedOpacity = val;
+                                            else Settings.data.colorSchemes.liquidOpacity = val;
+                                            darknessInput.text = val.toFixed(2);
+                                        } }
+                                    }
+                                    Rectangle {
+                                        width: 60; height: 26; radius: 6; color: shell.surfaceBright
+                                        TextInput { id: darknessInput; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignCenter; color: shell.textPrimary; font.pixelSize: 11; font.family: "monospace"; text: (Settings.data.colorSchemes.hyprglassStyle === "frosted" ? Settings.data.colorSchemes.frostedOpacity : Settings.data.colorSchemes.liquidOpacity).toFixed(2); selectByMouse: true; inputMethodHints: Qt.ImhFormattedNumbersOnly; validator: DoubleValidator { bottom: 0.0; top: 1.0; decimals: 2 }
+                                            onEditingFinished: { 
+                                                var val = parseFloat(text); if (isNaN(val)) val = 0.0; val = Math.max(0.0, Math.min(1.0, val)); text = val.toFixed(2); 
+                                                if (Settings.data.colorSchemes.hyprglassStyle === "frosted") Settings.data.colorSchemes.frostedOpacity = val;
+                                                else Settings.data.colorSchemes.liquidOpacity = val;
+                                            }
+                                            Connections { target: Settings.data.colorSchemes; 
+                                                function onFrostedOpacityChanged() { if (Settings.data.colorSchemes.hyprglassStyle === "frosted") darknessInput.text = Settings.data.colorSchemes.frostedOpacity.toFixed(2); } 
+                                                function onLiquidOpacityChanged() { if (Settings.data.colorSchemes.hyprglassStyle === "liquid") darknessInput.text = Settings.data.colorSchemes.liquidOpacity.toFixed(2); } 
+                                                function onHyprglassStyleChanged() { darknessInput.text = (Settings.data.colorSchemes.hyprglassStyle === "frosted" ? Settings.data.colorSchemes.frostedOpacity : Settings.data.colorSchemes.liquidOpacity).toFixed(2); }
+                                            }
+                                        }
+                                    }
+                                    Rectangle {
+                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        Text { text: "+"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
+                                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { 
+                                            var isFrosted = Settings.data.colorSchemes.hyprglassStyle === "frosted";
+                                            var val = isFrosted ? Settings.data.colorSchemes.frostedOpacity : Settings.data.colorSchemes.liquidOpacity;
+                                            val = Math.min(1.0, val + 0.05);
+                                            if (isFrosted) Settings.data.colorSchemes.frostedOpacity = val;
+                                            else Settings.data.colorSchemes.liquidOpacity = val;
+                                            darknessInput.text = val.toFixed(2);
+                                        } }
+                                    }
+                                }
+                            }
+
+                            // Gradient Opacity
+                            Item {
+                                width: parent.width; height: 26
+                                Text { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; text: "Gradient Opacity"; color: shell.textPrimary; font.pixelSize: 11; font.weight: Font.Bold }
+                                Row {
+                                    anchors.verticalCenter: parent.verticalCenter; anchors.right: parent.right; spacing: 4
+                                    Rectangle {
+                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        Text { text: "-"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
+                                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { 
+                                            var isFrosted = Settings.data.colorSchemes.hyprglassStyle === "frosted";
+                                            var val = isFrosted ? Settings.data.colorSchemes.frostedGradientOpacity : Settings.data.colorSchemes.liquidGradientOpacity;
+                                            val = Math.max(0.0, val - 0.05);
+                                            if (isFrosted) Settings.data.colorSchemes.frostedGradientOpacity = val;
+                                            else Settings.data.colorSchemes.liquidGradientOpacity = val;
+                                            gradOpInput.text = val.toFixed(2);
+                                        } }
+                                    }
+                                    Rectangle {
+                                        width: 60; height: 26; radius: 6; color: shell.surfaceBright
+                                        TextInput { id: gradOpInput; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignCenter; color: shell.textPrimary; font.pixelSize: 11; font.family: "monospace"; text: (Settings.data.colorSchemes.hyprglassStyle === "frosted" ? Settings.data.colorSchemes.frostedGradientOpacity : Settings.data.colorSchemes.liquidGradientOpacity).toFixed(2); selectByMouse: true; inputMethodHints: Qt.ImhFormattedNumbersOnly; validator: DoubleValidator { bottom: 0.0; top: 1.0; decimals: 2 }
+                                            onEditingFinished: { 
+                                                var val = parseFloat(text); if (isNaN(val)) val = 0.0; val = Math.max(0.0, Math.min(1.0, val)); text = val.toFixed(2); 
+                                                if (Settings.data.colorSchemes.hyprglassStyle === "frosted") Settings.data.colorSchemes.frostedGradientOpacity = val;
+                                                else Settings.data.colorSchemes.liquidGradientOpacity = val;
+                                            }
+                                            Connections { target: Settings.data.colorSchemes; 
+                                                function onFrostedGradientOpacityChanged() { if (Settings.data.colorSchemes.hyprglassStyle === "frosted") gradOpInput.text = Settings.data.colorSchemes.frostedGradientOpacity.toFixed(2); } 
+                                                function onLiquidGradientOpacityChanged() { if (Settings.data.colorSchemes.hyprglassStyle === "liquid") gradOpInput.text = Settings.data.colorSchemes.liquidGradientOpacity.toFixed(2); } 
+                                                function onHyprglassStyleChanged() { gradOpInput.text = (Settings.data.colorSchemes.hyprglassStyle === "frosted" ? Settings.data.colorSchemes.frostedGradientOpacity : Settings.data.colorSchemes.liquidGradientOpacity).toFixed(2); }
+                                            }
+                                        }
+                                    }
+                                    Rectangle {
+                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        Text { text: "+"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
+                                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { 
+                                            var isFrosted = Settings.data.colorSchemes.hyprglassStyle === "frosted";
+                                            var val = isFrosted ? Settings.data.colorSchemes.frostedGradientOpacity : Settings.data.colorSchemes.liquidGradientOpacity;
+                                            val = Math.min(1.0, val + 0.05);
+                                            if (isFrosted) Settings.data.colorSchemes.frostedGradientOpacity = val;
+                                            else Settings.data.colorSchemes.liquidGradientOpacity = val;
+                                            gradOpInput.text = val.toFixed(2);
+                                        } }
+                                    }
+                                }
+                            }
+
+                            // Gradient Stop
+                            Item {
+                                width: parent.width; height: 26
+                                Text { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; text: "Gradient Stop"; color: shell.textPrimary; font.pixelSize: 11; font.weight: Font.Bold }
+                                Row {
+                                    anchors.verticalCenter: parent.verticalCenter; anchors.right: parent.right; spacing: 4
+                                    Rectangle {
+                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        Text { text: "-"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
+                                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { 
+                                            var isFrosted = Settings.data.colorSchemes.hyprglassStyle === "frosted";
+                                            var val = isFrosted ? Settings.data.colorSchemes.frostedGradientStop : Settings.data.colorSchemes.liquidGradientStop;
+                                            val = Math.max(0.0, val - 0.05);
+                                            if (isFrosted) Settings.data.colorSchemes.frostedGradientStop = val;
+                                            else Settings.data.colorSchemes.liquidGradientStop = val;
+                                            gradStopInput.text = val.toFixed(2);
+                                        } }
+                                    }
+                                    Rectangle {
+                                        width: 60; height: 26; radius: 6; color: shell.surfaceBright
+                                        TextInput { id: gradStopInput; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignCenter; color: shell.textPrimary; font.pixelSize: 11; font.family: "monospace"; text: (Settings.data.colorSchemes.hyprglassStyle === "frosted" ? Settings.data.colorSchemes.frostedGradientStop : Settings.data.colorSchemes.liquidGradientStop).toFixed(2); selectByMouse: true; inputMethodHints: Qt.ImhFormattedNumbersOnly; validator: DoubleValidator { bottom: 0.0; top: 1.0; decimals: 2 }
+                                            onEditingFinished: { 
+                                                var val = parseFloat(text); if (isNaN(val)) val = 0.0; val = Math.max(0.0, Math.min(1.0, val)); text = val.toFixed(2); 
+                                                if (Settings.data.colorSchemes.hyprglassStyle === "frosted") Settings.data.colorSchemes.frostedGradientStop = val;
+                                                else Settings.data.colorSchemes.liquidGradientStop = val;
+                                            }
+                                            Connections { target: Settings.data.colorSchemes; 
+                                                function onFrostedGradientStopChanged() { if (Settings.data.colorSchemes.hyprglassStyle === "frosted") gradStopInput.text = Settings.data.colorSchemes.frostedGradientStop.toFixed(2); } 
+                                                function onLiquidGradientStopChanged() { if (Settings.data.colorSchemes.hyprglassStyle === "liquid") gradStopInput.text = Settings.data.colorSchemes.liquidGradientStop.toFixed(2); } 
+                                                function onHyprglassStyleChanged() { gradStopInput.text = (Settings.data.colorSchemes.hyprglassStyle === "frosted" ? Settings.data.colorSchemes.frostedGradientStop : Settings.data.colorSchemes.liquidGradientStop).toFixed(2); }
+                                            }
+                                        }
+                                    }
+                                    Rectangle {
+                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        Text { text: "+"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
+                                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { 
+                                            var isFrosted = Settings.data.colorSchemes.hyprglassStyle === "frosted";
+                                            var val = isFrosted ? Settings.data.colorSchemes.frostedGradientStop : Settings.data.colorSchemes.liquidGradientStop;
+                                            val = Math.min(1.0, val + 0.05);
+                                            if (isFrosted) Settings.data.colorSchemes.frostedGradientStop = val;
+                                            else Settings.data.colorSchemes.liquidGradientStop = val;
+                                            gradStopInput.text = val.toFixed(2);
+                                        } }
+                                    }
+                                }
+                            }
+                            
+                            // Horizontal Gradient Toggle
+                            Item {
+                                width: parent.width; height: 26
+                                Text { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; text: "Horizontal Gradient"; color: shell.textPrimary; font.pixelSize: 11; font.weight: Font.Bold }
+                                Rectangle {
+                                    anchors.verticalCenter: parent.verticalCenter; anchors.right: parent.right
+                                    width: 44; height: 24; radius: 12
+                                    property bool isHoriz: Settings.data.colorSchemes.hyprglassStyle === "frosted" ? Settings.data.colorSchemes.frostedGradientHorizontal : Settings.data.colorSchemes.liquidGradientHorizontal
+                                    color: isHoriz ? shell.accent : shell.surfaceAlt
+                                    Behavior on color { ColorAnimation { duration: 150 } }
+                                    Rectangle {
+                                        width: 20; height: 20; radius: 10
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        x: parent.isHoriz ? parent.width - width - 2 : 2
+                                        color: "#ffffff"
+                                        Behavior on x { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+                                    }
+                                    MouseArea {
+                                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            if (Settings.data.colorSchemes.hyprglassStyle === "frosted") {
+                                                Settings.data.colorSchemes.frostedGradientHorizontal = !Settings.data.colorSchemes.frostedGradientHorizontal;
+                                            } else {
+                                                Settings.data.colorSchemes.liquidGradientHorizontal = !Settings.data.colorSchemes.liquidGradientHorizontal;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            // Bottom Action Buttons
+                            Row {
+                                width: parent.width; spacing: 12; height: 32
+                                Rectangle {
+                                    width: (parent.width - 12) / 2; height: parent.height; radius: 8; color: shell.surfaceBright
+                                    Text { anchors.centerIn: parent; text: "Reset to Default"; color: shell.textPrimary; font.pixelSize: 10; font.weight: Font.DemiBold }
+                                    MouseArea {
+                                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            Settings.data.colorSchemes.hyprglassBlur = 0.3;
+                                            Settings.data.colorSchemes.hyprglassRefraction = 0.3;
+                                            Settings.data.colorSchemes.hyprglassChroma = 0.9;
+                                            Settings.data.colorSchemes.hyprglassEdge = 0.12;
+                                            Settings.data.colorSchemes.hyprglassStyle = "liquid";
+                                            Settings.data.colorSchemes.frostedOpacity = 0.45;
+                                            Settings.data.colorSchemes.frostedGradientOpacity = 0.1;
+                                            Settings.data.colorSchemes.frostedGradientStop = 0.5;
+                                            Settings.data.colorSchemes.frostedGradientHorizontal = false;
+                                            Settings.data.colorSchemes.liquidOpacity = 0.12;
+                                            Settings.data.colorSchemes.liquidGradientOpacity = 0.1;
+                                            Settings.data.colorSchemes.liquidGradientStop = 0.5;
+                                            Settings.data.colorSchemes.liquidGradientHorizontal = false;
+                                            shell.applyHyprglassSettings(0.3, 0.3, 0.9, 0.12);
+                                        }
+                                    }
+                                }
+                                Rectangle {
+                                    width: (parent.width - 12) / 2; height: parent.height; radius: 8; color: shell.accent
+                                    Text { anchors.centerIn: parent; text: "Close"; color: shell.surface; font.pixelSize: 10; font.weight: Font.DemiBold }
+                                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: shell.setState(12) }
+                                }
+                            }
+                        }
+                    }
+                }
+                Item {
+                    id: barIslandView
+                    anchors.fill: parent
+                    opacity: panelWindow.activeState === 19 ? 1 : 0; scale: panelWindow.activeState === 19 ? 1 : 0.96; visible: opacity > 0.01
+                    Behavior on opacity { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
+                    Behavior on scale   { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: shell.setState(0)
+                    }
+
+                    Flickable {
+                        anchors.fill: parent; anchors.margins: 14
+                        contentHeight: barIslandCol.height
+                        contentWidth: width
+                        clip: true; boundsBehavior: Flickable.StopAtBounds
+
+                        Column {
+                            id: barIslandCol; width: parent.width; spacing: 12
+                            // Header
+                            Row {
+                                width: parent.width; spacing: 10
+                                Item {
+                                    width: 32; height: 32; anchors.verticalCenter: parent.verticalCenter
+                                    Image {
+                                        anchors.centerIn: parent; width: 20; height: 20
+                                        source: "icons/back.png"
+                                        fillMode: Image.PreserveAspectFit
+                                        layer.enabled: panelWindow.activeState === 19
+                                        layer.effect: MultiEffect { brightness: shell.wpIsLight ? -0.8 : 1.0; colorization: 1.0; colorizationColor: shell.textPrimary }
+                                    }
+                                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: shell.setState(5) }
+                                }
+                                Text { text: "Bar & Island"; color: "#ffffff"; font.pixelSize: 16; font.weight: Font.Bold; anchors.verticalCenter: parent.verticalCenter }
+                            }
+
+                            // Notch Mode
+                            Item {
+                                width: parent.width; height: 32
+                                Text { text: "Notch mode"; color: "#ffffff"; font.pixelSize: 11; font.weight: Font.Bold; anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter }
+                                Rectangle {
+                                    width: 44; height: 24; radius: 12
+                                    anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                                    color: Settings.data.islandConfig.notchMode ? shell.accent : shell.surfaceAlt
+                                    Behavior on color { ColorAnimation { duration: 150 } }
+                                    Rectangle {
+                                        width: 20; height: 20; radius: 10
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        x: Settings.data.islandConfig.notchMode ? parent.width - width - 2 : 2
+                                        color: "#ffffff"
+                                        Behavior on x { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+                                    }
+                                    MouseArea {
+                                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                        onClicked: Settings.data.islandConfig.notchMode = !Settings.data.islandConfig.notchMode
+                                    }
+                                }
+                            }
+
+                            // Notch Flare
+                            Item {
+                                width: parent.width; height: 26
+                                Text { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; text: "Notch Flare"; color: "#ffffff"; font.pixelSize: 11; font.weight: Font.Bold }
+                                Row {
+                                    anchors.verticalCenter: parent.verticalCenter; anchors.right: parent.right; spacing: 4
+                                    Rectangle {
+                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        Text { text: "-"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
+                                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { var val = Math.max(0, Settings.data.islandConfig.notchFlare - 1); Settings.data.islandConfig.notchFlare = val; flareInput.text = val; } }
+                                    }
+                                    Rectangle {
+                                        width: 60; height: 26; radius: 6; color: shell.surfaceBright
+                                        TextInput { id: flareInput; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignCenter; color: shell.textPrimary; font.pixelSize: 11; font.family: "monospace"; text: Settings.data.islandConfig.notchFlare; selectByMouse: true; inputMethodHints: Qt.ImhFormattedNumbersOnly; validator: IntValidator { bottom: 0; top: 100 }
+                                            onEditingFinished: { var val = parseInt(text); if (isNaN(val)) val = 0; val = Math.max(0, val); text = val; Settings.data.islandConfig.notchFlare = val; }
+                                            Connections { target: Settings.data.islandConfig; function onNotchFlareChanged() { flareInput.text = Settings.data.islandConfig.notchFlare; } }
+                                        }
+                                    }
+                                    Rectangle {
+                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        Text { text: "+"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
+                                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { var val = Settings.data.islandConfig.notchFlare + 1; Settings.data.islandConfig.notchFlare = val; flareInput.text = val; } }
+                                    }
+                                }
+                            }
+
+                            // Bar Height
+                            Item {
+                                width: parent.width; height: 26
+                                Text { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; text: "Bar Height"; color: "#ffffff"; font.pixelSize: 11; font.weight: Font.Bold }
+                                Row {
+                                    anchors.verticalCenter: parent.verticalCenter; anchors.right: parent.right; spacing: 4
+                                    Rectangle {
+                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        Text { text: "-"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
+                                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { var val = Math.max(10, Settings.data.islandConfig.barHeight - 1); Settings.data.islandConfig.barHeight = val; barHeightInput.text = val; } }
+                                    }
+                                    Rectangle {
+                                        width: 60; height: 26; radius: 6; color: shell.surfaceBright
+                                        TextInput { id: barHeightInput; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignCenter; color: shell.textPrimary; font.pixelSize: 11; font.family: "monospace"; text: Settings.data.islandConfig.barHeight; selectByMouse: true; inputMethodHints: Qt.ImhFormattedNumbersOnly; validator: IntValidator { bottom: 10; top: 100 }
+                                            onEditingFinished: { var val = parseInt(text); if (isNaN(val)) val = 34; val = Math.max(10, val); text = val; Settings.data.islandConfig.barHeight = val; }
+                                            Connections { target: Settings.data.islandConfig; function onBarHeightChanged() { barHeightInput.text = Settings.data.islandConfig.barHeight; } }
+                                        }
+                                    }
+                                    Rectangle {
+                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        Text { text: "+"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
+                                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { var val = Settings.data.islandConfig.barHeight + 1; Settings.data.islandConfig.barHeight = val; barHeightInput.text = val; } }
+                                    }
+                                }
+                            }
+
+                            // Collapsed Width
+                            Item {
+                                width: parent.width; height: 26
+                                Text { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; text: "Collapsed Width"; color: "#ffffff"; font.pixelSize: 11; font.weight: Font.Bold }
+                                Row {
+                                    anchors.verticalCenter: parent.verticalCenter; anchors.right: parent.right; spacing: 4
+                                    Rectangle {
+                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        Text { text: "-"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
+                                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { var val = Math.max(50, Settings.data.islandConfig.collapsedWidth - 5); Settings.data.islandConfig.collapsedWidth = val; collWidthInput.text = val; } }
+                                    }
+                                    Rectangle {
+                                        width: 60; height: 26; radius: 6; color: shell.surfaceBright
+                                        TextInput { id: collWidthInput; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignCenter; color: shell.textPrimary; font.pixelSize: 11; font.family: "monospace"; text: Settings.data.islandConfig.collapsedWidth; selectByMouse: true; inputMethodHints: Qt.ImhFormattedNumbersOnly; validator: IntValidator { bottom: 50; top: 1000 }
+                                            onEditingFinished: { var val = parseInt(text); if (isNaN(val)) val = 150; val = Math.max(50, val); text = val; Settings.data.islandConfig.collapsedWidth = val; }
+                                            Connections { target: Settings.data.islandConfig; function onCollapsedWidthChanged() { collWidthInput.text = Settings.data.islandConfig.collapsedWidth; } }
+                                        }
+                                    }
+                                    Rectangle {
+                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        Text { text: "+"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
+                                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { var val = Settings.data.islandConfig.collapsedWidth + 5; Settings.data.islandConfig.collapsedWidth = val; collWidthInput.text = val; } }
+                                    }
+                                }
+                            }
+
+                            // Expanded Height
+                            Item {
+                                width: parent.width; height: 26
+                                Text { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; text: "Expanded Height"; color: "#ffffff"; font.pixelSize: 11; font.weight: Font.Bold }
+                                Row {
+                                    anchors.verticalCenter: parent.verticalCenter; anchors.right: parent.right; spacing: 4
+                                    Rectangle {
+                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        Text { text: "-"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
+                                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { var val = Math.max(50, Settings.data.islandConfig.expandedHeight - 5); Settings.data.islandConfig.expandedHeight = val; expHeightInput.text = val; } }
+                                    }
+                                    Rectangle {
+                                        width: 60; height: 26; radius: 6; color: shell.surfaceBright
+                                        TextInput { id: expHeightInput; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignCenter; color: shell.textPrimary; font.pixelSize: 11; font.family: "monospace"; text: Settings.data.islandConfig.expandedHeight; selectByMouse: true; inputMethodHints: Qt.ImhFormattedNumbersOnly; validator: IntValidator { bottom: 50; top: 1000 }
+                                            onEditingFinished: { var val = parseInt(text); if (isNaN(val)) val = 135; val = Math.max(50, val); text = val; Settings.data.islandConfig.expandedHeight = val; }
+                                            Connections { target: Settings.data.islandConfig; function onExpandedHeightChanged() { expHeightInput.text = Settings.data.islandConfig.expandedHeight; } }
+                                        }
+                                    }
+                                    Rectangle {
+                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        Text { text: "+"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
+                                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { var val = Settings.data.islandConfig.expandedHeight + 5; Settings.data.islandConfig.expandedHeight = val; expHeightInput.text = val; } }
+                                    }
+                                }
+                            }
+
+                            // Min Expanded Width
+                            Item {
+                                width: parent.width; height: 26
+                                Text { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; text: "Min Expanded Width"; color: "#ffffff"; font.pixelSize: 11; font.weight: Font.Bold }
+                                Row {
+                                    anchors.verticalCenter: parent.verticalCenter; anchors.right: parent.right; spacing: 4
+                                    Rectangle {
+                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        Text { text: "-"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
+                                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { var val = Math.max(50, Settings.data.islandConfig.minExpandedWidth - 5); Settings.data.islandConfig.minExpandedWidth = val; minExpWidthInput.text = val; } }
+                                    }
+                                    Rectangle {
+                                        width: 60; height: 26; radius: 6; color: shell.surfaceBright
+                                        TextInput { id: minExpWidthInput; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignCenter; color: shell.textPrimary; font.pixelSize: 11; font.family: "monospace"; text: Settings.data.islandConfig.minExpandedWidth; selectByMouse: true; inputMethodHints: Qt.ImhFormattedNumbersOnly; validator: IntValidator { bottom: 50; top: 1500 }
+                                            onEditingFinished: { var val = parseInt(text); if (isNaN(val)) val = 619; val = Math.max(50, val); text = val; Settings.data.islandConfig.minExpandedWidth = val; }
+                                            Connections { target: Settings.data.islandConfig; function onMinExpandedWidthChanged() { minExpWidthInput.text = Settings.data.islandConfig.minExpandedWidth; } }
+                                        }
+                                    }
+                                    Rectangle {
+                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        Text { text: "+"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
+                                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { var val = Settings.data.islandConfig.minExpandedWidth + 5; Settings.data.islandConfig.minExpandedWidth = val; minExpWidthInput.text = val; } }
+                                    }
+                                }
+                            }
+                            
+                            // Bottom Action Buttons
+                            Row {
+                                width: parent.width; spacing: 12; height: 32
+                                Rectangle {
+                                    width: (parent.width - 12) / 2; height: parent.height; radius: 8; color: shell.surfaceBright
+                                    Text { anchors.centerIn: parent; text: "Reset to Default"; color: shell.textPrimary; font.pixelSize: 10; font.weight: Font.DemiBold }
+                                    MouseArea {
+                                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            Settings.data.islandConfig.notchMode = false;
+                                            Settings.data.islandConfig.notchFlare = 16;
+                                            Settings.data.islandConfig.barHeight = 34;
+                                            Settings.data.islandConfig.collapsedWidth = 150;
+                                            Settings.data.islandConfig.expandedHeight = 135;
+                                            Settings.data.islandConfig.minExpandedWidth = 619;
+                                        }
+                                    }
+                                }
+                                Rectangle {
+                                    width: (parent.width - 12) / 2; height: parent.height; radius: 8; color: shell.accent
+                                    Text { anchors.centerIn: parent; text: "Close"; color: shell.surface; font.pixelSize: 10; font.weight: Font.DemiBold }
+                                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: shell.setState(5) }
+                                }
+                            }
+                        }
+                    }
+                }
+Item {     id: clipboardHistoryView
                     anchors.fill: parent
                     opacity: panelWindow.activeState === 13 ? 1 : 0; scale: panelWindow.activeState === 13 ? 1 : 0.96; visible: opacity > 0.01
                     Behavior on opacity { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
@@ -4814,7 +5739,7 @@ ShellRoot {
                                     width: 70; height: 26; radius: 13
                                     anchors.verticalCenter: parent.verticalCenter
                                     color: clearMa.containsMouse ? shell.accent : shell.surfaceBright
-                                    border.width: 1; border.color: clearMa.containsMouse ? "transparent" : shell.surfaceBorder
+                                    border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: clearMa.containsMouse ? "transparent" : shell.surfaceBorder
                                     Behavior on color { ColorAnimation { duration: shell.animFast } }
                                     visible: ClipboardService.items && ClipboardService.items.length > 1
 
@@ -4846,7 +5771,7 @@ ShellRoot {
                                     Rectangle {
                                         width: clipboardCol.width; height: 44; radius: 10
                                         color: itemMa.containsMouse ? shell.surfaceBright : shell.surfaceAlt
-                                        border.width: 1; border.color: shell.surfaceBorder
+                                        border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
                                         Behavior on color { ColorAnimation { duration: shell.animFast } }
 
                                         Row {
@@ -4970,7 +5895,7 @@ ShellRoot {
                             // Empty Placeholder
                             Rectangle {
                                 width: parent.width; height: 60; radius: 14; color: shell.surfaceAlt
-                                border.width: 1; border.color: shell.surfaceBorder
+                                border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
                                 visible: !ClipboardService.active || !ClipboardService.items || ClipboardService.items.length <= 1
 
                                 Column {
@@ -5094,7 +6019,7 @@ ShellRoot {
                         Rectangle {
                             width: parent.width; height: 36; radius: 10
                             color: shell.surfaceAlt
-                            border.width: 1; border.color: shell.surfaceBorder
+                            border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
 
                             Row {
                                 anchors.fill: parent; anchors.margins: 8; spacing: 8
@@ -5152,7 +6077,7 @@ ShellRoot {
                                     delegate: Rectangle {
                                         width: 36; height: 30; radius: 8
                                         color: emojiBoardView.activeCategory === modelData ? shell.accent : shell.surfaceBright
-                                        border.width: 1; border.color: emojiBoardView.activeCategory === modelData ? shell.accent : shell.surfaceBorder
+                                        border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: emojiBoardView.activeCategory === modelData ? shell.accent : shell.surfaceBorder
 
                                         Text {
                                             anchors.centerIn: parent
@@ -5206,7 +6131,7 @@ ShellRoot {
                             delegate: Rectangle {
                                 width: emojiGrid.cellWidth - 4; height: width; radius: 8
                                 color: emojiMa.containsMouse ? shell.surfaceBright : "transparent"
-                                border.width: 1; border.color: emojiMa.containsMouse ? shell.accent : "transparent"
+                                border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: emojiMa.containsMouse ? shell.accent : "transparent"
 
                                 Text {
                                     anchors.centerIn: parent
@@ -5300,7 +6225,7 @@ ShellRoot {
                                     height: 38
                                     radius: 8
                                     color: shell.surfaceAlt
-                                    border.width: 1
+                                    border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1)
                                     border.color: shell.surfaceBorder
 
                                     Text {
@@ -5707,7 +6632,7 @@ ShellRoot {
                                         text: "Display Configuration"
                                         color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold
                                         anchors.left: backBtnIcon.right; anchors.leftMargin: 10
-                                        anchors.verticalCenter: parent.verticalCenter 
+                                        anchors.verticalCenter: editBackIcon.verticalCenter 
                                     }
                                 }
 
@@ -5716,7 +6641,7 @@ ShellRoot {
                                     id: canvas
                                     width: parent.width; height: 110; radius: 12
                                     color: shell.surfaceAlt
-                                    border.width: 1; border.color: shell.surfaceBorder
+                                    border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
                                     clip: true
 
                                     property real minX: 0
@@ -5743,7 +6668,7 @@ ShellRoot {
                                             if (m.x < mx) mx = m.x;
                                             if (m.y < my) my = m.y;
                                             if (m.x + mlw > max_x) max_x = m.x + mlw;
-                                            if (m.y + mlh > max_y) max_y = my + mlh;
+                                            if (m.y + mlh > max_y) max_y = m.y + mlh;
                                         }
 
                                         minX = mx;
@@ -5793,7 +6718,7 @@ ShellRoot {
                                             height: Math.max(20, (modelData.height / modelData.scale) * canvas.scaleFactor)
                                             radius: 6
                                             color: settingsPopupView.selectedMonitorIdx === index ? shell.accent : shell.surfaceBright
-                                            border.width: 1
+                                            border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1)
                                             border.color: settingsPopupView.selectedMonitorIdx === index ? "transparent" : shell.surfaceBorder
 
                                             Text {
@@ -5850,7 +6775,7 @@ ShellRoot {
                                         height: (shell.monitorsList.length > 1 && !modelData.disabled) ? 68 : 42
                                         radius: 10
                                         color: shell.surfaceAlt
-                                        border.width: 1; border.color: shell.surfaceBorder
+                                        border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
 
                                         property int monitorIndex: index
 
@@ -6009,7 +6934,7 @@ ShellRoot {
                                 // Enable Display Status Toggle
                                 Rectangle {
                                     width: parent.width; height: 42; radius: 12; color: shell.surfaceAlt
-                                    border.width: 1; border.color: shell.surfaceBorder
+                                    border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
                                     visible: settingsPopupView.getSelectedMonitor() !== null
 
                                     Text {
@@ -6041,7 +6966,7 @@ ShellRoot {
                                 // Mode selection
                                 Rectangle {
                                     width: parent.width; height: 42; radius: 12; color: shell.surfaceAlt
-                                    border.width: 1; border.color: shell.surfaceBorder
+                                    border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
                                     visible: settingsPopupView.getSelectedMonitor() !== null && !settingsPopupView.getSelectedMonitor().disabled
 
                                     Text {
@@ -6083,7 +7008,7 @@ ShellRoot {
                                 // Scale Card
                                 Rectangle {
                                     width: parent.width; height: 42; radius: 12; color: shell.surfaceAlt
-                                    border.width: 1; border.color: shell.surfaceBorder
+                                    border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
                                     visible: settingsPopupView.getSelectedMonitor() !== null && !settingsPopupView.getSelectedMonitor().disabled
 
                                     Text {
@@ -6125,7 +7050,7 @@ ShellRoot {
                                 // Rotation/Orientation Card
                                 Rectangle {
                                     width: parent.width; height: 42; radius: 12; color: shell.surfaceAlt
-                                    border.width: 1; border.color: shell.surfaceBorder
+                                    border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
                                     visible: settingsPopupView.getSelectedMonitor() !== null && !settingsPopupView.getSelectedMonitor().disabled
 
                                     Text {
@@ -6167,7 +7092,7 @@ ShellRoot {
                                 // Mirroring Card
                                 Rectangle {
                                     width: parent.width; height: 42; radius: 12; color: shell.surfaceAlt
-                                    border.width: 1; border.color: shell.surfaceBorder
+                                    border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
                                     visible: settingsPopupView.getSelectedMonitor() !== null && !settingsPopupView.getSelectedMonitor().disabled
 
                                     Text {
@@ -6364,8 +7289,8 @@ ShellRoot {
                         radius: parent.radius
                         surfaceColor: shell.surface
                         accentColor: shell.accent
-                        borderColor: shell.surfaceBorder
-                        active: Settings.isLoaded && Settings.data.colorSchemes.hyprglass
+                        borderColor: "transparent"
+                        active: Settings.isLoaded && Settings.data.colorSchemes.hyprglassIsland
                     }
 
                     // Desktop number text

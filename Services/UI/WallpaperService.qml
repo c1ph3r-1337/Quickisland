@@ -1700,6 +1700,7 @@ Singleton {
       });
 
       root._scheduleThemeSyncFromCachedWallpaper();
+      awwwQueryProcess.running = true;
     }
 
     onLoadFailed: error => {
@@ -1708,6 +1709,7 @@ Singleton {
       Logger.d("Wallpaper", "Cache file doesn't exist or failed to load, starting with empty wallpapers");
       root.isInitialized = true;
       root._scheduleThemeSyncFromCachedWallpaper();
+      awwwQueryProcess.running = true;
     }
   }
 
@@ -1721,6 +1723,74 @@ Singleton {
       wallpaperCacheAdapter.usedRandomWallpapers = root.usedRandomWallpapers;
       wallpaperCacheView.writeAdapter();
       Logger.d("Wallpaper", "Saved wallpapers to cache file");
+    }
+  }
+
+  Process {
+    id: awwwQueryProcess
+    command: ["awww", "query"]
+    running: false
+    stdout: StdioCollector {
+      onStreamFinished: {
+        root.parseAwwwQuery(text);
+      }
+    }
+  }
+
+  function parseAwwwQuery(text) {
+    if (!text) return;
+    var lines = text.split("\n");
+    var changedAny = false;
+    lines.forEach(function(line) {
+      var path = "";
+      if (line.includes("currently displaying: image: ")) {
+        path = line.split("currently displaying: image: ")[1].trim();
+      } else if (line.includes("currently displaying: color: ")) {
+        path = "solid://" + line.split("currently displaying: color: ")[1].trim();
+      }
+      if (!path) return;
+
+      var parts = line.split("currently displaying: ");
+      var header = parts[0];
+      var headerParts = header.split(":");
+      if (headerParts.length < 2) return;
+      var screenName = headerParts[1].trim();
+      if (!screenName) return;
+
+      var oldPath = root.getWallpaperPathForSlot(screenName, root.wallpaperSelectionAppearance);
+      if (oldPath !== path) {
+        var slot = root.wallpaperSelectionAppearance;
+        var entry = root.currentWallpapers[screenName] || {};
+        var p = root._pathsFromEntry(entry);
+        var newEntry;
+        if (Settings.data.wallpaper.linkLightAndDarkWallpapers) {
+          newEntry = { light: path, dark: path };
+        } else if (slot === "dark") {
+          newEntry = { light: p.light || "", dark: path };
+        } else {
+          newEntry = { light: path, dark: p.dark || "" };
+        }
+        root.currentWallpapers[screenName] = newEntry;
+        changedAny = true;
+        root.wallpaperChanged(screenName, path);
+      }
+    });
+
+    if (changedAny) {
+      saveTimer.restart();
+      Quickshell.execDetached(["hyprctl", "dispatch", "hyprglass:clear_cache", ""]);
+    }
+  }
+
+  Timer {
+    id: awwwSyncTimer
+    interval: 2000
+    running: root.isInitialized
+    repeat: true
+    onTriggered: {
+      if (!awwwQueryProcess.running) {
+        awwwQueryProcess.running = true;
+      }
     }
   }
 }

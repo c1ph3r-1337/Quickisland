@@ -17,8 +17,10 @@ def hex_to_rgb(h):
 def get_dominant_colors(image_path, count=8):
     """Use ImageMagick to extract dominant colors."""
     result = subprocess.run([
-        "magick", image_path,
-        "-resize", "100x100!",
+        "magick",
+        "-size", "100x100",
+        image_path,
+        "-sample", "100x100!",
         "-colors", str(count),
         "-unique-colors",
         "-format", "%c",
@@ -69,22 +71,26 @@ def generate_palette(image_path):
             "surfaceAlt": "#1e1e2e", "surfaceBright": "#313244",
             "textPrimary": "#cdd6f4", "textSecondary": "#a6adc8",
             "textMuted": "#6c7086", "red": "#f38ba8",
-            "green": "#a6e3a1", "peach": "#fab387", "blue": "#89b4fa"
+            "green": "#a6e3a1", "peach": "#fab387", "blue": "#89b4fa",
+            "isLight": False
         }
 
     accent_color = pick_accent(colors)
     ah, as_, al = accent_color['h'], accent_color['s'], accent_color['l']
 
-    # Generate accent: bump saturation and set lightness for dark mode visibility
-    accent = hsl_to_hex(ah, min(as_ * 1.2, 90), max(min(al, 75), 60))
-    accent_dim = accent  # will use Qt.rgba in QML
+    # Calculate average lightness first to determine theme mode
+    total_l = sum(c['l'] * c['count'] for c in colors)
+    total_pixels = sum(c['count'] for c in colors)
+    avg_l = total_l / total_pixels if total_pixels > 0 else 0
+    is_light = avg_l > 55
 
-    # Surface colors: use accent hue but very dark and desaturated
+    # Generate unified dark/frosted palette
+    accent = hsl_to_hex(ah, min(as_ * 1.2, 90), max(min(al, 75), 60))
+    
     surface      = hsl_to_hex(ah, min(as_ * 0.15, 12), 6)
     surface_alt  = hsl_to_hex(ah, min(as_ * 0.15, 12), 10)
     surface_bright = hsl_to_hex(ah, min(as_ * 0.12, 10), 18)
-
-    # Text colors: tinted toward accent hue
+    
     text_primary   = hsl_to_hex(ah, min(as_ * 0.2, 18), 88)
     text_secondary = hsl_to_hex(ah, min(as_ * 0.18, 15), 72)
     text_muted     = hsl_to_hex(ah, min(as_ * 0.12, 10), 46)
@@ -100,7 +106,8 @@ def generate_palette(image_path):
         "surfaceAlt": surface_alt, "surfaceBright": surface_bright,
         "textPrimary": text_primary, "textSecondary": text_secondary,
         "textMuted": text_muted, "red": red,
-        "green": green, "peach": peach, "blue": blue
+        "green": green, "peach": peach, "blue": blue,
+        "isLight": is_light
     }
 
 if __name__ == "__main__":

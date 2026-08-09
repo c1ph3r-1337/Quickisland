@@ -544,6 +544,16 @@ Singleton {
       ]
     }
 
+    // island
+    property JsonObject islandConfig: JsonObject {
+      property bool notchMode: false
+      property real notchFlare: 16
+      property real barHeight: 34
+      property real collapsedWidth: 150
+      property real expandedHeight: 300
+      property real minExpandedWidth: 300
+    }
+
     // system monitor
     property JsonObject systemMonitor: JsonObject {
       property int cpuWarningThreshold: 80
@@ -747,6 +757,20 @@ Singleton {
       property real matteBlurIntensity: 0.15
       property bool themedIcons: false
       property bool hyprglass: false
+      property bool hyprglassIsland: false
+      property string hyprglassStyle: "liquid"
+      property real hyprglassBlur: 0.3
+      property real hyprglassRefraction: 0.3
+      property real hyprglassChroma: 0.9
+      property real hyprglassEdge: 0.12
+      property real frostedOpacity: 0.45
+      property real frostedGradientOpacity: 0.1
+      property real frostedGradientStop: 0.5
+      property bool frostedGradientHorizontal: false
+      property real liquidOpacity: 0.12
+      property real liquidGradientOpacity: 0.1
+      property real liquidGradientStop: 0.5
+      property bool liquidGradientHorizontal: false
     }
 
     // templates toggles
