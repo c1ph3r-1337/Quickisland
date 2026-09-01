@@ -18,10 +18,12 @@ Singleton {
                            "NightLight": nightLightComponent,
                            "Notifications": notificationsComponent,
                            "PowerProfile": powerProfileComponent,
-                           "WiFi": networkComponent,
+                           "WiFi": wifiComponent,
                            "Network": networkComponent,
                            "QuickislandPerformance": quickislandPerformanceComponent,
-                           "WallpaperSelector": wallpaperSelectorComponent
+                           "WallpaperSelector": wallpaperSelectorComponent,
+                           "Hotspot": hotspotComponent,
+                           "Audio": audioComponent
                          })
 
   property var widgetMetadata: ({
@@ -72,6 +74,15 @@ Singleton {
   }
   property Component wallpaperSelectorComponent: Component {
     WallpaperSelector {}
+  }
+  property Component hotspotComponent: Component {
+    Hotspot {}
+  }
+  property Component audioComponent: Component {
+    Audio {}
+  }
+  property Component wifiComponent: Component {
+    Wifi {}
   }
 
   function init() {

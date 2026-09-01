@@ -11,6 +11,8 @@ import Quickshell.Services.Notifications
 import Quickshell.Hyprland
 import qs.Services.Keyboard
 import qs.Commons
+import "Modules/Notch" as Notch
+import "Modules/Panels/ControlCenter" as IslandCC
 import qs.Services.UI
 import qs.Services.Hardware
 import qs.Services.Networking
@@ -1882,6 +1884,7 @@ function getCurrentThemeStateKey() {
             color: "transparent"
             mask: Region {}
 
+            visible: !(typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode)
             WlrLayershell.namespace: "morphing-island-exclusion"
             WlrLayershell.layer: WlrLayer.Top
             WlrLayershell.exclusionMode: ExclusionMode.Auto
@@ -1922,6 +1925,7 @@ function getCurrentThemeStateKey() {
 
         PanelWindow {
             id: panelWindow
+            visible: !(typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) || panelWindow.activeState > 0
             property var modelData
             screen: modelData
             color: "transparent"
@@ -2172,7 +2176,7 @@ function getCurrentThemeStateKey() {
                 anchors.top: island.top
                 width: Settings.isLoaded ? Settings.data.islandConfig.notchFlare : 16
                 height: width
-                visible: Settings.isLoaded && Settings.data.islandConfig.notchMode
+                visible: false // Handled by MacNotchBar
                 clip: true // Prevent LiquidGlassBackground from expanding the layer effect
 
                 LiquidGlassBackground {
@@ -2227,7 +2231,7 @@ function getCurrentThemeStateKey() {
                 anchors.top: island.top
                 width: Settings.isLoaded ? Settings.data.islandConfig.notchFlare : 16
                 height: width
-                visible: Settings.isLoaded && Settings.data.islandConfig.notchMode
+                visible: false // Handled by MacNotchBar
                 clip: true // Prevent LiquidGlassBackground from expanding the layer effect
 
                 LiquidGlassBackground {
@@ -7337,6 +7341,82 @@ Item {     id: clipboardHistoryView
         accentColor: shell.accent
         timeString: shell.currentTime12h
         onUnlocked: shell.locked = false
+    }
+
+
+    // Control Center Panel Window
+    Variants {
+        model: Quickshell.screens
+        PanelWindow {
+            property var modelData
+            screen: modelData
+            color: "transparent"
+            Region { id: ccMaskRegion }
+            mask: (ccPanel.isPanelVisible || ccPanel.isPanelOpen) ? null : ccMaskRegion
+            
+            WlrLayershell.namespace: "control-center-" + (screen ? screen.name : "unknown")
+            WlrLayershell.layer: WlrLayer.Top
+            WlrLayershell.exclusionMode: ExclusionMode.Ignore
+            
+            anchors { top: true; bottom: true; left: true; right: true }
+            
+            // Only show the window when the panel is active to prevent blocking
+            visible: ccPanel.isPanelVisible || ccPanel.isPanelOpen
+
+            IslandCC.ControlCenterPanel {
+                id: ccPanel
+                anchors.fill: parent
+                screen: parent.screen
+                objectName: "controlCenterPanel-" + (screen ? screen.name : "unknown")
+                
+                Component.onCompleted: {
+                    PanelService.registerPanel(this);
+                }
+                Component.onDestruction: {
+                    PanelService.unregisterPanel(objectName);
+                }
+            }
+        }
+    }
+
+
+    // MACBOOK-STYLE NOTCH BAR
+    Variants {
+        model: Quickshell.screens
+
+        PanelWindow {
+            id: notchPanelWindow
+            visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode
+            property var modelData
+            screen: modelData
+            color: "transparent"
+
+            WlrLayershell.namespace: "macnotch-bar"
+            WlrLayershell.layer: WlrLayer.Top
+            WlrLayershell.exclusionMode: ExclusionMode.Ignore
+            WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
+            BackgroundEffect.blurRegion: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass && Settings.data.colorSchemes.hyprglassStyle === "frosted") ? notchBlurRegion : null
+
+            anchors { top: true; left: true; right: true }
+            implicitHeight: 720
+
+            Item {
+                id: notchMaskItem
+                anchors.top: parent.top
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: notchBarContent.notchWidth
+                height: notchBarContent.notchHeight
+            }
+
+            mask: Region { item: notchMaskItem }
+
+            Notch.MacNotchBar {
+                id: notchBarContent
+                anchors.fill: parent
+                shellRoot: shell
+                screen: notchPanelWindow.screen
+            }
+        }
     }
 
 }

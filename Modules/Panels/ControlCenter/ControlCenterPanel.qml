@@ -17,6 +17,7 @@ SmartPanel {
 
   // Check if there's a bar on this screen
   readonly property bool hasBarOnScreen: {
+    if (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) return true;
     var monitors = Settings.data.bar.monitors || [];
     return monitors.length === 0 || monitors.includes(screen?.name);
   }

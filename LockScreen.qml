@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Layouts
 import QtQuick.Effects
 import Quickshell
 import Quickshell.Wayland
@@ -105,89 +106,92 @@ Item {
                 }
 
                 // 2. Minimal, Aesthetic Centered Column
+                // 2. Glyph Theme Centered Column
                 Column {
                     anchors.centerIn: parent
-                    spacing: 48
+                    spacing: 20
                     width: 320
 
                     // Sleek Digital Clock
-                    Column {
-                        spacing: 8
-                        width: parent.width
+                    Text {
+                        text: lockScreenRoot.timeString || ""
+                        color: "#ffffff"
+                        font.pixelSize: 84
+                        font.weight: Font.DemiBold
                         anchors.horizontalCenter: parent.horizontalCenter
-
-                        Text {
-                            text: lockScreenRoot.timeString || ""
-                            color: "#ffffff"
-                            font.pixelSize: 96
-                            font.weight: Font.Thin
-                            font.letterSpacing: -2
-                            anchors.horizontalCenter: parent.horizontalCenter
-                        }
-
-                        Text {
-                            text: {
-                                var d = new Date();
-                                var days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-                                var months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-                                return days[d.getDay()] + ", " + months[d.getMonth()] + " " + d.getDate();
-                            }
-                            color: Qt.rgba(1, 1, 1, 0.65)
-                            font.pixelSize: 15
-                            font.weight: Font.Light
-                            anchors.horizontalCenter: parent.horizontalCenter
-                        }
                     }
 
-                    // Spacer/gap
+                    Item { width: 1; height: 30 }
+
+                    // Avatar Canvas
                     Item {
-                        width: 1; height: 16
+                        width: 100; height: 100
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        Canvas {
+                            anchors.fill: parent
+                            visible: avatarImage.status === Image.Ready
+                            onPaint: {
+                                var ctx = getContext("2d");
+                                ctx.reset();
+                                ctx.beginPath();
+                                ctx.arc(width/2, height/2, width/2, 0, 2 * Math.PI);
+                                ctx.closePath();
+                                ctx.clip();
+                                ctx.drawImage(avatarImage, 0, 0, width, height);
+                            }
+                            Image {
+                                id: avatarImage
+                                source: "file:///usr/share/sddm/themes/glyph/assets/images/avatar.jpg"
+                                visible: false
+                                onStatusChanged: if (status === Image.Ready) parent.requestPaint()
+                            }
+                        }
                     }
 
-                    // User & Password Input Area
-                    Column {
-                        spacing: 16
-                        width: parent.width
+                    // Username
+                    Text {
+                        text: Quickshell.env("USER").toUpperCase()
+                        color: "#ffffff"
+                        font.pixelSize: 20
+                        font.weight: Font.Medium
                         anchors.horizontalCenter: parent.horizontalCenter
+                    }
 
-                        // User welcome message
-                        Text {
-                            text: "Welcome back, " + Quickshell.env("USER")
-                            color: Qt.rgba(1, 1, 1, 0.85)
-                            font.pixelSize: 15
-                            font.weight: Font.Medium
-                            anchors.horizontalCenter: parent.horizontalCenter
-                        }
+                    Item { width: 1; height: 10 }
 
-                        // Password Input Field Container (sleek capsule/pill shape)
-                        Rectangle {
-                            width: 260; height: 40; radius: 20
-                            color: Qt.rgba(0, 0, 0, 0.35)
-                            border.width: 1
-                            border.color: pwdInput.activeFocus ? (lockScreenRoot.accentColor || "#ffffff") : Qt.rgba(1, 1, 1, 0.15)
-                            Behavior on border.color { ColorAnimation { duration: 150 } }
-                            anchors.horizontalCenter: parent.horizontalCenter
-
+                    // Password Row
+                    Row {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        spacing: 10
+                        
+                        Item {
+                            width: 280; height: 50
+                            
+                            Rectangle {
+                                anchors.fill: parent
+                                color: Qt.rgba(255, 255, 255, 0.05)
+                                radius: 14
+                                border.width: 0
+                                antialiasing: true
+                            }
+                            
                             TextInput {
                                 id: pwdInput
                                 anchors.fill: parent
-                                anchors.leftMargin: 18
-                                anchors.rightMargin: 18
+                                horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
                                 color: "#ffffff"
-                                font.pixelSize: 14
+                                font.pixelSize: 18
                                 echoMode: TextInput.Password
                                 focus: lockScreenRoot.locked
                                 selectByMouse: true
 
-                                property string placeholderText: "Enter Password"
                                 Text {
-                                    text: parent.placeholderText
-                                    color: Qt.rgba(1, 1, 1, 0.25)
-                                    font.pixelSize: 14
+                                    text: "ENTER PASSWORD"
+                                    color: Qt.rgba(255, 255, 255, 0.5)
+                                    font.pixelSize: 16
                                     visible: !parent.text && !parent.activeFocus
-                                    anchors.left: parent.left
-                                    anchors.verticalCenter: parent.verticalCenter
+                                    anchors.centerIn: parent
                                 }
 
                                 Keys.onReturnPressed: {
@@ -203,31 +207,52 @@ Item {
                                          if (root.locked && pwdInput) {
                                              pwdInput.text = "";
                                              pwdInput.forceActiveFocus();
-                                             // Force focus in next event loops to bypass Wayland mapping delay
                                              Qt.callLater(() => {
                                                  if (pwdInput) pwdInput.forceActiveFocus();
                                              });
                                          }
                                      });
-                                 }
+                                }
                             }
                         }
-
-                        // Feedback/status text
-                        Text {
-                            id: statusLabel
-                            text: "Press Enter to Unlock"
-                            color: Qt.rgba(1, 1, 1, 0.45)
-                            font.pixelSize: 11
-                            font.weight: Font.Medium
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            Component.onCompleted: lockScreenRoot.statusLabelRef = this
+                        
+                        // Arrow Button
+                        Rectangle {
+                            width: 50; height: 50
+                            radius: 25
+                            color: "#5F9C74"
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: {
+                                    if (pwdInput.text !== "") lockScreenRoot.tryUnlock(pwdInput.text);
+                                }
+                            }
+                            Image {
+                                anchors.centerIn: parent
+                                anchors.horizontalCenterOffset: 2.5
+                                source: "file:///usr/share/sddm/themes/glyph/assets/images/login_arrow_trimmed.png"
+                                width: 20
+                                height: 20
+                                fillMode: Image.PreserveAspectFit
+                                antialiasing: true
+                            }
                         }
+                    }
+
+                    // Feedback/status text
+                    Text {
+                        id: statusLabel
+                        text: ""
+                        color: Qt.rgba(1, 1, 1, 0.45)
+                        font.pixelSize: 11
+                        font.weight: Font.Medium
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        Component.onCompleted: lockScreenRoot.statusLabelRef = this
+                    }
                     }
                 }
             }
         }
-    }
 
     // PAM Authentication Context
     PamContext {

@@ -1,0 +1,83 @@
+                            // Row 1: Wi-Fi + Audio
+                            Row {
+                                width: parent.width; spacing: 8
+
+                                Rectangle {
+                                    width: 130; height: 45; radius: 22.5
+                                    color: wma.containsMouse ? shell.surfaceBright : (shell.wifiEnabled ? shell.accentDim : shell.surfaceAlt)
+                                    border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (shell.wifiEnabled ? 1 : 0)
+                                    border.color: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.2)
+
+                                    Row {
+                                        anchors.fill: parent; anchors.margins: 8; spacing: 8
+                                        Rectangle {
+                                            width: 28; height: 28; radius: 14; anchors.verticalCenter: parent.verticalCenter
+                                            color: shell.wifiEnabled ? shell.accent : shell.surfaceBright
+                                            Image {
+                                                anchors.centerIn: parent; width: 16; height: 16
+                                                source: "icons/wifi.png"
+                                                fillMode: Image.PreserveAspectFit
+                                                layer.enabled: ccView.ccActive
+                                                layer.effect: MultiEffect {
+                                                    brightness: shell.wifiEnabled ? -0.8 : 1.0
+                                                    colorization: 1.0
+                                                    colorizationColor: shell.wifiEnabled ? shell._baseSurface : "#ffffff"
+                                                }
+                                            }
+                                        }
+                                        Column {
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            Text { text: "Wi-Fi"; color: "#ffffff"; font.pixelSize: 11; font.weight: Font.DemiBold }
+                                            Text { text: shell.wifiEnabled ? (shell.wifiConnected ? shell.wifiSSID : "Disconnected") : "Off"; color: "#dddddd"; font.pixelSize: 9; elide: Text.ElideRight; width: 70 }
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        id: wma
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: shell.setState(8)
+                                    }
+                                }
+
+                                Rectangle {
+                                    width: parent.width - 130 - parent.spacing; height: 45; radius: 22.5
+                                    color: audma.containsMouse ? shell.surfaceBright : (!shell.sysMuted ? shell.accentDim : shell.surfaceAlt)
+                                    border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (!shell.sysMuted ? 1 : 0)
+                                    border.color: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.2)
+
+                                    Row {
+                                        anchors.fill: parent; anchors.margins: 8; spacing: 8
+                                        Rectangle {
+                                            width: 28; height: 28; radius: 14; anchors.verticalCenter: parent.verticalCenter
+                                            color: !shell.sysMuted ? shell.accent : shell.surfaceBright
+                                            Image {
+                                                anchors.centerIn: parent; width: 16; height: 16
+                                                source: "icons/volume.png"
+                                                fillMode: Image.PreserveAspectFit
+                                                layer.enabled: ccView.ccActive
+                                                layer.effect: MultiEffect {
+                                                    brightness: !shell.sysMuted ? -0.8 : 1.0
+                                                    colorization: 1.0
+                                                    colorizationColor: !shell.sysMuted ? shell._baseSurface : "#ffffff"
+                                                }
+                                            }
+                                        }
+                                        Column {
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            Text { text: "Audio"; color: "#ffffff"; font.pixelSize: 11; font.weight: Font.DemiBold }
+                                            Text { text: shell.sysMuted ? "Muted" : Math.round(shell.sysVolume * 100) + "%"; color: shell.textSecondary; font.pixelSize: 9 }
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        id: audma
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: shell.toggleMute()
+                                    }
+                                }
+                            }
+

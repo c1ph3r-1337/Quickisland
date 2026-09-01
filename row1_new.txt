@@ -1,0 +1,147 @@
+                            // Row 1: Wi-Fi + Hotspot + Audio
+                            Row {
+                                width: parent.width; spacing: 8
+
+                                Rectangle {
+                                    width: Math.floor((parent.width - (parent.spacing * 2)) / 3); height: 45; radius: 22.5
+                                    color: wma.containsMouse ? shell.surfaceBright : (shell.wifiEnabled ? shell.accentDim : shell.surfaceAlt)
+                                    border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (shell.wifiEnabled ? 1 : 0)
+                                    border.color: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.2)
+
+                                    Row {
+                                        anchors.fill: parent; anchors.margins: 8; spacing: 6
+                                        Rectangle {
+                                            width: 26; height: 26; radius: 13; anchors.verticalCenter: parent.verticalCenter
+                                            color: shell.wifiEnabled ? shell.accent : shell.surfaceBright
+                                            Image {
+                                                anchors.centerIn: parent; width: 14; height: 14
+                                                source: "icons/wifi.png"
+                                                fillMode: Image.PreserveAspectFit
+                                                layer.enabled: ccView.ccActive
+                                                layer.effect: MultiEffect {
+                                                    brightness: shell.wifiEnabled ? -0.8 : 1.0
+                                                    colorization: 1.0
+                                                    colorizationColor: shell.wifiEnabled ? shell._baseSurface : "#ffffff"
+                                                }
+                                            }
+                                        }
+                                        Column {
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            Text { text: "Wi-Fi"; color: "#ffffff"; font.pixelSize: 10; font.weight: Font.DemiBold }
+                                            Text { text: shell.wifiEnabled ? (shell.wifiConnected ? shell.wifiSSID : "Disconnected") : "Off"; color: "#dddddd"; font.pixelSize: 8; elide: Text.ElideRight; width: 45 }
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        id: wma
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: shell.setState(8)
+                                    }
+                                }
+
+                                Rectangle {
+                                    id: hotspotBtn
+                                    width: Math.floor((parent.width - (parent.spacing * 2)) / 3); height: 45; radius: 22.5
+                                    property bool hotspotActive: false
+                                    color: hsma.containsMouse ? shell.surfaceBright : (hotspotActive ? shell.accentDim : shell.surfaceAlt)
+                                    border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (hotspotActive ? 1 : 0)
+                                    border.color: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.2)
+
+                                    Process {
+                                        id: hsCheckProc
+                                        command: ["sh", "-c", "nmcli -t -f NAME,STATE connection show | grep '^c1ph3r_hotspot:activated'"]
+                                        running: true
+                                        stdout: StdioCollector {
+                                            onStreamFinished: {
+                                                hotspotBtn.hotspotActive = (text.trim().length > 0)
+                                            }
+                                        }
+                                    }
+
+                                    Timer {
+                                        interval: 5000; running: true; repeat: true
+                                        onTriggered: hsCheckProc.running = true
+                                    }
+
+                                    Row {
+                                        anchors.fill: parent; anchors.margins: 8; spacing: 6
+                                        Rectangle {
+                                            width: 26; height: 26; radius: 13; anchors.verticalCenter: parent.verticalCenter
+                                            color: hotspotBtn.hotspotActive ? shell.accent : shell.surfaceBright
+                                            Image {
+                                                anchors.centerIn: parent; width: 14; height: 14
+                                                source: "icons/wifi.png"
+                                                fillMode: Image.PreserveAspectFit
+                                                layer.enabled: ccView.ccActive
+                                                layer.effect: MultiEffect {
+                                                    brightness: hotspotBtn.hotspotActive ? -0.8 : 1.0
+                                                    colorization: 1.0
+                                                    colorizationColor: hotspotBtn.hotspotActive ? shell._baseSurface : "#ffffff"
+                                                }
+                                            }
+                                        }
+                                        Column {
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            Text { text: "Hotspot"; color: "#ffffff"; font.pixelSize: 10; font.weight: Font.DemiBold }
+                                            Text { text: hotspotBtn.hotspotActive ? "On" : "Off"; color: "#dddddd"; font.pixelSize: 8 }
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        id: hsma
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            if (hotspotBtn.hotspotActive) {
+                                                Quickshell.execDetached(["nmcli", "connection", "down", "c1ph3r_hotspot"]);
+                                                hotspotBtn.hotspotActive = false;
+                                            } else {
+                                                Quickshell.execDetached(["nmcli", "connection", "up", "c1ph3r_hotspot"]);
+                                                hotspotBtn.hotspotActive = true;
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Rectangle {
+                                    width: Math.floor((parent.width - (parent.spacing * 2)) / 3); height: 45; radius: 22.5
+                                    color: audma.containsMouse ? shell.surfaceBright : (!shell.sysMuted ? shell.accentDim : shell.surfaceAlt)
+                                    border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (!shell.sysMuted ? 1 : 0)
+                                    border.color: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.2)
+
+                                    Row {
+                                        anchors.fill: parent; anchors.margins: 8; spacing: 6
+                                        Rectangle {
+                                            width: 26; height: 26; radius: 13; anchors.verticalCenter: parent.verticalCenter
+                                            color: !shell.sysMuted ? shell.accent : shell.surfaceBright
+                                            Image {
+                                                anchors.centerIn: parent; width: 14; height: 14
+                                                source: "icons/volume.png"
+                                                fillMode: Image.PreserveAspectFit
+                                                layer.enabled: ccView.ccActive
+                                                layer.effect: MultiEffect {
+                                                    brightness: !shell.sysMuted ? -0.8 : 1.0
+                                                    colorization: 1.0
+                                                    colorizationColor: !shell.sysMuted ? shell._baseSurface : "#ffffff"
+                                                }
+                                            }
+                                        }
+                                        Column {
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            Text { text: "Audio"; color: "#ffffff"; font.pixelSize: 10; font.weight: Font.DemiBold }
+                                            Text { text: shell.sysMuted ? "Muted" : Math.round(shell.sysVolume * 100) + "%"; color: shell.textSecondary; font.pixelSize: 8 }
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        id: audma
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: shell.toggleMute()
+                                    }
+                                }
+                            }
