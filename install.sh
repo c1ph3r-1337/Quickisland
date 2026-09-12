@@ -353,6 +353,12 @@ if [ -d "$HYPR_DIR" ]; then
         success "Super + Shift + W already configured"
     fi
 
+    # Source the dynamic Spatial WM (2D) config
+    if ! grep -q "spatial_wm.conf" "$KEYBIND_FILE" 2>/dev/null; then
+        echo -e "\n# QuickIsland: Spatial WM (2D Grid) Source\nsource = ~/.config/quickshell/quickisland/hypr/spatial_wm.conf" >> "$KEYBIND_FILE"
+        touch ~/.config/quickshell/quickisland/hypr/spatial_wm.conf
+    fi
+
     # Configure Workspace Gestures (Hyprland 0.46+)
     if ! grep -q "gesture = 3, horizontal, workspace" "$KEYBIND_FILE" 2>/dev/null; then
         echo -e "\n# QuickIsland: Touchpad Workspace Gestures" >> "$KEYBIND_FILE"

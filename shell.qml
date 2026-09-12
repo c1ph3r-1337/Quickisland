@@ -90,6 +90,25 @@ ShellRoot {
     property string activeColorHex: "#cba6f7"
     property bool pickerRunning: false
     property bool locked: false
+    property bool spatialWmEnabled: false
+
+    Process {
+        id: spatialWmProc
+        running: false
+    }
+
+    Process {
+        id: readSpatialProc
+        command: ["bash", "-c", "cat ~/.cache/quickisland/spatial_wm_state 2>/dev/null || echo 0"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: {
+                if (text.trim() === "1") {
+                    shell.spatialWmEnabled = true;
+                }
+            }
+        }
+    }
 
     function selectColor(name, key) {
         activeColorName = name;
@@ -5100,6 +5119,60 @@ function getCurrentThemeStateKey() {
                                                 var val = !(Settings.data.colorSchemes.hyprglass || Settings.data.colorSchemes.hyprglassIsland);
                                                 Settings.data.colorSchemes.hyprglass = val;
                                                 Settings.data.colorSchemes.hyprglassIsland = val;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // 5. Spatial WM (2D) Toggle Card
+                            Rectangle {
+                                width: parent.width; height: 50; radius: 14; color: shell.surfaceAlt
+                                border.width: 0; border.color: shell.surfaceBorder
+
+                                Row {
+                                    anchors.fill: parent; anchors.margins: 12; spacing: 12
+
+                                    Rectangle {
+                                        width: 28; height: 28; radius: 14
+                                        color: shell.spatialWmEnabled ? shell.accent : shell.surfaceBright
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        Image {
+                                            anchors.centerIn: parent; width: 14; height: 14
+                                            source: "icons/palette.png"
+                                            layer.enabled: panelWindow.activeState === 12
+                                            layer.effect: MultiEffect {
+                                                brightness: 1.0; colorization: 1.0
+                                                colorizationColor: shell.spatialWmEnabled ? shell.surface : shell.textMuted
+                                            }
+                                        }
+                                    }
+
+                                    Column {
+                                        width: parent.width - 28 - 44 - 36
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        Text { text: "Spatial WM (2D)"; color: "#ffffff"; font.pixelSize: 12; font.weight: Font.Bold }
+                                        Text { text: "Use 2D Workspace Grid & Overview (HyprExpo)"; color: shell.textSecondary; font.pixelSize: 9 }
+                                    }
+
+                                    Image {
+                                        width: 44; height: 24
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        source: "icons/on.png"
+                                        mirror: !shell.spatialWmEnabled
+                                        fillMode: Image.PreserveAspectFit
+                                        layer.enabled: panelWindow.activeState === 12
+                                        layer.effect: MultiEffect {
+                                            brightness: 1.0
+                                            colorization: 1.0
+                                            colorizationColor: shell.spatialWmEnabled ? shell.accent : shell.textMuted
+                                        }
+                                        MouseArea {
+                                            anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                shell.spatialWmEnabled = !shell.spatialWmEnabled;
+                                                spatialWmProc.command = ["bash", "-c", "~/.config/quickshell/quickisland/scripts/toggle_spatial_wm.sh " + (shell.spatialWmEnabled ? "on" : "off")];
+                                                spatialWmProc.running = true;
                                             }
                                         }
                                     }
