@@ -20,6 +20,13 @@ import "ScreenToolkit" as ST
 
 ShellRoot {
     id: shell
+    Connections {
+        target: Settings.data.colorSchemes
+        function onHyprglassChanged() {
+            var mode = Settings.data.colorSchemes.hyprglass ? "liquid" : "off";
+            Quickshell.execDetached(["bash", Quickshell.shellDir + "/kitty-glass-sync.sh", mode]);
+        }
+    }
 
     // ======    // ======    // ======    // =========================================================================
     // MULTI-MONITOR DISPLAY CONFIGURATION
@@ -2083,6 +2090,57 @@ function getCurrentThemeStateKey() {
                 height: panelWindow.maskHeight
             }
 
+
+            Item {
+                id: leftGapFiller
+                anchors.left: island.left
+                anchors.top: island.top
+                width: typeof island !== "undefined" ? island.islandRadius : 0
+                height: typeof island !== "undefined" ? island.islandRadius : 0
+                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode
+                clip: true
+                LiquidGlassBackground {
+                    anchors.top: parent.top
+                    x: -(leftFlare.visible ? leftFlare.width : 0)
+                    width: (leftFlare.visible ? leftFlare.width : 0) + island.width + (rightFlare.visible ? rightFlare.width : 0)
+                    height: typeof liquidGlassBg !== "undefined" ? liquidGlassBg.height : parent.height
+                    radius: 0
+                    surfaceColor: shell.surface
+                    accentColor: shell.accent
+                    active: Settings.isLoaded && Settings.data.colorSchemes.hyprglass
+                }
+                Rectangle {
+                    anchors.fill: parent
+                    color: shell.surface
+                    visible: !(typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.colorSchemes.hyprglass)
+                }
+            }
+
+            Item {
+                id: rightGapFiller
+                anchors.right: island.right
+                anchors.top: island.top
+                width: typeof island !== "undefined" ? island.islandRadius : 0
+                height: typeof island !== "undefined" ? island.islandRadius : 0
+                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode
+                clip: true
+                LiquidGlassBackground {
+                    anchors.top: parent.top
+                    x: -(leftFlare.visible ? leftFlare.width : 0) - (island.width - width)
+                    width: (leftFlare.visible ? leftFlare.width : 0) + island.width + (rightFlare.visible ? rightFlare.width : 0)
+                    height: typeof liquidGlassBg !== "undefined" ? liquidGlassBg.height : parent.height
+                    radius: 0
+                    surfaceColor: shell.surface
+                    accentColor: shell.accent
+                    active: Settings.isLoaded && Settings.data.colorSchemes.hyprglass
+                }
+                Rectangle {
+                    anchors.fill: parent
+                    color: shell.surface
+                    visible: !(typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.colorSchemes.hyprglass)
+                }
+            }
+
             Item {
                 id: islandMaskTopSquare
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -2146,7 +2204,7 @@ function getCurrentThemeStateKey() {
 
                 Rectangle {
                     anchors.top: parent.top
-                    anchors.topMargin: (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) ? -island.islandRadius : 0
+                    
                     anchors.bottom: parent.bottom
                     anchors.left: parent.left
                     anchors.right: parent.right
@@ -2181,7 +2239,7 @@ function getCurrentThemeStateKey() {
 
                 LiquidGlassBackground {
                     anchors.top: parent.top
-                    anchors.topMargin: (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) ? -island.islandRadius : 0
+                    
                     anchors.left: parent.left
                     width: leftFlare.width + island.width + rightFlare.width
                     height: typeof liquidGlassBg !== "undefined" ? liquidGlassBg.height : parent.height
@@ -2236,7 +2294,7 @@ function getCurrentThemeStateKey() {
 
                 LiquidGlassBackground {
                     anchors.top: parent.top
-                    anchors.topMargin: (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) ? -island.islandRadius : 0
+                    
                     anchors.right: parent.right
                     width: leftFlare.width + island.width + rightFlare.width
                     height: typeof liquidGlassBg !== "undefined" ? liquidGlassBg.height : parent.height
@@ -2367,7 +2425,7 @@ function getCurrentThemeStateKey() {
                         case 1: return 44;
                         case 2: return 32;
                         case 3: return 76;
-                        case 4: return 440;
+                        case 4: return 445;
                         case 5: return Math.min(680, (typeof ccColumn !== "undefined" ? ccColumn.height + 28 : 590));
                         case 6: return 90;
                         case 7: return 200;
@@ -4329,9 +4387,10 @@ function getCurrentThemeStateKey() {
                                      Image {
                                          width: 12; height: 12
                                          anchors.verticalCenter: parent.verticalCenter
-                                         source: (typeof Quickshell !== "undefined" && Quickshell.iconPath)
-                                             ? Quickshell.iconPath("folder")
-                                             : ""
+                                         source: {
+                                             var p = (typeof Quickshell !== "undefined" && Quickshell.iconPath) ? Quickshell.iconPath("folder") : "";
+                                             return p ? (p.startsWith("file://") || p.startsWith("image://") ? p : "file://" + p) : "";
+                                         }
                                          fillMode: Image.PreserveAspectFit
                                          layer.enabled: panelWindow.activeState === 10
                                          layer.effect: MultiEffect {
@@ -7321,7 +7380,7 @@ Item {     id: clipboardHistoryView
                 MultiEffect {
                     source: wsCircleShadowSource
                     anchors.fill: wsCircleShadowSource
-                    z: -1
+                    z: -2
                     shadowEnabled: true
                     shadowColor: Qt.rgba(0, 0, 0, 0.4)
                     shadowBlur: 0.65

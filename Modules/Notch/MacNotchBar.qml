@@ -62,57 +62,60 @@ Item {
         }
 
         // Background mask
-        Item {
+        ShaderEffectSource {
             id: bgMask
             anchors.fill: parent
-            layer.enabled: true
-            visible: false
-            
-            // Main body
-            Rectangle {
-                anchors.fill: parent
-                anchors.leftMargin: flareRadius
-                anchors.rightMargin: flareRadius
-                radius: notchRadius
-                color: "black"
-            }
-            
-            // Square off top of main body
-            Rectangle {
-                anchors.top: parent.top
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.leftMargin: flareRadius
-                anchors.rightMargin: flareRadius
-                height: notchHeight / 2
-                color: "black"
-            }
-            
-            // Left Flare (Reverse Round)
-            Shape {
-                anchors.top: parent.top
-                anchors.left: parent.left
-                width: flareRadius
-                height: flareRadius
+            sourceItem: Item {
+                width: bgMask.width
+                height: bgMask.height
+                layer.enabled: true
                 
-                ShapePath {
-                    fillColor: "black"
-                    strokeColor: "transparent"
-                    PathSvg { path: "M 0 0 L " + flareRadius + " 0 L " + flareRadius + " " + flareRadius + " A " + flareRadius + " " + flareRadius + " 0 0 0 0 0 Z" }
+                // Main body
+                Rectangle {
+                    anchors.fill: parent
+                    anchors.leftMargin: flareRadius
+                    anchors.rightMargin: flareRadius
+                    radius: notchRadius
+                    color: "white"
                 }
-            }
-            
-            // Right Flare (Reverse Round)
-            Shape {
-                anchors.top: parent.top
-                anchors.right: parent.right
-                width: flareRadius
-                height: flareRadius
                 
-                ShapePath {
-                    fillColor: "black"
-                    strokeColor: "transparent"
-                    PathSvg { path: "M " + flareRadius + " 0 L 0 0 L 0 " + flareRadius + " A " + flareRadius + " " + flareRadius + " 0 0 1 " + flareRadius + " 0 Z" }
+                // Square off top of main body
+                Rectangle {
+                    anchors.top: parent.top
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.leftMargin: flareRadius
+                    anchors.rightMargin: flareRadius
+                    height: notchHeight / 2
+                    color: "white"
+                }
+                
+                // Left Flare (Reverse Round)
+                Shape {
+                    anchors.top: parent.top
+                    anchors.left: parent.left
+                    width: flareRadius
+                    height: flareRadius
+                    
+                    ShapePath {
+                        fillColor: "white"
+                        strokeColor: "transparent"
+                        PathSvg { path: "M 0 0 L " + flareRadius + " 0 L " + flareRadius + " " + flareRadius + " A " + flareRadius + " " + flareRadius + " 0 0 0 0 0 Z" }
+                    }
+                }
+                
+                // Right Flare (Reverse Round)
+                Shape {
+                    anchors.top: parent.top
+                    anchors.right: parent.right
+                    width: flareRadius
+                    height: flareRadius
+                    
+                    ShapePath {
+                        fillColor: "white"
+                        strokeColor: "transparent"
+                        PathSvg { path: "M " + flareRadius + " 0 L 0 0 L 0 " + flareRadius + " A " + flareRadius + " " + flareRadius + " 0 0 1 " + flareRadius + " 0 Z" }
+                    }
                 }
             }
         }

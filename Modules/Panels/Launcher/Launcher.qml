@@ -49,9 +49,9 @@ SmartPanel {
   readonly property int totalBaseWidth: listPanelWidth + Style.margin2L
 
   preferredWidth: totalBaseWidth
-  preferredHeight: Math.round(600 * Style.uiScaleRatio)
+  preferredHeight: Math.round(605 * Style.uiScaleRatio)
   preferredWidthRatio: 0.25
-  preferredHeightRatio: 0.5
+  preferredHeightRatio: undefined
 
   // Positioning
   readonly property string screenBarPosition: Settings.getBarPositionForScreen(screen?.name)
