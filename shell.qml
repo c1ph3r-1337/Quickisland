@@ -2506,7 +2506,7 @@ function getCurrentThemeStateKey() {
 
                         Text {
                             id: idleClock; text: shell.currentTime12h
-                            color: shell.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold; font.letterSpacing: 0.5; font.family: "Varela Round"
+                            color: shell.textPrimary; font.pixelSize: 13; font.weight: Font.Bold; font.letterSpacing: 0.5; font.family: "Varela Round"
                             anchors.verticalCenter: parent.verticalCenter
                         }
                     }
