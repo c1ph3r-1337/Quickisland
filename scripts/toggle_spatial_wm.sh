@@ -24,7 +24,7 @@ INNER_EOF
     
     # Reset coordinates
     echo "0 0" > "$COORD_FILE"
-    quickshell ipc -p ~/.config/quickshell/quickisland call virtual_workspace set_text 1 &
+    quickshell ipc -p ~/.config/quickshell/quickisland call virtual_workspace set_coords 0 0 &
 else
     # Clear the config so on reboot it does nothing
     echo "" > "$SPATIAL_CONF"
@@ -42,7 +42,5 @@ else
     mkdir -p ~/.cache/quickisland
     echo "0" > ~/.cache/quickisland/spatial_wm_state
     
-    # Re-sync standard workspace ID
-    WS_ID=$(hyprctl activeworkspace -j | jq '.id')
-    quickshell ipc -p ~/.config/quickshell/quickisland call virtual_workspace set_text "$WS_ID" &
+    # Re-sync standard workspace ID (QuickIsland's listener will pick this up automatically because spatialWmEnabled goes false)
 fi

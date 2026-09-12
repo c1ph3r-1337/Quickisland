@@ -38,25 +38,15 @@ else
     esac
 fi
 
-# Do not clamp VX and VY! Allow it to be truly infinite!
-
-# If we didn't move (e.g. jump to same), just exit
+# If we didn't move, exit
 if [[ "$DX" == "0" ]] && [[ "$DY" == "0" ]]; then
     exit 0
 fi
 
 echo "$VX $VY" > $COORD_FILE
 
-# Calculate Virtual Workspace ID (For display)
-# Let's map it to a readable string like "X:1 Y:-2" or a number if positive
-if [[ $VX -ge 0 && $VX -le 2 && $VY -ge 0 && $VY -le 2 ]]; then
-    VID=$(( VY * 3 + VX + 1 ))
-else
-    VID="${VX},${VY}"
-fi
-
-# Tell QuickIsland to update its indicator
-quickshell ipc -p ~/.config/quickshell/quickisland call virtual_workspace set_text "$VID" &
+# Tell QuickIsland to update its dual-axis indicator
+quickshell ipc -p ~/.config/quickshell/quickisland call virtual_workspace set_coords "$VX" "$VY" &
 
 CUR_WS=$(hyprctl activeworkspace -j | jq '.id')
 

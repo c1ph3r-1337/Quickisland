@@ -20,7 +20,8 @@ import "ScreenToolkit" as ST
 
 ShellRoot {
     id: shell
-    property string virtualWorkspaceId: "1"
+    property int virtualWorkspaceX: 0
+    property int virtualWorkspaceY: 0
     property bool overviewActive: false
     Connections {
         target: Settings.data.colorSchemes
@@ -648,15 +649,17 @@ function getCurrentThemeStateKey() {
     }
 
     IpcHandler {
-    IpcHandler {
         target: "overview"
         function toggle() {
             shell.overviewActive = !shell.overviewActive;
         }
     }
+
+    IpcHandler {
         target: "virtual_workspace"
-        function set_text(text: string) {
-            shell.virtualWorkspaceId = text;
+        function set_coords(x: int, y: int) {
+            shell.virtualWorkspaceX = x;
+            shell.virtualWorkspaceY = y;
         }
     }
 
@@ -1971,9 +1974,18 @@ function getCurrentThemeStateKey() {
             property var shellRootObj: shell
 
             // Workspace tracking and indicator properties
-            property string workspaceId: "1"
+            property int workspaceX: 0
+            property int workspaceY: 0
+            property string workspaceId: "1" // Fallback for standard WM
             property bool isSystemReady: false
             property bool workspaceCircleActive: false
+            
+            // For the left circle (Y-axis)
+            property real leftWsCircleSpacing: (workspaceCircleActive && shell.spatialWmEnabled) ? 8 : -30
+            property real leftWsCircleOpacity: (workspaceCircleActive && shell.spatialWmEnabled) ? 1.0 : 0.0
+            
+            Behavior on leftWsCircleSpacing { NumberAnimation { duration: 180; easing.type: Easing.OutQuart } }
+            Behavior on leftWsCircleOpacity { NumberAnimation { duration: 120; easing.type: Easing.OutQuad } }
 
             readonly property bool isFocusedScreen: {
                 if (Quickshell.screens.length <= 1) return true;
@@ -1992,14 +2004,18 @@ function getCurrentThemeStateKey() {
 
             Connections {
                 target: shell
-                function onVirtualWorkspaceIdChanged() {
-                    if (shell.spatialWmEnabled) {
-                        panelWindow.workspaceId = shell.virtualWorkspaceId;
-                        if (panelWindow.isSystemReady && panelWindow.isFocusedScreen && !mainHoverArea.containsMouse && panelWindow.activeState === 0 && !(typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode)) {
-                            workspaceTimer.stop();
-                            panelWindow.workspaceCircleActive = true;
-                            workspaceTimer.restart();
-                        }
+                function onVirtualWorkspaceXChanged() { triggerWorkspaceUpdate(); }
+                function onVirtualWorkspaceYChanged() { triggerWorkspaceUpdate(); }
+            }
+            
+            function triggerWorkspaceUpdate() {
+                if (shell.spatialWmEnabled) {
+                    panelWindow.workspaceX = shell.virtualWorkspaceX;
+                    panelWindow.workspaceY = shell.virtualWorkspaceY;
+                    if (panelWindow.isSystemReady && panelWindow.isFocusedScreen && !mainHoverArea.containsMouse && panelWindow.activeState === 0 && !(typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode)) {
+                        workspaceTimer.stop();
+                        panelWindow.workspaceCircleActive = true;
+                        workspaceTimer.restart();
                     }
                 }
             }
@@ -2388,7 +2404,11 @@ function getCurrentThemeStateKey() {
             Rectangle {
                 id: island
                 anchors.horizontalCenter: parent.horizontalCenter
-                anchors.horizontalCenterOffset: -((panelWindow.wsCircleSpacing + panelWindow.wsCircleWidth) / 2)
+                anchors.horizontalCenterOffset: {
+                    var rightOffset = (panelWindow.wsCircleSpacing + panelWindow.wsCircleWidth) / 2;
+                    var leftOffset = (panelWindow.leftWsCircleSpacing + panelWindow.wsCircleWidth) / 2;
+                    return leftOffset - rightOffset;
+                }
                 anchors.top: parent.top
                 anchors.topMargin: (Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 0 : 6
                 color: "transparent"
@@ -7441,6 +7461,50 @@ Item {     id: clipboardHistoryView
             // =============================================================
             // WORKSPACE INDICATOR CIRCLE
             // =============================================================
+            // LEFT WORKSPACE INDICATOR CIRCLE (Y-AXIS)
+            // =============================================================
+                Rectangle {
+                    id: workspaceCircleLeft
+                    z: -1
+                    anchors.right: island.left
+                    anchors.rightMargin: panelWindow.leftWsCircleSpacing
+                    anchors.top: island.top
+
+                    width: panelWindow.wsCircleWidth
+                    height: panelWindow.wsCircleWidth
+                    radius: width / 2
+
+                    color: "transparent"
+                    clip: true
+
+                    opacity: panelWindow.leftWsCircleOpacity
+                    scale: panelWindow.wsCircleScale
+                    visible: shell.spatialWmEnabled
+
+                    LiquidGlassBackground {
+                        anchors.fill: parent
+                        radius: parent.radius
+                        surfaceColor: shell.surface
+                        accentColor: shell.accent
+                        borderColor: "transparent"
+                        active: Settings.isLoaded && Settings.data.colorSchemes.hyprglassIsland
+                    }
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: panelWindow.workspaceY
+                        color: idleClock.color
+                        font.family: idleClock.font.family
+                        font.pixelSize: 12
+                        font.weight: Font.DemiBold
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                }
+
+            // =============================================================
+            // RIGHT WORKSPACE INDICATOR CIRCLE (X-AXIS or Standard)
+            // =============================================================
                 Rectangle {
                     id: workspaceCircle
                     z: -1
@@ -7471,7 +7535,7 @@ Item {     id: clipboardHistoryView
                     // Desktop number text
                     Text {
                         anchors.centerIn: parent
-                        text: panelWindow.workspaceId
+                        text: shell.spatialWmEnabled ? panelWindow.workspaceX : panelWindow.workspaceId
                         color: idleClock.color
                         font: idleClock.font
                     }
