@@ -4445,18 +4445,24 @@ function getCurrentThemeStateKey() {
                              cacheBuffer: 88
                              model: wallpaperSelectorView.wallpapersList
 
-                             delegate: Rectangle {
-                                  id: card
-                                  width: 128
-                                  height: 78
-                                  radius: 12
-                                  color: wma.containsMouse ? "#3c3e56" : shell.surfaceBright
-                                  Behavior on color { ColorAnimation { duration: 200 } }
+                             delegate: Item {
+                                  width: wallpaperGridView.cellWidth
+                                  height: wallpaperGridView.cellHeight
+                                  z: card.z
 
-                                  property bool isSelected: modelData === WallpaperService.getWallpaper(panelWindow.modelData.name)
-                                  scale: isSelected ? 1.06 : (wma.containsMouse ? 1.02 : 1.0)
-                                  z: (isSelected || wma.containsMouse) ? 1 : 0
-                                  Behavior on scale { NumberAnimation { duration: 300; easing.type: Easing.OutBack } }
+                                  Rectangle {
+                                      id: card
+                                      width: 128
+                                      height: 78
+                                      anchors.centerIn: parent
+                                      radius: 12
+                                      color: wma.containsMouse ? "#3c3e56" : shell.surfaceBright
+                                      Behavior on color { ColorAnimation { duration: 200 } }
+
+                                      property bool isSelected: modelData === WallpaperService.getWallpaper(panelWindow.modelData.name)
+                                      scale: isSelected ? 1.06 : (wma.containsMouse ? 1.02 : 1.0)
+                                      z: (isSelected || wma.containsMouse) ? 1 : 0
+                                      Behavior on scale { NumberAnimation { duration: 300; easing.type: Easing.OutBack } }
 
                                   Rectangle {
                                       id: imgClip
@@ -4500,6 +4506,7 @@ function getCurrentThemeStateKey() {
                                       }
                                   }
                               }
+                             }
                          }
                     }
                 }
