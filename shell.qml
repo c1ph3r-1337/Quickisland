@@ -20,6 +20,7 @@ import "ScreenToolkit" as ST
 
 ShellRoot {
     id: shell
+    property int virtualWorkspaceId: 1
     Connections {
         target: Settings.data.colorSchemes
         function onHyprglassChanged() {
@@ -642,6 +643,13 @@ function getCurrentThemeStateKey() {
             } else {
                 shell.setState(15);
             }
+        }
+    }
+
+    IpcHandler {
+        target: "virtual_workspace"
+        function set(id: int) {
+            shell.virtualWorkspaceId = id;
         }
     }
 
@@ -1976,6 +1984,20 @@ function getCurrentThemeStateKey() {
             }
 
             Connections {
+                target: shell
+                function onVirtualWorkspaceIdChanged() {
+                    if (shell.spatialWmEnabled) {
+                        panelWindow.workspaceId = shell.virtualWorkspaceId;
+                        if (panelWindow.isSystemReady && panelWindow.isFocusedScreen && !mainHoverArea.containsMouse && panelWindow.activeState === 0 && !(typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode)) {
+                            workspaceTimer.stop();
+                            panelWindow.workspaceCircleActive = true;
+                            workspaceTimer.restart();
+                        }
+                    }
+                }
+            }
+
+            Connections {
                 target: Hyprland
                 function onFocusedWorkspaceChanged() {
                     var monitor = panelWindow.screen ? Hyprland.monitorFor(panelWindow.screen) : null;
@@ -1985,7 +2007,9 @@ function getCurrentThemeStateKey() {
                     } else if (Hyprland.focusedWorkspace) {
                         newId = Hyprland.focusedWorkspace.id;
                     }
-                    panelWindow.workspaceId = newId;
+                    if (!shell.spatialWmEnabled) {
+                        panelWindow.workspaceId = newId;
+                    }
                 }
             }
 

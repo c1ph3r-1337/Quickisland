@@ -2,6 +2,7 @@
 STATE=$1
 SPATIAL_CONF="$HOME/.config/quickshell/quickisland/hypr/spatial_wm.conf"
 mkdir -p "$(dirname "$SPATIAL_CONF")"
+COORD_FILE=~/.cache/quickisland/infinite_canvas_coords
 
 if [[ "$STATE" == "on" ]]; then
     cat << 'INNER_EOF' > "$SPATIAL_CONF"
@@ -17,7 +18,10 @@ INNER_EOF
     # Save state
     mkdir -p ~/.cache/quickisland
     echo "1" > ~/.cache/quickisland/spatial_wm_state
-
+    
+    # Reset coordinates
+    echo "0 0" > "$COORD_FILE"
+    quickshell ipc -p ~/.config/quickshell/quickisland call virtual_workspace set 1 &
 else
     # Clear the config so on reboot it does nothing
     echo "" > "$SPATIAL_CONF"
@@ -32,4 +36,8 @@ else
     # Save state
     mkdir -p ~/.cache/quickisland
     echo "0" > ~/.cache/quickisland/spatial_wm_state
+    
+    # Re-sync standard workspace ID
+    WS_ID=$(hyprctl activeworkspace -j | jq '.id')
+    quickshell ipc -p ~/.config/quickshell/quickisland call virtual_workspace set "$WS_ID" &
 fi
