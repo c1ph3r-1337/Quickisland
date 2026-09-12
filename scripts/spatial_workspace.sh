@@ -4,6 +4,7 @@ CUR=$(hyprctl activeworkspace -j | jq '.id')
 
 if [[ $CUR -lt 1 ]] || [[ $CUR -gt 9 ]]; then CUR=1; fi
 
+# 0-indexed row and col
 ROW=$(( (CUR - 1) / 3 ))
 COL=$(( (CUR - 1) % 3 ))
 
