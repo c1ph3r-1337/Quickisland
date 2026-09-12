@@ -27,7 +27,7 @@ INNER_EOF
 
     # Attempt to load hyprexpo (might fail if not installed, but 2D binds will still work)
     if command -v hyprpm &>/dev/null; then
-        hyprpm enable hyprexpo 2>/dev/null || true
+        hyprpm enable hyprexpo </dev/null 2>/dev/null || true
     fi
 
     hyprctl keyword source "$SPATIAL_CONF"
@@ -48,7 +48,7 @@ else
     hyprctl keyword unbind "CTRL SUPER, Space"
     
     if command -v hyprpm &>/dev/null; then
-        hyprpm disable hyprexpo 2>/dev/null || true
+        hyprpm disable hyprexpo </dev/null 2>/dev/null || true
     fi
     
     notify-send "QuickIsland" "Spatial WM Mode Disabled. Reverted to classic linear WM." -i "view-list-symbolic" -t 3000
