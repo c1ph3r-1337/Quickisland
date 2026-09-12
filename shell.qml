@@ -4453,6 +4453,11 @@ function getCurrentThemeStateKey() {
                                   color: wma.containsMouse ? "#3c3e56" : shell.surfaceBright
                                   Behavior on color { ColorAnimation { duration: 200 } }
 
+                                  property bool isSelected: modelData === WallpaperService.getWallpaper(panelWindow.modelData.name)
+                                  scale: isSelected ? 1.06 : (wma.containsMouse ? 1.02 : 1.0)
+                                  z: (isSelected || wma.containsMouse) ? 1 : 0
+                                  Behavior on scale { NumberAnimation { duration: 300; easing.type: Easing.OutBack } }
+
                                   Rectangle {
                                       id: imgClip
                                       anchors.fill: parent
@@ -4483,16 +4488,6 @@ function getCurrentThemeStateKey() {
                                           sourceSize.height: imgClip.height
                                           fillMode: Image.PreserveAspectCrop
                                       }
-                                  }
-
-                                  // Outline border on top of the rounded image
-                                  Rectangle {
-                                      anchors.fill: parent
-                                      radius: card.radius
-                                      color: "transparent"
-                                      border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : ((modelData === WallpaperService.getWallpaper(panelWindow.modelData.name)) ? 2 : (wma.containsMouse ? 1 : 0))
-                                      border.color: (modelData === WallpaperService.getWallpaper(panelWindow.modelData.name)) ? shell.accent : "#585b70"
-                                      Behavior on border.color { ColorAnimation { duration: 200 } }
                                   }
 
                                   MouseArea {
