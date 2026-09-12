@@ -700,9 +700,7 @@ function getCurrentThemeStateKey() {
     property color surfaceBright:   _effectiveIntensity > 0.0
                                     ? Qt.rgba(_baseSurfaceBright.r, _baseSurfaceBright.g, _baseSurfaceBright.b, (1.0 - _effectiveIntensity) * (1.0 + _effectiveIntensity * 0.6))
                                     : Qt.rgba(_baseSurfaceBright.r, _baseSurfaceBright.g, _baseSurfaceBright.b, 1.0)
-    property color surfaceBorder:   _effectiveIntensity > 0.0
-                                    ? Qt.rgba(1, 1, 1, 0.06 + _effectiveIntensity * 0.08)
-                                    : Qt.rgba(1, 1, 1, 0.06)
+    property color surfaceBorder:   "transparent"
     property color textPrimary:     themeMode === "wallpaper" ? wpTextPrimary   : customTextPrimary
     property color textSecondary:   themeMode === "wallpaper" ? wpTextSecondary : customTextSecondary
     property color textMuted:       themeMode === "wallpaper" ? wpTextMuted     : customTextMuted
