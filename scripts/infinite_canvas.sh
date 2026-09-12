@@ -25,15 +25,15 @@ if [[ "$DIR" == "jump" ]]; then
     DIFF_X=$(( TARGET_VX - VX ))
     DIFF_Y=$(( TARGET_VY - VY ))
     DX=$(( -DIFF_X * WIDTH ))
-    DY=$(( -DIFF_Y * HEIGHT ))
+    DY=$(( DIFF_Y * HEIGHT ))
     VX=$TARGET_VX
     VY=$TARGET_VY
 else
     case $DIR in
         left)  DX=$WIDTH;  ((VX--)) ;;
         right) DX=-$WIDTH; ((VX++)) ;;
-        up)    DY=$HEIGHT; ((VY--)) ;;
-        down)  DY=-$HEIGHT;((VY++)) ;;
+        up)    DY=$HEIGHT; ((VY++)) ;;
+        down)  DY=-$HEIGHT;((VY--)) ;;
         *) exit 1 ;;
     esac
 fi

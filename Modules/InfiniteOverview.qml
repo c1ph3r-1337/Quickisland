@@ -138,7 +138,7 @@ PanelWindow {
                 
                 // Target virtual coordinates
                 property int targetVx: overviewWindow.currentVx + gridX
-                property int targetVy: overviewWindow.currentVy + gridY
+                property int targetVy: overviewWindow.currentVy - gridY
                 
                 property real sx: container.width/2 - (overviewWindow.width * container.scaleFactor)/2
                 property real sy: container.height/2 - (overviewWindow.height * container.scaleFactor)/2
