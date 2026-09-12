@@ -5125,7 +5125,7 @@ function getCurrentThemeStateKey() {
                                 }
                             }
 
-                            // 5. Infinite Canvas WM Toggle Card
+                            // 5. Spatial WM (2D) Toggle Card
                             Rectangle {
                                 width: parent.width; height: 50; radius: 14; color: shell.surfaceAlt
                                 border.width: 0; border.color: shell.surfaceBorder
@@ -5151,7 +5151,7 @@ function getCurrentThemeStateKey() {
                                     Column {
                                         width: parent.width - 28 - 44 - 36
                                         anchors.verticalCenter: parent.verticalCenter
-                                        Text { text: "Infinite Canvas WM"; color: "#ffffff"; font.pixelSize: 12; font.weight: Font.Bold }
+                                        Text { text: "Spatial WM (2D)"; color: "#ffffff"; font.pixelSize: 12; font.weight: Font.Bold }
                                         Text { text: "Use 2D Workspace Grid & Overview (HyprExpo)"; color: shell.textSecondary; font.pixelSize: 9 }
                                     }
 

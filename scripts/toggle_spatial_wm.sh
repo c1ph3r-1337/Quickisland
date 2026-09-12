@@ -5,14 +5,28 @@ mkdir -p "$(dirname "$SPATIAL_CONF")"
 
 if [[ "$STATE" == "on" ]]; then
     cat << 'INNER_EOF' > "$SPATIAL_CONF"
-bind = CTRL SUPER, Left, exec, ~/.config/quickshell/quickisland/scripts/infinite_canvas.sh left
-bind = CTRL SUPER, Right, exec, ~/.config/quickshell/quickisland/scripts/infinite_canvas.sh right
-bind = CTRL SUPER, Up, exec, ~/.config/quickshell/quickisland/scripts/infinite_canvas.sh up
-bind = CTRL SUPER, Down, exec, ~/.config/quickshell/quickisland/scripts/infinite_canvas.sh down
+plugin {
+    hyprexpo {
+        columns = 3
+        gap_size = 5
+        bg_col = rgb(111111)
+        workspace_method = center current
+        enable_gesture = true
+        gesture_fingers = 4
+        gesture_distance = 300
+        gesture_positive = false
+    }
+}
+bind = CTRL SUPER, Left, exec, ~/.config/quickshell/quickisland/scripts/spatial_workspace.sh left
+bind = CTRL SUPER, Right, exec, ~/.config/quickshell/quickisland/scripts/spatial_workspace.sh right
+bind = CTRL SUPER, Up, exec, ~/.config/quickshell/quickisland/scripts/spatial_workspace.sh up
+bind = CTRL SUPER, Down, exec, ~/.config/quickshell/quickisland/scripts/spatial_workspace.sh down
+# Fallback keybind
+bind = CTRL SUPER, Space, hyprexpo:expo, toggle
 INNER_EOF
 
     hyprctl keyword source "$SPATIAL_CONF"
-    notify-send "QuickIsland" "Infinite Canvas Enabled! Use Ctrl+Super+Arrows to pan the camera." -i "view-grid-symbolic" -t 3000
+    notify-send "QuickIsland" "Spatial WM Mode (2D Grid) Enabled! Use Ctrl+Super+Arrows to navigate." -i "view-grid-symbolic" -t 3000
     
     # Save state
     mkdir -p ~/.cache/quickisland
@@ -26,8 +40,9 @@ else
     hyprctl keyword unbind "CTRL SUPER, Right"
     hyprctl keyword unbind "CTRL SUPER, Up"
     hyprctl keyword unbind "CTRL SUPER, Down"
+    hyprctl keyword unbind "CTRL SUPER, Space"
     
-    notify-send "QuickIsland" "Infinite Canvas Disabled. Reverted to classic WM." -i "view-list-symbolic" -t 3000
+    notify-send "QuickIsland" "Spatial WM Mode Disabled. Reverted to classic linear WM." -i "view-list-symbolic" -t 3000
 
     # Save state
     mkdir -p ~/.cache/quickisland
