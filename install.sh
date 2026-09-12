@@ -325,6 +325,7 @@ if [ -d "$HYPR_DIR" ]; then
     configure_keybind "M"      "toggle settings"        "state toggle 17"                     "ipc call state toggle 17"
     configure_keybind "V"      "clipboard"              "clipboard toggle"                    "ipc call clipboard toggle"
     configure_keybind "period"  "emoji picker"          "emoji toggle"                        "ipc call emoji toggle"
+    configure_keybind "P"       "annotate screen"       "plugin:screen-toolkit annotate"      "ipc call plugin:screen-toolkit annotate"
     configure_keybind "slash"   "toggle keybindings help" "state toggle 16"                     "ipc call state toggle 16"
 
     # Shift keybindings (different syntax)
@@ -342,6 +343,14 @@ if [ -d "$HYPR_DIR" ]; then
         success "Bound Super + Shift + C → color picker"
     else
         success "Super + Shift + C already configured"
+    fi
+
+    WALLPAPER_LINE="bindd = \$mainMod SHIFT, W, \$d desktop wallpapers , exec, quickshell ipc -p ~/.config/quickshell/quickisland call state toggle 10"
+    if ! grep -q "call state toggle 10" "$KEYBIND_FILE" 2>/dev/null; then
+        echo -e "\n# QuickIsland: Desktop Wallpapers\n$WALLPAPER_LINE" >> "$KEYBIND_FILE"
+        success "Bound Super + Shift + W → desktop wallpapers"
+    else
+        success "Super + Shift + W already configured"
     fi
 
     # Configure Workspace Gestures (Hyprland 0.46+)

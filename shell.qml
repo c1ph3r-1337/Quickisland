@@ -4388,8 +4388,16 @@ function getCurrentThemeStateKey() {
                                          width: 12; height: 12
                                          anchors.verticalCenter: parent.verticalCenter
                                          source: {
-                                             var p = (typeof Quickshell !== "undefined" && Quickshell.iconPath) ? Quickshell.iconPath("folder") : "";
-                                             return p ? (p.startsWith("file://") || p.startsWith("image://") ? p : "file://" + p) : "";
+                                             if (typeof Quickshell !== "undefined" && Quickshell.iconPath) {
+                                                 var icons = ["folder", "folder-symbolic", "system-file-manager", "inode-directory"];
+                                                 for (var i = 0; i < icons.length; i++) {
+                                                     var p = Quickshell.iconPath(icons[i]);
+                                                     if (p && p !== "") {
+                                                         return p.startsWith("file://") || p.startsWith("image://") ? p : "file://" + p;
+                                                     }
+                                                 }
+                                             }
+                                             return "";
                                          }
                                          fillMode: Image.PreserveAspectFit
                                          layer.enabled: panelWindow.activeState === 10
