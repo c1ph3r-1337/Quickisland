@@ -344,6 +344,16 @@ if [ -d "$HYPR_DIR" ]; then
         success "Super + Shift + C already configured"
     fi
 
+    # Configure Workspace Gestures (Hyprland 0.46+)
+    if ! grep -q "gesture = 3, horizontal, workspace" "$KEYBIND_FILE" 2>/dev/null; then
+        echo -e "\n# QuickIsland: Touchpad Workspace Gestures" >> "$KEYBIND_FILE"
+        echo -e "gestures {\n    workspace_swipe_create_new = true\n    workspace_swipe_use_r = true\n    workspace_swipe_forever = true\n}" >> "$KEYBIND_FILE"
+        echo -e "gesture = 3, horizontal, workspace" >> "$KEYBIND_FILE"
+        success "Configured Touchpad Workspace Gestures"
+    else
+        success "Touchpad Workspace Gestures already configured"
+    fi
+
     # Reload Hyprland config if running
     if command -v hyprctl &>/dev/null && [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
         hyprctl reload &>/dev/null && success "Hyprland config reloaded" || true
