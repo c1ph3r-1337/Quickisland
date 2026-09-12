@@ -10,10 +10,13 @@ bind = CTRL SUPER, Left, exec, ~/.config/quickshell/quickisland/scripts/infinite
 bind = CTRL SUPER, Right, exec, ~/.config/quickshell/quickisland/scripts/infinite_canvas.sh right
 bind = CTRL SUPER, Up, exec, ~/.config/quickshell/quickisland/scripts/infinite_canvas.sh up
 bind = CTRL SUPER, Down, exec, ~/.config/quickshell/quickisland/scripts/infinite_canvas.sh down
+# Fallback keybind
+bind = CTRL SUPER, Space, exec, quickshell ipc -p ~/.config/quickshell/quickisland call overview toggle
+bind = , swipe:4:d, exec, quickshell ipc -p ~/.config/quickshell/quickisland call overview toggle
 INNER_EOF
 
     hyprctl keyword source "$SPATIAL_CONF"
-    notify-send "QuickIsland" "Infinite Canvas Enabled! Use Ctrl+Super+Arrows to pan the camera." -i "view-grid-symbolic" -t 3000
+    notify-send "QuickIsland" "Infinite Canvas Enabled! Use Ctrl+Super+Arrows to pan, Ctrl+Super+Space for overview." -i "view-grid-symbolic" -t 3000
     
     # Save state
     mkdir -p ~/.cache/quickisland
@@ -21,7 +24,7 @@ INNER_EOF
     
     # Reset coordinates
     echo "0 0" > "$COORD_FILE"
-    quickshell ipc -p ~/.config/quickshell/quickisland call virtual_workspace set 1 &
+    quickshell ipc -p ~/.config/quickshell/quickisland call virtual_workspace set_text 1 &
 else
     # Clear the config so on reboot it does nothing
     echo "" > "$SPATIAL_CONF"
@@ -30,6 +33,8 @@ else
     hyprctl keyword unbind "CTRL SUPER, Right"
     hyprctl keyword unbind "CTRL SUPER, Up"
     hyprctl keyword unbind "CTRL SUPER, Down"
+    hyprctl keyword unbind "CTRL SUPER, Space"
+    hyprctl keyword unbind ", swipe:4:d"
     
     notify-send "QuickIsland" "Infinite Canvas Disabled. Reverted to classic WM." -i "view-list-symbolic" -t 3000
 
@@ -39,5 +44,5 @@ else
     
     # Re-sync standard workspace ID
     WS_ID=$(hyprctl activeworkspace -j | jq '.id')
-    quickshell ipc -p ~/.config/quickshell/quickisland call virtual_workspace set "$WS_ID" &
+    quickshell ipc -p ~/.config/quickshell/quickisland call virtual_workspace set_text "$WS_ID" &
 fi

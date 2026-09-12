@@ -19,39 +19,44 @@ HEIGHT=$(awk "BEGIN {print int($HEIGHT / $SCALE)}")
 DX=0
 DY=0
 
-# Camera moves RIGHT -> windows move LEFT (DX = -WIDTH)
-# Camera moves LEFT -> windows move RIGHT (DX = WIDTH)
-# Camera moves DOWN -> windows move UP (DY = -HEIGHT)
-# Camera moves UP -> windows move DOWN (DY = HEIGHT)
-case $DIR in
-    left)  DX=$WIDTH;  ((VX--)) ;;
-    right) DX=-$WIDTH; ((VX++)) ;;
-    up)    DY=$HEIGHT; ((VY--)) ;;
-    down)  DY=-$HEIGHT;((VY++)) ;;
-    *) exit 1 ;;
-esac
+if [[ "$DIR" == "jump" ]]; then
+    TARGET_VX=$2
+    TARGET_VY=$3
+    DIFF_X=$(( TARGET_VX - VX ))
+    DIFF_Y=$(( TARGET_VY - VY ))
+    DX=$(( -DIFF_X * WIDTH ))
+    DY=$(( -DIFF_Y * HEIGHT ))
+    VX=$TARGET_VX
+    VY=$TARGET_VY
+else
+    case $DIR in
+        left)  DX=$WIDTH;  ((VX--)) ;;
+        right) DX=-$WIDTH; ((VX++)) ;;
+        up)    DY=$HEIGHT; ((VY--)) ;;
+        down)  DY=-$HEIGHT;((VY++)) ;;
+        *) exit 1 ;;
+    esac
+fi
 
-# Clamp virtual coords to 3x3 grid matching traditional workspace IDs
-if [[ $VX -lt 0 ]]; then VX=0; fi
-if [[ $VX -gt 2 ]]; then VX=2; fi
-if [[ $VY -lt 0 ]]; then VY=0; fi
-if [[ $VY -gt 2 ]]; then VY=2; fi
+# Do not clamp VX and VY! Allow it to be truly infinite!
 
-OLD_VX=$(awk '{print $1}' $COORD_FILE 2>/dev/null || echo "0")
-OLD_VY=$(awk '{print $2}' $COORD_FILE 2>/dev/null || echo "0")
-
-if [[ "$VX" == "$OLD_VX" ]] && [[ "$VY" == "$OLD_VY" ]]; then
-    # We hit the boundary, don't move windows
-    exit 0 
+# If we didn't move (e.g. jump to same), just exit
+if [[ "$DX" == "0" ]] && [[ "$DY" == "0" ]]; then
+    exit 0
 fi
 
 echo "$VX $VY" > $COORD_FILE
 
-# Calculate Virtual Workspace ID (1-9)
-VID=$(( VY * 3 + VX + 1 ))
+# Calculate Virtual Workspace ID (For display)
+# Let's map it to a readable string like "X:1 Y:-2" or a number if positive
+if [[ $VX -ge 0 && $VX -le 2 && $VY -ge 0 && $VY -le 2 ]]; then
+    VID=$(( VY * 3 + VX + 1 ))
+else
+    VID="${VX},${VY}"
+fi
 
 # Tell QuickIsland to update its indicator
-quickshell ipc -p ~/.config/quickshell/quickisland call virtual_workspace set "$VID" &
+quickshell ipc -p ~/.config/quickshell/quickisland call virtual_workspace set_text "$VID" &
 
 CUR_WS=$(hyprctl activeworkspace -j | jq '.id')
 

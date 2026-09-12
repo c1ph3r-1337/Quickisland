@@ -20,7 +20,8 @@ import "ScreenToolkit" as ST
 
 ShellRoot {
     id: shell
-    property int virtualWorkspaceId: 1
+    property string virtualWorkspaceId: "1"
+    property bool overviewActive: false
     Connections {
         target: Settings.data.colorSchemes
         function onHyprglassChanged() {
@@ -647,9 +648,15 @@ function getCurrentThemeStateKey() {
     }
 
     IpcHandler {
+    IpcHandler {
+        target: "overview"
+        function toggle() {
+            shell.overviewActive = !shell.overviewActive;
+        }
+    }
         target: "virtual_workspace"
-        function set(id: int) {
-            shell.virtualWorkspaceId = id;
+        function set_text(text: string) {
+            shell.virtualWorkspaceId = text;
         }
     }
 
@@ -1964,7 +1971,7 @@ function getCurrentThemeStateKey() {
             property var shellRootObj: shell
 
             // Workspace tracking and indicator properties
-            property int workspaceId: 1
+            property string workspaceId: "1"
             property bool isSystemReady: false
             property bool workspaceCircleActive: false
 
@@ -7583,4 +7590,12 @@ Item {     id: clipboardHistoryView
         }
     }
 
+    Variants {
+        model: Quickshell.screens
+        Loader {
+            active: shell.overviewActive
+            source: "Modules/InfiniteOverview.qml"
+            property var modelData: modelData
+        }
+    }
 }
