@@ -2605,7 +2605,7 @@ function getCurrentThemeStateKey() {
 
                                     Rectangle {
                                         width: 24; height: 12; radius: 3; color: "transparent"
-                                        border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1.5); border.color: shell.textMuted
+                                        border.width: 0; border.color: shell.textMuted
                                         Rectangle {
                                             x: 2.5; y: 2.5
                                             width: (parent.width - 5) * Math.max(0, Math.min(1, shell.batteryPercent / 100))
@@ -3025,7 +3025,7 @@ function getCurrentThemeStateKey() {
                                 Rectangle {
                                     width: 130; height: 45; radius: 22.5
                                     color: wma.containsMouse ? shell.surfaceBright : (shell.wifiEnabled ? shell.accentDim : shell.surfaceAlt)
-                                    border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (shell.wifiEnabled ? 1 : 0)
+                                    border.width: 0
                                     border.color: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.2)
 
                                     Row {
@@ -3064,7 +3064,7 @@ function getCurrentThemeStateKey() {
                                 Rectangle {
                                     width: parent.width - 130 - parent.spacing; height: 45; radius: 22.5
                                     color: audma.containsMouse ? shell.surfaceBright : (!shell.sysMuted ? shell.accentDim : shell.surfaceAlt)
-                                    border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (!shell.sysMuted ? 1 : 0)
+                                    border.width: 0
                                     border.color: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.2)
 
                                     Row {
@@ -3109,7 +3109,7 @@ function getCurrentThemeStateKey() {
                                     id: btBtn
                                     width: Math.floor((parent.width - (parent.spacing * 2)) / 3); height: 45; radius: 22.5
                                     color: bta.containsMouse ? shell.surfaceBright : (shell.btPowered ? shell.accentDim : shell.surfaceAlt)
-                                    border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (shell.btPowered ? 1 : 0)
+                                    border.width: 0
                                     border.color: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.2)
 
                                     Row {
@@ -3143,7 +3143,7 @@ function getCurrentThemeStateKey() {
                                     id: peaceBtn
                                     width: Math.floor((parent.width - (parent.spacing * 2)) / 3); height: 45; radius: 22.5
                                     color: pea.containsMouse ? shell.surfaceBright : (shell.peaceMode ? shell.accentDim : shell.surfaceAlt)
-                                    border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (shell.peaceMode ? 1 : 0)
+                                    border.width: 0
                                     border.color: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.2)
 
                                     Row {
@@ -3176,7 +3176,7 @@ function getCurrentThemeStateKey() {
                                 Rectangle {
                                     width: parent.width - btBtn.width - peaceBtn.width - (parent.spacing * 2); height: 45; radius: 22.5
                                     color: nia.containsMouse ? shell.surfaceBright : (shell.nightMode ? shell.accentDim : shell.surfaceAlt)
-                                    border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (shell.nightMode ? 1 : 0)
+                                    border.width: 0
                                     border.color: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.2)
 
                                     Row {
@@ -3216,7 +3216,7 @@ function getCurrentThemeStateKey() {
                                  Rectangle {
                                      width: (parent.width - 8) / 2; height: 45; radius: 22.5
                                      color: persBtnMa.containsMouse ? shell.surfaceBright : ((panelWindow.activeState === 12 || panelWindow.activeState === 11) ? shell.accentDim : shell.surfaceAlt)
-                                     border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1)
+                                     border.width: 0
                                      border.color: (panelWindow.activeState === 12 || panelWindow.activeState === 11) ? Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.2) : shell.surfaceBorder
                                      Behavior on color { ColorAnimation { duration: shell.animFast } }
 
@@ -3257,7 +3257,7 @@ function getCurrentThemeStateKey() {
                                  Rectangle {
                                      width: (parent.width - 8) / 2; height: 45; radius: 22.5
                                      color: screenToolkitBtnMa.containsMouse ? shell.surfaceBright : (panelWindow.activeState === 14 ? shell.accentDim : shell.surfaceAlt)
-                                     border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1)
+                                     border.width: 0
                                      border.color: panelWindow.activeState === 14 ? Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.2) : shell.surfaceBorder
                                      Behavior on color { ColorAnimation { duration: shell.animFast } }
 
@@ -3299,7 +3299,7 @@ function getCurrentThemeStateKey() {
                          Rectangle {
                              width: parent.width; height: 36; radius: 18
                              color: shell.surfaceAlt
-                             border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : 1
+                             border.width: 0
                              border.color: shell.surfaceBorder
 
                              Rectangle {
@@ -3686,7 +3686,7 @@ function getCurrentThemeStateKey() {
                                     ? (modelData.danger ? Qt.rgba(shell.red.r, shell.red.g, shell.red.b, 0.2) : shell.surfaceBright)
                                     : (modelData.danger ? Qt.rgba(shell.red.r, shell.red.g, shell.red.b, 0.08) : shell.surfaceAlt)
                                 Behavior on color { ColorAnimation { duration: shell.animFast } }
-                                border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (modelData.danger ? 1 : 0)
+                                border.width: 0
                                 border.color: Qt.rgba(shell.red.r, shell.red.g, shell.red.b, 0.2)
 
                                 Column {
@@ -3743,7 +3743,7 @@ function getCurrentThemeStateKey() {
 
                         Rectangle {
                             width: parent.width; height: 34; radius: 10; color: shell.surfaceAlt
-                            border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.3)
+                            border.width: 0; border.color: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.3)
                             Text { anchors.centerIn: parent; text: "• • • • • • • •"; color: shell.textMuted; font.pixelSize: 14; font.letterSpacing: 2 }
                         }
 
@@ -3840,7 +3840,7 @@ function getCurrentThemeStateKey() {
                             // Switch Card (WiFi Toggle)
                             Rectangle {
                                 width: parent.width; height: 50; radius: 14; color: shell.surfaceAlt
-                                border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
+                                border.width: 0; border.color: shell.surfaceBorder
 
                                 Row {
                                     anchors.fill: parent; anchors.margins: 12; spacing: 12
@@ -3892,7 +3892,7 @@ function getCurrentThemeStateKey() {
                                 Rectangle {
                                     width: wifiCol.width; height: shell.wifiIPAddress !== "" ? 75 : 60; radius: 12
                                     color: shell.wifiConnectionState === "Failed" ? Qt.rgba(shell.red.r, shell.red.g, shell.red.b, 0.1) : shell.surfaceAlt
-                                    border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1)
+                                    border.width: 0
                                     border.color: shell.wifiConnectionState === "Failed" ? shell.red : (shell.wifiConnectionState === "Connected" ? shell.accent : shell.surfaceBorder)
 
                                     Row {
@@ -3948,7 +3948,7 @@ function getCurrentThemeStateKey() {
                                         Rectangle {
                                             width: 70; height: 28; radius: 6
                                             color: shell.wifiConnectionState === "Failed" ? shell.surfaceBright : (shell.wifiConnectionState === "Connected" ? shell.surfaceBright : shell.red)
-                                            border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1)
+                                            border.width: 0
                                             border.color: shell.wifiConnectionState === "Failed" ? shell.surfaceBorder : "transparent"
                                             anchors.verticalCenter: parent.verticalCenter
 
@@ -4138,7 +4138,7 @@ function getCurrentThemeStateKey() {
                                 // Cancel button
                                 Rectangle {
                                     width: 65; height: 32; radius: 8; color: shell.surfaceBright
-                                    border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
+                                    border.width: 0; border.color: shell.surfaceBorder
                                     Text {
                                         anchors.centerIn: parent
                                         text: "Cancel"; color: shell.textSecondary; font.pixelSize: 11; font.weight: Font.Medium
@@ -4201,7 +4201,7 @@ function getCurrentThemeStateKey() {
                             // Switch Card (Bluetooth Toggle)
                             Rectangle {
                                 width: parent.width; height: 50; radius: 14; color: shell.surfaceAlt
-                                border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
+                                border.width: 0; border.color: shell.surfaceBorder
 
                                 Row {
                                     anchors.fill: parent; anchors.margins: 12; spacing: 12
@@ -4376,7 +4376,7 @@ function getCurrentThemeStateKey() {
                                  height: 26; radius: 13
                                  color: folderBtnMa.containsMouse ? shell.surfaceBright : shell.surfaceAlt
                                  Behavior on color { ColorAnimation { duration: shell.animFast } }
-                                 border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1)
+                                 border.width: 0
                                  border.color: shell.surfaceBorder
 
                                  Row {
@@ -4578,7 +4578,7 @@ function getCurrentThemeStateKey() {
                                     delegate: Rectangle {
                                         width: (customPaletteCol.width - 8) / 2; height: 38; radius: 8
                                         color: shell.activeColorKey === modelData.key ? shell.accentDim : shell.surfaceAlt
-                                        border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (shell.activeColorKey === modelData.key ? 1 : 0)
+                                        border.width: 0
                                         border.color: shell.accent
 
                                         Rectangle {
@@ -4586,7 +4586,7 @@ function getCurrentThemeStateKey() {
                                             width: 14; height: 14; radius: 7; color: shell[modelData.key]
                                             anchors.left: parent.left; anchors.leftMargin: 8
                                             anchors.verticalCenter: parent.verticalCenter
-                                            border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: "#585b70"
+                                            border.width: 0; border.color: "#585b70"
                                         }
 
                                         Text {
@@ -4609,7 +4609,7 @@ function getCurrentThemeStateKey() {
                             // Active Editor Card
                             Rectangle {
                                 width: parent.width; height: 110; radius: 12; color: shell.surfaceAlt
-                                border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
+                                border.width: 0; border.color: shell.surfaceBorder
 
                                 Column {
                                     anchors.fill: parent; anchors.margins: 12; spacing: 8
@@ -4622,7 +4622,7 @@ function getCurrentThemeStateKey() {
                                             anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
                                             width: 45; height: 18; radius: 4
                                             color: shell[shell.activeColorKey]
-                                            border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: "#585b70"
+                                            border.width: 0; border.color: "#585b70"
                                         }
                                     }
 
@@ -4633,7 +4633,7 @@ function getCurrentThemeStateKey() {
                                         // Hex Input Field
                                         Rectangle {
                                             width: parent.width - 88; height: 32; radius: 8; color: shell.surfaceBright
-                                            border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1)
+                                            border.width: 0
                                             border.color: hexInput2.activeFocus ? shell.accent : shell.surfaceBorder
 
                                             TextInput {
@@ -4690,7 +4690,7 @@ function getCurrentThemeStateKey() {
                             // Intelligence Palette Card
                             Rectangle {
                                 width: parent.width; height: 68; radius: 12; color: shell.surfaceAlt
-                                border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
+                                border.width: 0; border.color: shell.surfaceBorder
 
                                 Column {
                                     anchors.fill: parent; anchors.margins: 12; spacing: 8
@@ -4723,7 +4723,7 @@ function getCurrentThemeStateKey() {
                             // Preset Themes Card
                             Rectangle {
                                 width: parent.width; height: 140; radius: 12; color: shell.surfaceAlt
-                                border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
+                                border.width: 0; border.color: shell.surfaceBorder
 
                                 Column {
                                     anchors.fill: parent; anchors.margins: 12; spacing: 10
@@ -4737,7 +4737,7 @@ function getCurrentThemeStateKey() {
                                             model: shell.presets
                                             delegate: Rectangle {
                                                 width: (customPaletteCol.width - 32) / 2; height: 32; radius: 8; color: presetMa2.containsMouse ? "#2c2c3e" : shell.surfaceBright
-                                                border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
+                                                border.width: 0; border.color: shell.surfaceBorder
 
                                                 Row {
                                                     anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; spacing: 6
@@ -4745,7 +4745,7 @@ function getCurrentThemeStateKey() {
                                                     Rectangle {
                                                         width: 12; height: 12; radius: 6; color: modelData.accent
                                                         anchors.verticalCenter: parent.verticalCenter
-                                                        border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: "#585b70"
+                                                        border.width: 0; border.color: "#585b70"
                                                     }
 
                                                     Text {
@@ -4820,7 +4820,7 @@ function getCurrentThemeStateKey() {
                             // 1. Wallpaper Card
                             Rectangle {
                                 width: parent.width; height: 64; radius: 14; color: wallpaperCardMa.containsMouse ? shell.surfaceBright : shell.surfaceAlt
-                                border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
+                                border.width: 0; border.color: shell.surfaceBorder
                                 Behavior on color { ColorAnimation { duration: shell.animFast } }
 
                                 Row {
@@ -4899,7 +4899,7 @@ function getCurrentThemeStateKey() {
                             // 2. Color Theme Card
                             Rectangle {
                                 width: parent.width; height: 105; radius: 14; color: shell.surfaceAlt
-                                border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
+                                border.width: 0; border.color: shell.surfaceBorder
 
                                 Column {
                                     anchors.fill: parent; anchors.margins: 12; spacing: 10
@@ -4918,7 +4918,7 @@ function getCurrentThemeStateKey() {
                                         Rectangle {
                                             width: (parent.width - 8) / 2; height: parent.height; radius: 8
                                             color: shell.themeMode === "wallpaper" ? shell.accent : shell.surfaceBright
-                                            border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.themeMode === "wallpaper" ? "transparent" : shell.surfaceBorder
+                                            border.width: 0; border.color: shell.themeMode === "wallpaper" ? "transparent" : shell.surfaceBorder
 
                                             Text {
                                                 anchors.centerIn: parent
@@ -4943,7 +4943,7 @@ function getCurrentThemeStateKey() {
                                         Rectangle {
                                             width: (parent.width - 8) / 2; height: parent.height; radius: 8
                                             color: shell.themeMode === "custom" ? shell.accent : shell.surfaceBright
-                                            border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.themeMode === "custom" ? "transparent" : shell.surfaceBorder
+                                            border.width: 0; border.color: shell.themeMode === "custom" ? "transparent" : shell.surfaceBorder
 
                                             Text {
                                                 anchors.centerIn: parent
@@ -4984,7 +4984,7 @@ function getCurrentThemeStateKey() {
                             // 3. Themed Icons Toggle Card
                             Rectangle {
                                 width: parent.width; height: 50; radius: 14; color: shell.surfaceAlt
-                                border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
+                                border.width: 0; border.color: shell.surfaceBorder
 
                                 Row {
                                     anchors.fill: parent; anchors.margins: 12; spacing: 12
@@ -5034,7 +5034,7 @@ function getCurrentThemeStateKey() {
                                                         // 4. Liquid Glass Toggle Card
                             Rectangle {
                                 width: parent.width; height: 50; radius: 14; color: shell.surfaceAlt
-                                border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
+                                border.width: 0; border.color: shell.surfaceBorder
 
                                 Row {
                                     anchors.fill: parent; anchors.margins: 12; spacing: 12
@@ -5123,7 +5123,7 @@ function getCurrentThemeStateKey() {
                         Rectangle {
                             width: 300; height: 160; radius: 16
                             color: shell.surfaceAlt
-                            border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : 1; border.color: shell.surfaceBorder
+                            border.width: 0; border.color: shell.surfaceBorder
                             anchors.centerIn: parent
 
                             Column {
@@ -5810,7 +5810,7 @@ Item {     id: clipboardHistoryView
                                     width: 70; height: 26; radius: 13
                                     anchors.verticalCenter: parent.verticalCenter
                                     color: clearMa.containsMouse ? shell.accent : shell.surfaceBright
-                                    border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: clearMa.containsMouse ? "transparent" : shell.surfaceBorder
+                                    border.width: 0; border.color: clearMa.containsMouse ? "transparent" : shell.surfaceBorder
                                     Behavior on color { ColorAnimation { duration: shell.animFast } }
                                     visible: ClipboardService.items && ClipboardService.items.length > 1
 
@@ -5842,7 +5842,7 @@ Item {     id: clipboardHistoryView
                                     Rectangle {
                                         width: clipboardCol.width; height: 44; radius: 10
                                         color: itemMa.containsMouse ? shell.surfaceBright : shell.surfaceAlt
-                                        border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
+                                        border.width: 0; border.color: shell.surfaceBorder
                                         Behavior on color { ColorAnimation { duration: shell.animFast } }
 
                                         Row {
@@ -5966,7 +5966,7 @@ Item {     id: clipboardHistoryView
                             // Empty Placeholder
                             Rectangle {
                                 width: parent.width; height: 60; radius: 14; color: shell.surfaceAlt
-                                border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
+                                border.width: 0; border.color: shell.surfaceBorder
                                 visible: !ClipboardService.active || !ClipboardService.items || ClipboardService.items.length <= 1
 
                                 Column {
@@ -6090,7 +6090,7 @@ Item {     id: clipboardHistoryView
                         Rectangle {
                             width: parent.width; height: 36; radius: 10
                             color: shell.surfaceAlt
-                            border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
+                            border.width: 0; border.color: shell.surfaceBorder
 
                             Row {
                                 anchors.fill: parent; anchors.margins: 8; spacing: 8
@@ -6148,7 +6148,7 @@ Item {     id: clipboardHistoryView
                                     delegate: Rectangle {
                                         width: 36; height: 30; radius: 8
                                         color: emojiBoardView.activeCategory === modelData ? shell.accent : shell.surfaceBright
-                                        border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: emojiBoardView.activeCategory === modelData ? shell.accent : shell.surfaceBorder
+                                        border.width: 0; border.color: emojiBoardView.activeCategory === modelData ? shell.accent : shell.surfaceBorder
 
                                         Text {
                                             anchors.centerIn: parent
@@ -6202,7 +6202,7 @@ Item {     id: clipboardHistoryView
                             delegate: Rectangle {
                                 width: emojiGrid.cellWidth - 4; height: width; radius: 8
                                 color: emojiMa.containsMouse ? shell.surfaceBright : "transparent"
-                                border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: emojiMa.containsMouse ? shell.accent : "transparent"
+                                border.width: 0; border.color: emojiMa.containsMouse ? shell.accent : "transparent"
 
                                 Text {
                                     anchors.centerIn: parent
@@ -6296,7 +6296,7 @@ Item {     id: clipboardHistoryView
                                     height: 38
                                     radius: 8
                                     color: shell.surfaceAlt
-                                    border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1)
+                                    border.width: 0
                                     border.color: shell.surfaceBorder
 
                                     Text {
@@ -6712,7 +6712,7 @@ Item {     id: clipboardHistoryView
                                     id: canvas
                                     width: parent.width; height: 110; radius: 12
                                     color: shell.surfaceAlt
-                                    border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
+                                    border.width: 0; border.color: shell.surfaceBorder
                                     clip: true
 
                                     property real minX: 0
@@ -6789,7 +6789,7 @@ Item {     id: clipboardHistoryView
                                             height: Math.max(20, (modelData.height / modelData.scale) * canvas.scaleFactor)
                                             radius: 6
                                             color: settingsPopupView.selectedMonitorIdx === index ? shell.accent : shell.surfaceBright
-                                            border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1)
+                                            border.width: 0
                                             border.color: settingsPopupView.selectedMonitorIdx === index ? "transparent" : shell.surfaceBorder
 
                                             Text {
@@ -6846,7 +6846,7 @@ Item {     id: clipboardHistoryView
                                         height: (shell.monitorsList.length > 1 && !modelData.disabled) ? 68 : 42
                                         radius: 10
                                         color: shell.surfaceAlt
-                                        border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
+                                        border.width: 0; border.color: shell.surfaceBorder
 
                                         property int monitorIndex: index
 
@@ -7005,7 +7005,7 @@ Item {     id: clipboardHistoryView
                                 // Enable Display Status Toggle
                                 Rectangle {
                                     width: parent.width; height: 42; radius: 12; color: shell.surfaceAlt
-                                    border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
+                                    border.width: 0; border.color: shell.surfaceBorder
                                     visible: settingsPopupView.getSelectedMonitor() !== null
 
                                     Text {
@@ -7037,7 +7037,7 @@ Item {     id: clipboardHistoryView
                                 // Mode selection
                                 Rectangle {
                                     width: parent.width; height: 42; radius: 12; color: shell.surfaceAlt
-                                    border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
+                                    border.width: 0; border.color: shell.surfaceBorder
                                     visible: settingsPopupView.getSelectedMonitor() !== null && !settingsPopupView.getSelectedMonitor().disabled
 
                                     Text {
@@ -7079,7 +7079,7 @@ Item {     id: clipboardHistoryView
                                 // Scale Card
                                 Rectangle {
                                     width: parent.width; height: 42; radius: 12; color: shell.surfaceAlt
-                                    border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
+                                    border.width: 0; border.color: shell.surfaceBorder
                                     visible: settingsPopupView.getSelectedMonitor() !== null && !settingsPopupView.getSelectedMonitor().disabled
 
                                     Text {
@@ -7121,7 +7121,7 @@ Item {     id: clipboardHistoryView
                                 // Rotation/Orientation Card
                                 Rectangle {
                                     width: parent.width; height: 42; radius: 12; color: shell.surfaceAlt
-                                    border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
+                                    border.width: 0; border.color: shell.surfaceBorder
                                     visible: settingsPopupView.getSelectedMonitor() !== null && !settingsPopupView.getSelectedMonitor().disabled
 
                                     Text {
@@ -7163,7 +7163,7 @@ Item {     id: clipboardHistoryView
                                 // Mirroring Card
                                 Rectangle {
                                     width: parent.width; height: 42; radius: 12; color: shell.surfaceAlt
-                                    border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1); border.color: shell.surfaceBorder
+                                    border.width: 0; border.color: shell.surfaceBorder
                                     visible: settingsPopupView.getSelectedMonitor() !== null && !settingsPopupView.getSelectedMonitor().disabled
 
                                     Text {
