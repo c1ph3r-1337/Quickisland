@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
 DIR=$1
 
+
 COORD_FILE=~/.cache/quickisland/infinite_canvas_coords
+# Ensure strict sequential execution to prevent race conditions during rapid panning
+exec 200>"$COORD_FILE.lock"
+flock 200
+
 if [[ -f $COORD_FILE ]]; then
     read VX VY < $COORD_FILE
 else
