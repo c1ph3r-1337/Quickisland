@@ -17,6 +17,7 @@ import qs.Services.UI
 import qs.Services.Hardware
 import qs.Services.Networking
 import "ScreenToolkit" as ST
+import "Modules" as Modules
 
 ShellRoot {
     id: shell
@@ -1922,7 +1923,6 @@ function getCurrentThemeStateKey() {
 
         PanelWindow {
             property var modelData
-            screen: modelData
             color: "transparent"
             mask: Region {}
 
@@ -1942,7 +1942,6 @@ function getCurrentThemeStateKey() {
 
         PanelWindow {
             property var modelData
-            screen: modelData
             color: "transparent"
             mask: Region {} // Completely click-through
 
@@ -1969,7 +1968,6 @@ function getCurrentThemeStateKey() {
             id: panelWindow
             visible: !(typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) || panelWindow.activeState > 0
             property var modelData
-            screen: modelData
             color: "transparent"
             property var shellRootObj: shell
 
@@ -7594,7 +7592,6 @@ Item {     id: clipboardHistoryView
         model: Quickshell.screens
         PanelWindow {
             property var modelData
-            screen: modelData
             color: "transparent"
             Region { id: ccMaskRegion }
             mask: (ccPanel.isPanelVisible || ccPanel.isPanelOpen) ? null : ccMaskRegion
@@ -7633,7 +7630,6 @@ Item {     id: clipboardHistoryView
             id: notchPanelWindow
             visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode
             property var modelData
-            screen: modelData
             color: "transparent"
 
             WlrLayershell.namespace: "macnotch-bar"
@@ -7666,10 +7662,8 @@ Item {     id: clipboardHistoryView
 
     Variants {
         model: Quickshell.screens
-        Loader {
-            active: shell.overviewActive
-            source: "Modules/InfiniteOverview.qml"
-            property var modelData: modelData
+        Modules.InfiniteOverview {
+            visible: shell.overviewActive
         }
     }
 }
