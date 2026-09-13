@@ -7663,7 +7663,7 @@ Item {     id: clipboardHistoryView
     Variants {
         model: Quickshell.screens
         Modules.InfiniteOverview {
-            visible: shell.overviewActive
+            
         }
     }
 }

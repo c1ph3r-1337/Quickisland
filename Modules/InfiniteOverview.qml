@@ -5,15 +5,18 @@ import Quickshell.Wayland
 
 PanelWindow {
     id: overviewWindow
+    property var modelData
+    screen: modelData
     color: "transparent"
-    anchors { top: true; bottom: true; left: true; right: true }
     
-    WlrLayershell {
-        layer: WlrLayer.Overlay
-        namespace: "quickisland-overview"
-        keyboardFocus: WlrKeyboardFocus.OnDemand
-        anchors { top: true; bottom: true; left: true; right: true }
-    }
+    Region { id: clickThroughRegion }
+    mask: shell.overviewActive ? null : clickThroughRegion
+    
+    WlrLayershell.layer: WlrLayer.Overlay
+    WlrLayershell.namespace: "quickisland-overview"
+    WlrLayershell.keyboardFocus: shell.overviewActive ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+    
+    anchors { top: true; bottom: true; left: true; right: true }
     
     property int currentVx: 0
     property int currentVy: 0
@@ -45,18 +48,27 @@ PanelWindow {
         }
     }
     
-    onVisibleChanged: {
-        if (visible) {
-            coordsProc.running = true;
-            clientsProc.running = true;
-            rootItem.forceActiveFocus();
+    Connections {
+        target: shell
+        function onOverviewActiveChanged() {
+            if (shell.overviewActive) {
+                coordsProc.running = true;
+                clientsProc.running = true;
+                rootItem.forceActiveFocus();
+            } else {
+                rootItem.focus = false;
+            }
         }
     }
     
     Item {
         id: rootItem
         anchors.fill: parent
-        focus: true
+        focus: shell.overviewActive
+        visible: shell.overviewActive
+        opacity: shell.overviewActive ? 1.0 : 0.0
+        
+        Behavior on opacity { NumberAnimation { duration: 150 } }
         
         Keys.onEscapePressed: shell.overviewActive = false
         Keys.onPressed: (event) => {
@@ -67,7 +79,7 @@ PanelWindow {
         
         Rectangle {
             anchors.fill: parent
-            color: Qt.rgba(0, 0, 0, 0.85)
+            color: "#D9000000"
             
             MouseArea {
                 anchors.fill: parent
@@ -90,7 +102,7 @@ PanelWindow {
                     y: 0
                     width: 1
                     height: container.height
-                    color: Qt.rgba(1, 1, 1, 0.1)
+                    color: "#1AFFFFFF"
                 }
             }
             Repeater {
@@ -100,31 +112,32 @@ PanelWindow {
                     y: (index - 5) * overviewWindow.height * container.scaleFactor + container.height/2
                     width: container.width
                     height: 1
-                    color: Qt.rgba(1, 1, 1, 0.1)
+                    color: "#1AFFFFFF"
                 }
             }
             
             Repeater {
                 model: overviewWindow.clientsData
-                Rectangle {
+                delegate: Rectangle {
+                    property var client: modelData
                     property real cx: container.width / 2
                     property real cy: container.height / 2
                     property real sx: cx - (overviewWindow.width * container.scaleFactor) / 2
                     property real sy: cy - (overviewWindow.height * container.scaleFactor) / 2
                     
-                    x: sx + (modelData.at[0] * container.scaleFactor)
-                    y: sy + (modelData.at[1] * container.scaleFactor)
-                    width: modelData.size[0] * container.scaleFactor
-                    height: modelData.size[1] * container.scaleFactor
+                    x: sx + (client.at[0] * container.scaleFactor)
+                    y: sy + (client.at[1] * container.scaleFactor)
+                    width: client.size[0] * container.scaleFactor
+                    height: client.size[1] * container.scaleFactor
                     
-                    color: Qt.rgba(0.39, 0.58, 1.0, 0.6)
-                    border.color: Qt.rgba(1, 1, 1, 0.8)
+                    color: "#996496FF"
+                    border.color: "#CCFFFFFF"
                     border.width: 1
                     radius: 4
                     
                     Text {
                         anchors.centerIn: parent
-                        text: modelData.class
+                        text: client.class
                         color: "white"
                         font.pixelSize: 10
                         width: parent.width - 4
@@ -152,7 +165,7 @@ PanelWindow {
                     
                     Rectangle {
                         anchors.fill: parent
-                        color: ma.containsMouse ? Qt.rgba(1, 1, 1, 0.1) : "transparent"
+                        color: ma.containsMouse ? "#1AFFFFFF" : "transparent"
                         border.color: (gridX === 0 && gridY === 0) ? "#4caf50" : "transparent"
                         border.width: 2
                         
@@ -161,7 +174,7 @@ PanelWindow {
                             anchors.right: parent.right
                             anchors.margins: 4
                             text: targetVx + "," + targetVy
-                            color: Qt.rgba(1, 1, 1, 0.5)
+                            color: "#4DFFFFFF"
                             font.pixelSize: 10
                         }
                     }
