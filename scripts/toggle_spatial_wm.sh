@@ -39,26 +39,9 @@ INNER_EOF
     echo "0 0" > "$COORD_FILE"
     quickshell ipc -p ~/.config/quickshell/quickisland call virtual_workspace set_coords 0 0 &
 else
-    # Clear the config so on reboot it does nothing
+    # Clear the config and reload Hyprland to cleanly restore the user's default bindings
     echo "" > "$SPATIAL_CONF"
-
-    hyprctl keyword unbind "SUPER, Left"
-    hyprctl keyword unbind "SUPER, Right"
-    hyprctl keyword unbind "SUPER, Up"
-    hyprctl keyword unbind "SUPER, Down"
-    
-    hyprctl keyword unbind "SUPER, 1"
-    hyprctl keyword unbind "SUPER, 2"
-    hyprctl keyword unbind "SUPER, 3"
-    hyprctl keyword unbind "SUPER, 4"
-    hyprctl keyword unbind "SUPER, 5"
-    hyprctl keyword unbind "SUPER, 6"
-    hyprctl keyword unbind "SUPER, 7"
-    hyprctl keyword unbind "SUPER, 8"
-    hyprctl keyword unbind "SUPER, 9"
-
-    hyprctl keyword unbind "CTRL SUPER, Space"
-    hyprctl keyword unbind ", swipe:4:d"
+    hyprctl reload
     
     notify-send "QuickIsland" "Infinite Canvas Disabled. Reverted to classic WM." -i "view-list-symbolic" -t 3000
 
