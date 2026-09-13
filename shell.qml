@@ -2807,7 +2807,7 @@ function getCurrentThemeStateKey() {
                             }
                             Text {
                                 text: shell.notifHistory.count > 0 ? shell.notifHistory.get(0).summary : ""
-                                color: shell.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold
+                                color: shell.textPrimary; font.pixelSize: 13; font.weight: Font.Bold
                                 elide: Text.ElideRight; width: parent.width
                             }
                             Text {
@@ -3117,7 +3117,7 @@ function getCurrentThemeStateKey() {
                                         }
                                         Column {
                                             anchors.verticalCenter: parent.verticalCenter
-                                            Text { text: "Wi-Fi"; color: "#ffffff"; font.pixelSize: 11; font.weight: Font.DemiBold }
+                                            Text { text: "Wi-Fi"; color: "#ffffff"; font.pixelSize: 11; font.weight: Font.Bold }
                                             Text { text: shell.wifiEnabled ? (shell.wifiConnected ? shell.wifiSSID : "Disconnected") : "Off"; color: "#dddddd"; font.pixelSize: 9; elide: Text.ElideRight; width: 70 }
                                         }
                                     }
@@ -3156,7 +3156,7 @@ function getCurrentThemeStateKey() {
                                         }
                                         Column {
                                             anchors.verticalCenter: parent.verticalCenter
-                                            Text { text: "Audio"; color: "#ffffff"; font.pixelSize: 11; font.weight: Font.DemiBold }
+                                            Text { text: "Audio"; color: "#ffffff"; font.pixelSize: 11; font.weight: Font.Bold }
                                             Text { text: shell.sysMuted ? "Muted" : Math.round(shell.sysVolume * 100) + "%"; color: shell.textSecondary; font.pixelSize: 9 }
                                         }
                                     }
@@ -3198,7 +3198,7 @@ function getCurrentThemeStateKey() {
                                                 }
                                             }
                                         }
-                                        Column { anchors.verticalCenter: parent.verticalCenter; Text { text: "Bluetooth"; color: "#ffffff"; font.pixelSize: 10; font.weight: Font.DemiBold } Text { text: shell.btPowered ? "On" : "Off"; color: "#dddddd"; font.pixelSize: 8 } }
+                                        Column { anchors.verticalCenter: parent.verticalCenter; Text { text: "Bluetooth"; color: "#ffffff"; font.pixelSize: 10; font.weight: Font.Bold } Text { text: shell.btPowered ? "On" : "Off"; color: "#dddddd"; font.pixelSize: 8 } }
                                     }
 
                                     MouseArea {
@@ -3232,7 +3232,7 @@ function getCurrentThemeStateKey() {
                                                 }
                                             }
                                         }
-                                        Column { anchors.verticalCenter: parent.verticalCenter; Text { text: "Peace"; color: "#ffffff"; font.pixelSize: 10; font.weight: Font.DemiBold } Text { text: shell.peaceMode ? "On" : "Off"; color: "#dddddd"; font.pixelSize: 8 } }
+                                        Column { anchors.verticalCenter: parent.verticalCenter; Text { text: "Peace"; color: "#ffffff"; font.pixelSize: 10; font.weight: Font.Bold } Text { text: shell.peaceMode ? "On" : "Off"; color: "#dddddd"; font.pixelSize: 8 } }
                                     }
 
                                     MouseArea {
@@ -3265,7 +3265,7 @@ function getCurrentThemeStateKey() {
                                                 }
                                             }
                                         }
-                                        Column { anchors.verticalCenter: parent.verticalCenter; Text { text: "Night"; color: "#ffffff"; font.pixelSize: 10; font.weight: Font.DemiBold } Text { text: shell.nightMode ? "On" : "Off"; color: "#dddddd"; font.pixelSize: 8 } }
+                                        Column { anchors.verticalCenter: parent.verticalCenter; Text { text: "Night"; color: "#ffffff"; font.pixelSize: 10; font.weight: Font.Bold } Text { text: shell.nightMode ? "On" : "Off"; color: "#dddddd"; font.pixelSize: 8 } }
                                     }
 
                                     MouseArea {
@@ -3309,7 +3309,7 @@ function getCurrentThemeStateKey() {
                                          }
                                          Column {
                                              anchors.verticalCenter: parent.verticalCenter
-                                             Text { text: "Personalization"; color: "#ffffff"; font.pixelSize: 10; font.weight: Font.DemiBold }
+                                             Text { text: "Personalization"; color: "#ffffff"; font.pixelSize: 10; font.weight: Font.Bold }
                                              Text { text: "Wallpaper, themes..."; color: "#dddddd"; font.pixelSize: 8 }
                                          }
                                      }
@@ -3350,7 +3350,7 @@ function getCurrentThemeStateKey() {
                                          }
                                          Column {
                                              anchors.verticalCenter: parent.verticalCenter
-                                             Text { text: "Screen Toolkit"; color: "#ffffff"; font.pixelSize: 10; font.weight: Font.DemiBold }
+                                             Text { text: "Screen Toolkit"; color: "#ffffff"; font.pixelSize: 10; font.weight: Font.Bold }
                                              Text { text: "Capture, record, OCR..."; color: shell.textSecondary; font.pixelSize: 8 }
                                          }
                                      }
@@ -3643,7 +3643,7 @@ function getCurrentThemeStateKey() {
 
                                 Row {
                                     width: parent.width
-                                    Text { text: "Notifications"; color: shell.textSecondary; font.pixelSize: 12; font.weight: Font.DemiBold }
+                                    Text { text: "Notifications"; color: shell.textSecondary; font.pixelSize: 12; font.weight: Font.Bold }
                                     Item { width: parent.width - 150; height: 1 }
                                     Text {
                                         text: "Clear all"; color: shell.accent; font.pixelSize: 11; font.weight: Font.Medium
@@ -3706,7 +3706,7 @@ function getCurrentThemeStateKey() {
                                                         }
                                                     }
                                                 }
-                                                Text { text: shell.notifHistory.get(index).appName; color: shell.textPrimary; font.pixelSize: 11; font.weight: Font.DemiBold }
+                                                Text { text: shell.notifHistory.get(index).appName; color: shell.textPrimary; font.pixelSize: 11; font.weight: Font.Bold }
                                             }
                                             Text { text: shell.notifHistory.get(index).summary; color: shell.textPrimary; font.pixelSize: 13; font.weight: Font.Bold; width: parent.width; elide: Text.ElideRight }
                                             Text { text: shell.notifHistory.get(index).body; color: shell.textSecondary; font.pixelSize: 11; width: parent.width; wrapMode: Text.WordWrap }
@@ -3956,7 +3956,7 @@ function getCurrentThemeStateKey() {
 
                                 Text {
                                     text: shell.wifiConnectionState === "Connected" ? "Connected" : (shell.wifiConnectionState === "Failed" ? "Connection Failed" : "Connecting")
-                                    color: shell.textSecondary; font.pixelSize: 11; font.weight: Font.DemiBold; leftPadding: 4
+                                    color: shell.textSecondary; font.pixelSize: 11; font.weight: Font.Bold; leftPadding: 4
                                 }
 
                                 Rectangle {
@@ -4004,7 +4004,7 @@ function getCurrentThemeStateKey() {
                                             Text {
                                                 text: "Status: " + (shell.wifiConnectionState === "Failed" && shell.wifiLastError !== "" ? shell.wifiLastError : shell.wifiConnectionState)
                                                 color: shell.wifiConnectionState === "Failed" ? shell.red : (shell.wifiConnectionState === "Connected" ? shell.green : shell.accent)
-                                                font.pixelSize: 9; font.weight: Font.DemiBold
+                                                font.pixelSize: 9; font.weight: Font.Bold
                                             }
 
                                             Text {
@@ -4060,7 +4060,7 @@ function getCurrentThemeStateKey() {
                                 width: parent.width; spacing: 6
                                 visible: shell.wifiEnabled && wifiListModel.count > 0
 
-                                Text { text: "Available Networks"; color: shell.textSecondary; font.pixelSize: 11; font.weight: Font.DemiBold; leftPadding: 4 }
+                                Text { text: "Available Networks"; color: shell.textSecondary; font.pixelSize: 11; font.weight: Font.Bold; leftPadding: 4 }
 
                                 Repeater {
                                     model: wifiListModel
@@ -4149,7 +4149,7 @@ function getCurrentThemeStateKey() {
                             Text {
                                 text: "Password for '" + shell.wifiSelectedSsid + "'"
                                 color: shell.textPrimary
-                                font.pixelSize: 13; font.weight: Font.DemiBold
+                                font.pixelSize: 13; font.weight: Font.Bold
                                 elide: Text.ElideRight; width: parent.width
                             }
 
@@ -4315,7 +4315,7 @@ function getCurrentThemeStateKey() {
                                 width: parent.width; spacing: 6
                                 visible: shell.btPowered && btListModel.count > 0
 
-                                Text { text: "Discovered Devices (Scanning...)"; color: shell.textSecondary; font.pixelSize: 11; font.weight: Font.DemiBold; leftPadding: 4 }
+                                Text { text: "Discovered Devices (Scanning...)"; color: shell.textSecondary; font.pixelSize: 11; font.weight: Font.Bold; leftPadding: 4 }
 
                                 Repeater {
                                     model: btListModel
@@ -4625,7 +4625,7 @@ function getCurrentThemeStateKey() {
                             // Swatch Grid Selector
                             Text {
                                 text: "Select Color to Edit"; color: shell.textSecondary
-                                font.pixelSize: 11; font.weight: Font.DemiBold; leftPadding: 4
+                                font.pixelSize: 11; font.weight: Font.Bold; leftPadding: 4
                             }
 
                             Grid {
@@ -4820,7 +4820,7 @@ function getCurrentThemeStateKey() {
 
                                                     Text {
                                                         text: modelData.name; color: shell.textPrimary
-                                                        font.pixelSize: 10; font.weight: Font.DemiBold
+                                                        font.pixelSize: 10; font.weight: Font.Bold
                                                         anchors.verticalCenter: parent.verticalCenter
                                                         elide: Text.ElideRight; width: parent.width - 24
                                                     }
@@ -4994,7 +4994,7 @@ function getCurrentThemeStateKey() {
                                                 anchors.centerIn: parent
                                                 text: "Wallpaper Colors"
                                                 color: shell.themeMode === "wallpaper" ? (((0.299 * shell.accent.r + 0.587 * shell.accent.g + 0.114 * shell.accent.b) > 0.55) ? "#11111b" : "#ffffff") : shell.textPrimary
-                                                font.pixelSize: 10; font.weight: Font.DemiBold
+                                                font.pixelSize: 10; font.weight: Font.Bold
                                             }
 
                                             MouseArea {
@@ -5019,7 +5019,7 @@ function getCurrentThemeStateKey() {
                                                 anchors.centerIn: parent
                                                 text: "Custom Theme"
                                                 color: shell.themeMode === "custom" ? (((0.299 * shell.accent.r + 0.587 * shell.accent.g + 0.114 * shell.accent.b) > 0.55) ? "#11111b" : "#ffffff") : shell.textPrimary
-                                                font.pixelSize: 10; font.weight: Font.DemiBold
+                                                font.pixelSize: 10; font.weight: Font.Bold
                                             }
 
                                             MouseArea {
@@ -5259,12 +5259,12 @@ function getCurrentThemeStateKey() {
                                     spacing: 12; anchors.horizontalCenter: parent.horizontalCenter
                                     Rectangle {
                                         width: 100; height: 32; radius: 8; color: shell.surfaceBright
-                                        Text { anchors.centerIn: parent; text: "Cancel"; color: shell.textPrimary; font.pixelSize: 11; font.weight: Font.DemiBold }
+                                        Text { anchors.centerIn: parent; text: "Cancel"; color: shell.textPrimary; font.pixelSize: 11; font.weight: Font.Bold }
                                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: personalizationView.showWallpaperConfirm = false }
                                     }
                                     Rectangle {
                                         width: 100; height: 32; radius: 8; color: shell.red
-                                        Text { anchors.centerIn: parent; text: "Reset"; color: "#11111b"; font.pixelSize: 11; font.weight: Font.DemiBold }
+                                        Text { anchors.centerIn: parent; text: "Reset"; color: "#11111b"; font.pixelSize: 11; font.weight: Font.Bold }
                                         MouseArea {
                                             anchors.fill: parent; cursorShape: Qt.PointingHandCursor
                                             onClicked: {
@@ -5331,7 +5331,7 @@ function getCurrentThemeStateKey() {
                                         width: (parent.width - 4) / 2; height: parent.height; radius: 6
                                         color: Settings.data.colorSchemes.hyprglassStyle === "liquid" ? shell.accent : "transparent"
                                         Behavior on color { ColorAnimation { duration: 150 } }
-                                        Text { anchors.centerIn: parent; text: "Liquid"; color: Settings.data.colorSchemes.hyprglassStyle === "liquid" ? shell.surface : shell.textPrimary; font.pixelSize: 11; font.weight: Font.DemiBold }
+                                        Text { anchors.centerIn: parent; text: "Liquid"; color: Settings.data.colorSchemes.hyprglassStyle === "liquid" ? shell.surface : shell.textPrimary; font.pixelSize: 11; font.weight: Font.Bold }
                                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: Settings.data.colorSchemes.hyprglassStyle = "liquid" }
                                     }
                                     
@@ -5339,7 +5339,7 @@ function getCurrentThemeStateKey() {
                                         width: (parent.width - 4) / 2; height: parent.height; radius: 6
                                         color: Settings.data.colorSchemes.hyprglassStyle === "frosted" ? shell.accent : "transparent"
                                         Behavior on color { ColorAnimation { duration: 150 } }
-                                        Text { anchors.centerIn: parent; text: "Frosted"; color: Settings.data.colorSchemes.hyprglassStyle === "frosted" ? shell.surface : shell.textPrimary; font.pixelSize: 11; font.weight: Font.DemiBold }
+                                        Text { anchors.centerIn: parent; text: "Frosted"; color: Settings.data.colorSchemes.hyprglassStyle === "frosted" ? shell.surface : shell.textPrimary; font.pixelSize: 11; font.weight: Font.Bold }
                                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: Settings.data.colorSchemes.hyprglassStyle = "frosted" }
                                     }
                                 }
@@ -5631,7 +5631,7 @@ function getCurrentThemeStateKey() {
                                 width: parent.width; spacing: 12; height: 32
                                 Rectangle {
                                     width: (parent.width - 12) / 2; height: parent.height; radius: 8; color: shell.surfaceBright
-                                    Text { anchors.centerIn: parent; text: "Reset to Default"; color: shell.textPrimary; font.pixelSize: 10; font.weight: Font.DemiBold }
+                                    Text { anchors.centerIn: parent; text: "Reset to Default"; color: shell.textPrimary; font.pixelSize: 10; font.weight: Font.Bold }
                                     MouseArea {
                                         anchors.fill: parent; cursorShape: Qt.PointingHandCursor
                                         onClicked: {
@@ -5654,7 +5654,7 @@ function getCurrentThemeStateKey() {
                                 }
                                 Rectangle {
                                     width: (parent.width - 12) / 2; height: parent.height; radius: 8; color: shell.accent
-                                    Text { anchors.centerIn: parent; text: "Close"; color: shell.surface; font.pixelSize: 10; font.weight: Font.DemiBold }
+                                    Text { anchors.centerIn: parent; text: "Close"; color: shell.surface; font.pixelSize: 10; font.weight: Font.Bold }
                                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: shell.setState(12) }
                                 }
                             }
@@ -5856,7 +5856,7 @@ function getCurrentThemeStateKey() {
                                 width: parent.width; spacing: 12; height: 32
                                 Rectangle {
                                     width: (parent.width - 12) / 2; height: parent.height; radius: 8; color: shell.surfaceBright
-                                    Text { anchors.centerIn: parent; text: "Reset to Default"; color: shell.textPrimary; font.pixelSize: 10; font.weight: Font.DemiBold }
+                                    Text { anchors.centerIn: parent; text: "Reset to Default"; color: shell.textPrimary; font.pixelSize: 10; font.weight: Font.Bold }
                                     MouseArea {
                                         anchors.fill: parent; cursorShape: Qt.PointingHandCursor
                                         onClicked: {
@@ -5871,7 +5871,7 @@ function getCurrentThemeStateKey() {
                                 }
                                 Rectangle {
                                     width: (parent.width - 12) / 2; height: parent.height; radius: 8; color: shell.accent
-                                    Text { anchors.centerIn: parent; text: "Close"; color: shell.surface; font.pixelSize: 10; font.weight: Font.DemiBold }
+                                    Text { anchors.centerIn: parent; text: "Close"; color: shell.surface; font.pixelSize: 10; font.weight: Font.Bold }
                                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: shell.setState(5) }
                                 }
                             }
@@ -6044,7 +6044,7 @@ Item {     id: clipboardHistoryView
                                                         return previewText;
                                                     }
                                                     color: shell.textPrimary
-                                                    font.pixelSize: 11; font.weight: Font.DemiBold
+                                                    font.pixelSize: 11; font.weight: Font.Bold
                                                     elide: Text.ElideRight
                                                 }
                                                 Text {
@@ -6098,7 +6098,7 @@ Item {     id: clipboardHistoryView
                                     Text {
                                         text: !ClipboardService.active ? "Clipboard service not active" : "Clipboard is empty"
                                         color: shell.textMuted
-                                        font.pixelSize: 11; font.weight: Font.DemiBold
+                                        font.pixelSize: 11; font.weight: Font.Bold
                                         anchors.horizontalCenter: parent.horizontalCenter
                                     }
                                 }
@@ -7186,7 +7186,7 @@ Item {     id: clipboardHistoryView
                                         }
                                         Text {
                                             text: settingsPopupView.getSelectedMonitor() ? (settingsPopupView.getSelectedMonitor().width + "x" + settingsPopupView.getSelectedMonitor().height + " @ " + Math.round(settingsPopupView.getSelectedMonitor().refreshRate) + "Hz") : ""
-                                            color: shell.textPrimary; font.pixelSize: 10; font.weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter
+                                            color: shell.textPrimary; font.pixelSize: 10; font.weight: Font.Bold; anchors.verticalCenter: parent.verticalCenter
                                         }
                                         Item {
                                             width: 20; height: 20; anchors.verticalCenter: parent.verticalCenter
@@ -7228,7 +7228,7 @@ Item {     id: clipboardHistoryView
                                         }
                                         Text {
                                             text: settingsPopupView.getSelectedMonitor() ? Number(settingsPopupView.getSelectedMonitor().scale).toFixed(2) : "1.00"
-                                            color: shell.textPrimary; font.pixelSize: 10; font.weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter
+                                            color: shell.textPrimary; font.pixelSize: 10; font.weight: Font.Bold; anchors.verticalCenter: parent.verticalCenter
                                         }
                                         Item {
                                             width: 20; height: 20; anchors.verticalCenter: parent.verticalCenter
@@ -7270,7 +7270,7 @@ Item {     id: clipboardHistoryView
                                         }
                                         Text {
                                             text: settingsPopupView.getSelectedMonitor() ? settingsPopupView.availableRotations[settingsPopupView.getRotationIdx(settingsPopupView.getSelectedMonitor().transform)].text : "Landscape (0°)"
-                                            color: shell.textPrimary; font.pixelSize: 10; font.weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter
+                                            color: shell.textPrimary; font.pixelSize: 10; font.weight: Font.Bold; anchors.verticalCenter: parent.verticalCenter
                                         }
                                         Item {
                                             width: 20; height: 20; anchors.verticalCenter: parent.verticalCenter
@@ -7312,7 +7312,7 @@ Item {     id: clipboardHistoryView
                                         }
                                         Text {
                                             text: settingsPopupView.getSelectedMonitor() ? (settingsPopupView.getSelectedMonitor().mirrorOf === "none" ? "No (Extend)" : settingsPopupView.getSelectedMonitor().mirrorOf) : "No (Extend)"
-                                            color: shell.textPrimary; font.pixelSize: 10; font.weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter
+                                            color: shell.textPrimary; font.pixelSize: 10; font.weight: Font.Bold; anchors.verticalCenter: parent.verticalCenter
                                         }
                                         Item {
                                             width: 20; height: 20; anchors.verticalCenter: parent.verticalCenter
@@ -7496,7 +7496,7 @@ Item {     id: clipboardHistoryView
                         color: idleClock.color
                         font.family: idleClock.font.family
                         font.pixelSize: 12
-                        font.weight: Font.DemiBold
+                        font.weight: Font.Bold
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                     }

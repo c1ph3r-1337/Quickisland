@@ -9,7 +9,7 @@ PanelWindow {
     property var modelData
     screen: modelData
     
-    anchors.fill: parent
+    anchors { top: true; bottom: true; left: true; right: true }
     color: "rgba(0, 0, 0, 0.85)"
     
     WlrLayershell {
@@ -149,7 +149,7 @@ PanelWindow {
                 height: overviewWindow.height * container.scaleFactor
                 
                 Rectangle {
-                    anchors.fill: parent
+                    anchors { top: true; bottom: true; left: true; right: true }
                     color: ma.containsMouse ? "rgba(255, 255, 255, 0.1)" : "transparent"
                     border.color: (gridX === 0 && gridY === 0) ? "#4caf50" : "transparent"
                     border.width: 2
@@ -166,7 +166,7 @@ PanelWindow {
                 
                 MouseArea {
                     id: ma
-                    anchors.fill: parent
+                    anchors { top: true; bottom: true; left: true; right: true }
                     hoverEnabled: true
                     onClicked: {
                         shell.overviewActive = false;
