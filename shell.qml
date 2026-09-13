@@ -6419,7 +6419,11 @@ Item {     id: clipboardHistoryView
                                     { keys: "Super + M", desc: "Toggle Settings" },
                                     { keys: "Super + L", desc: "Lock Screen" },
                                     { keys: "Ctrl + Alt + Del", desc: "Logout / Power Menu" },
-                                    { keys: "Swipe Left/Right", desc: "Switch CC/Launcher/Power" }
+                                    { keys: "Swipe Left/Right", desc: "Switch CC/Launcher/Power" },
+                                    { keys: "Ctrl+Super+Space", desc: "Infinite Canvas Overview" },
+                                    { keys: "Super + Arrows", desc: "Pan Infinite Canvas" },
+                                    { keys: "Super + 1..9", desc: "Jump Virtual X-Axis" },
+                                    { keys: "Ctrl+Super+Arrows", desc: "Shift Actual Workspace" }
                                 ]
                                 delegate: Rectangle {
                                     width: (keybindCol.width - 8) / 2
