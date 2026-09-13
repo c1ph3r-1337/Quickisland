@@ -2054,7 +2054,10 @@ function getCurrentThemeStateKey() {
                 onTriggered: panelWindow.isSystemReady = true
             }
 
-            onWorkspaceIdChanged: {
+            onWorkspaceIdChanged: triggerWorkspaceAnimation()
+            onWorkspaceXChanged: triggerWorkspaceAnimation()
+            onWorkspaceYChanged: triggerWorkspaceAnimation()
+            function triggerWorkspaceAnimation() {
                 if (isSystemReady && isFocusedScreen && !mainHoverArea.containsMouse && panelWindow.activeState === 0 && !(typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode)) {
                     workspaceTimer.stop();
                     workspaceCircleActive = true;
