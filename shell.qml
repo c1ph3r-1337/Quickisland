@@ -1982,7 +1982,7 @@ function getCurrentThemeStateKey() {
             property bool workspaceCircleActive: false
             
             // For the left circle (Y-axis)
-            property real leftWsCircleSpacing: (workspaceCircleActive && shell.spatialWmEnabled) ? 8 : -30
+            property real leftWsCircleSpacing: (workspaceCircleActive && shell.spatialWmEnabled && !panelWindow.showingActualWorkspace) ? 8 : -30
             property real leftWsCircleOpacity: (workspaceCircleActive && shell.spatialWmEnabled && !panelWindow.showingActualWorkspace) ? 1.0 : 0.0
             
             Behavior on leftWsCircleSpacing { NumberAnimation { duration: 180; easing.type: Easing.OutQuart } }
