@@ -1976,13 +1976,14 @@ function getCurrentThemeStateKey() {
             // Workspace tracking and indicator properties
             property int workspaceX: 0
             property int workspaceY: 0
+            property bool showingActualWorkspace: false
             property string workspaceId: "1" // Fallback for standard WM
             property bool isSystemReady: false
             property bool workspaceCircleActive: false
             
             // For the left circle (Y-axis)
             property real leftWsCircleSpacing: (workspaceCircleActive && shell.spatialWmEnabled) ? 8 : -30
-            property real leftWsCircleOpacity: (workspaceCircleActive && shell.spatialWmEnabled) ? 1.0 : 0.0
+            property real leftWsCircleOpacity: (workspaceCircleActive && shell.spatialWmEnabled && !panelWindow.showingActualWorkspace) ? 1.0 : 0.0
             
             Behavior on leftWsCircleSpacing { NumberAnimation { duration: 180; easing.type: Easing.OutQuart } }
             Behavior on leftWsCircleOpacity { NumberAnimation { duration: 120; easing.type: Easing.OutQuad } }
@@ -2030,9 +2031,7 @@ function getCurrentThemeStateKey() {
                     } else if (Hyprland.focusedWorkspace) {
                         newId = Hyprland.focusedWorkspace.id;
                     }
-                    if (!shell.spatialWmEnabled) {
-                        panelWindow.workspaceId = newId;
-                    }
+                    panelWindow.workspaceId = newId;
                 }
             }
 
@@ -2054,10 +2053,11 @@ function getCurrentThemeStateKey() {
                 onTriggered: panelWindow.isSystemReady = true
             }
 
-            onWorkspaceIdChanged: triggerWorkspaceAnimation()
-            onWorkspaceXChanged: triggerWorkspaceAnimation()
-            onWorkspaceYChanged: triggerWorkspaceAnimation()
-            function triggerWorkspaceAnimation() {
+            onWorkspaceIdChanged: triggerWorkspaceAnimation(true)
+            onWorkspaceXChanged: triggerWorkspaceAnimation(false)
+            onWorkspaceYChanged: triggerWorkspaceAnimation(false)
+            function triggerWorkspaceAnimation(isActual) {
+                panelWindow.showingActualWorkspace = isActual;
                 if (isSystemReady && isFocusedScreen && !mainHoverArea.containsMouse && panelWindow.activeState === 0 && !(typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode)) {
                     workspaceTimer.stop();
                     workspaceCircleActive = true;
@@ -2070,6 +2070,7 @@ function getCurrentThemeStateKey() {
                 function onContainsMouseChanged() {
                     if (mainHoverArea.containsMouse) {
                         panelWindow.workspaceCircleActive = false;
+                    panelWindow.showingActualWorkspace = false;
                         workspaceTimer.stop();
                     }
                 }
@@ -2080,6 +2081,7 @@ function getCurrentThemeStateKey() {
                 function onCurrentStateChanged() {
                     if (panelWindow.activeState !== 0) {
                         panelWindow.workspaceCircleActive = false;
+                    panelWindow.showingActualWorkspace = false;
                         workspaceTimer.stop();
                     }
                 }
@@ -2090,6 +2092,7 @@ function getCurrentThemeStateKey() {
                 interval: 350
                 onTriggered: {
                     panelWindow.workspaceCircleActive = false;
+                    panelWindow.showingActualWorkspace = false;
                 }
             }
 
@@ -7538,7 +7541,7 @@ Item {     id: clipboardHistoryView
                     // Desktop number text
                     Text {
                         anchors.centerIn: parent
-                        text: shell.spatialWmEnabled ? panelWindow.workspaceX : panelWindow.workspaceId
+                        text: (shell.spatialWmEnabled && !panelWindow.showingActualWorkspace) ? panelWindow.workspaceX : panelWindow.workspaceId
                         color: idleClock.color
                         font: idleClock.font
                     }
