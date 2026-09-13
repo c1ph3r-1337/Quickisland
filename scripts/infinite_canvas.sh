@@ -53,15 +53,22 @@ quickshell ipc -p ~/.config/quickshell/quickisland call virtual_workspace set_co
 CUR_WS=$(hyprctl activeworkspace -j | jq '.id')
 
 BATCH_CMD=$(hyprctl clients -j | jq -r --arg dx "$DX" --arg dy "$DY" --argjson ws "$CUR_WS" --argjson cx "$((MON_X + WIDTH/2))" --argjson cy "$((MON_Y + HEIGHT/2))" --argjson mon_w "$WIDTH" --argjson mon_h "$HEIGHT" '
-  ( .[] | select(.workspace.id == $ws and .floating == true) |
-    "dispatch movewindowpixel \($dx) \($dy),address:\(.address);"
+  ( .[] | select(.workspace.id == $ws) |
+    (if .fullscreen > 0 then "dispatch fullscreen 0,address:\(.address);" else "" end) +
+    (if .floating == false or .fullscreen > 0 then
+      "dispatch togglefloating address:\(.address);" +
+      "dispatch resizewindowpixel exact \(.size[0]) \(.size[1]),address:\(.address);" +
+      "dispatch movewindowpixel exact \(.at[0] + ($dx|tonumber)) \(.at[1] + ($dy|tonumber)),address:\(.address);"
+    else
+      "dispatch movewindowpixel \($dx) \($dy),address:\(.address);"
+    end)
   ),
   (
     [ .[] | select(.workspace.id == $ws and .mapped == true) |
       {
         address: .address,
-        new_x: (if .floating == true then .at[0] + ($dx|tonumber) else .at[0] end),
-        new_y: (if .floating == true then .at[1] + ($dy|tonumber) else .at[1] end),
+        new_x: .at[0] + ($dx|tonumber),
+        new_y: .at[1] + ($dy|tonumber),
         w: .size[0],
         h: .size[1]
       } |
