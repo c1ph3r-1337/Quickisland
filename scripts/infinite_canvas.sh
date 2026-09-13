@@ -53,16 +53,22 @@ quickshell ipc -p ~/.config/quickshell/quickisland call virtual_workspace set_co
 CUR_WS=$(hyprctl activeworkspace -j | jq '.id')
 
 BATCH_CMD=$(hyprctl clients -j | jq -r --arg dx "$DX" --arg dy "$DY" --argjson ws "$CUR_WS" --argjson cx "$((MON_X + WIDTH/2))" --argjson cy "$((MON_Y + HEIGHT/2))" --argjson mon_w "$WIDTH" --argjson mon_h "$HEIGHT" '
-  ( .[] | select(.workspace.id == $ws) |
-    (if .floating == false then "dispatch togglefloating address:\(.address);" else "" end) +
+  ( .[] | select(.workspace.id == $ws and .floating == true) |
     "dispatch movewindowpixel \($dx) \($dy),address:\(.address);"
   ),
   (
     [ .[] | select(.workspace.id == $ws and .mapped == true) |
       {
         address: .address,
-        dist: ( ((.at[0] + ($dx|tonumber) + .size[0]/2 - $cx) * (.at[0] + ($dx|tonumber) + .size[0]/2 - $cx)) + ((.at[1] + ($dy|tonumber) + .size[1]/2 - $cy) * (.at[1] + ($dy|tonumber) + .size[1]/2 - $cy)) ),
-        on_screen: ( (.at[0] + ($dx|tonumber)) < ($cx + $mon_w/2) and (.at[0] + ($dx|tonumber) + .size[0]) > ($cx - $mon_w/2) and (.at[1] + ($dy|tonumber)) < ($cy + $mon_h/2) and (.at[1] + ($dy|tonumber) + .size[1]) > ($cy - $mon_h/2) )
+        new_x: (if .floating == true then .at[0] + ($dx|tonumber) else .at[0] end),
+        new_y: (if .floating == true then .at[1] + ($dy|tonumber) else .at[1] end),
+        w: .size[0],
+        h: .size[1]
+      } |
+      {
+        address: .address,
+        dist: ( ((.new_x + .w/2 - $cx) * (.new_x + .w/2 - $cx)) + ((.new_y + .h/2 - $cy) * (.new_y + .h/2 - $cy)) ),
+        on_screen: ( .new_x < ($cx + $mon_w/2) and (.new_x + .w) > ($cx - $mon_w/2) and .new_y < ($cy + $mon_h/2) and (.new_y + .h) > ($cy - $mon_h/2) )
       }
     ] | map(select(.on_screen == true)) | sort_by(.dist) | .[0] |
     if . != null then "dispatch focuswindow address:\(.address);" else "" end
