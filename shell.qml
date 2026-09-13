@@ -2030,7 +2030,9 @@ function getCurrentThemeStateKey() {
                     } else if (Hyprland.focusedWorkspace) {
                         newId = Hyprland.focusedWorkspace.id;
                     }
-                    panelWindow.workspaceId = newId;
+                    if (!shell.spatialWmEnabled) {
+                        panelWindow.workspaceId = newId;
+                    }
                 }
             }
 
@@ -7471,9 +7473,9 @@ Item {     id: clipboardHistoryView
                     anchors.rightMargin: panelWindow.leftWsCircleSpacing
                     anchors.top: island.top
 
-                    width: Math.max(panelWindow.wsCircleWidth, leftWsText.paintedWidth + 24)
+                    width: panelWindow.wsCircleWidth
                     height: panelWindow.wsCircleWidth
-                    radius: height / 2
+                    radius: width / 2
 
                     color: "transparent"
                     clip: true
@@ -7492,9 +7494,8 @@ Item {     id: clipboardHistoryView
                     }
 
                     Text {
-                        id: leftWsText
                         anchors.centerIn: parent
-                        text: panelWindow.workspaceX + " , " + panelWindow.workspaceY
+                        text: panelWindow.workspaceY
                         color: idleClock.color
                         font.family: idleClock.font.family
                         font.pixelSize: 12
@@ -7537,7 +7538,7 @@ Item {     id: clipboardHistoryView
                     // Desktop number text
                     Text {
                         anchors.centerIn: parent
-                        text: panelWindow.workspaceId
+                        text: shell.spatialWmEnabled ? panelWindow.workspaceX : panelWindow.workspaceId
                         color: idleClock.color
                         font: idleClock.font
                     }
