@@ -10,6 +10,8 @@ else
 fi
 
 MON_JSON=$(hyprctl monitors -j | jq '.[] | select(.focused == true)')
+MON_X=$(echo "$MON_JSON" | jq '.x')
+MON_Y=$(echo "$MON_JSON" | jq '.y')
 WIDTH=$(echo "$MON_JSON" | jq '.width')
 HEIGHT=$(echo "$MON_JSON" | jq '.height')
 SCALE=$(echo "$MON_JSON" | jq '.scale')
@@ -50,10 +52,21 @@ quickshell ipc -p ~/.config/quickshell/quickisland call virtual_workspace set_co
 
 CUR_WS=$(hyprctl activeworkspace -j | jq '.id')
 
-BATCH_CMD=$(hyprctl clients -j | jq -r --arg dx "$DX" --arg dy "$DY" --argjson ws "$CUR_WS" '
-  .[] | select(.workspace.id == $ws) |
-  (if .floating == false then "dispatch togglefloating address:\(.address);" else "" end) +
-  "dispatch movewindowpixel \($dx) \($dy),address:\(.address);"
+BATCH_CMD=$(hyprctl clients -j | jq -r --arg dx "$DX" --arg dy "$DY" --argjson ws "$CUR_WS" --argjson cx "$((MON_X + WIDTH/2))" --argjson cy "$((MON_Y + HEIGHT/2))" --argjson mon_w "$WIDTH" --argjson mon_h "$HEIGHT" '
+  ( .[] | select(.workspace.id == $ws) |
+    (if .floating == false then "dispatch togglefloating address:\(.address);" else "" end) +
+    "dispatch movewindowpixel \($dx) \($dy),address:\(.address);"
+  ),
+  (
+    [ .[] | select(.workspace.id == $ws and .mapped == true) |
+      {
+        address: .address,
+        dist: ( ((.at[0] + ($dx|tonumber) + .size[0]/2 - $cx) * (.at[0] + ($dx|tonumber) + .size[0]/2 - $cx)) + ((.at[1] + ($dy|tonumber) + .size[1]/2 - $cy) * (.at[1] + ($dy|tonumber) + .size[1]/2 - $cy)) ),
+        on_screen: ( (.at[0] + ($dx|tonumber)) < ($cx + $mon_w/2) and (.at[0] + ($dx|tonumber) + .size[0]) > ($cx - $mon_w/2) and (.at[1] + ($dy|tonumber)) < ($cy + $mon_h/2) and (.at[1] + ($dy|tonumber) + .size[1]) > ($cy - $mon_h/2) )
+      }
+    ] | map(select(.on_screen == true)) | sort_by(.dist) | .[0] |
+    if . != null then "dispatch focuswindow address:\(.address);" else "" end
+  )
 ')
 
 BATCH_CMD=$(echo "$BATCH_CMD" | tr -d '\n')
