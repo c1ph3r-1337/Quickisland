@@ -7666,6 +7666,7 @@ Item {     id: clipboardHistoryView
         model: Quickshell.screens
 
         PanelWindow {
+            id: overviewOverlayWindow
             property var modelData
             color: "transparent"
             
@@ -7690,9 +7691,9 @@ Item {     id: clipboardHistoryView
                 stdout: StdioCollector {
                     onStreamFinished: {
                         try {
-                            parent.parent.layoutData = JSON.parse(text);
+                            overviewOverlayWindow.layoutData = JSON.parse(text);
                         } catch(e) {
-                            parent.parent.layoutData = null;
+                            overviewOverlayWindow.layoutData = null;
                         }
                     }
                 }
@@ -7730,11 +7731,11 @@ Item {     id: clipboardHistoryView
                         overviewEnterProc.running = true;
                         overviewRootItem.forceActiveFocus();
                     } else {
-                        parent.layoutData = null;
-                        if (!parent.jumpPending) {
+                        overviewOverlayWindow.layoutData = null;
+                        if (!overviewOverlayWindow.jumpPending) {
                             overviewExitProc.running = true;
                         }
-                        parent.jumpPending = false;
+                        overviewOverlayWindow.jumpPending = false;
                     }
                 }
             }
@@ -7769,21 +7770,21 @@ Item {     id: clipboardHistoryView
                 // Grid cell labels and click targets
                 Repeater {
                     model: {
-                        var d = parent.parent.layoutData;
+                        var d = overviewOverlayWindow.layoutData;
                         if (!d) return 0;
                         return d.cols * d.rows;
                     }
                     
                     Item {
-                        property var d: overviewRootItem.parent.layoutData
+                        property var d: overviewOverlayWindow.layoutData
                         property int col: index % d.cols
                         property int row: Math.floor(index / d.cols)
                         property int cellVx: d.min_vx + col
                         property int cellVy: d.max_vy - row
                         property bool isCurrent: (cellVx === d.vx && cellVy === d.vy)
                         
-                        x: d.ox - overviewRootItem.parent.screen.x + col * (d.cell_w + d.gap)
-                        y: d.oy - overviewRootItem.parent.screen.y + row * (d.cell_h + d.gap)
+                        x: d.ox - overviewOverlayWindow.screen.x + col * (d.cell_w + d.gap)
+                        y: d.oy - overviewOverlayWindow.screen.y + row * (d.cell_h + d.gap)
                         width: d.cell_w
                         height: d.cell_h
                         
@@ -7819,7 +7820,7 @@ Item {     id: clipboardHistoryView
                             anchors.fill: parent
                             hoverEnabled: true
                             onClicked: {
-                                overviewRootItem.parent.jumpPending = true;
+                                overviewOverlayWindow.jumpPending = true;
                                 shell.overviewActive = false;
                                 overviewJumpProc.targetVx = cellVx;
                                 overviewJumpProc.targetVy = cellVy;

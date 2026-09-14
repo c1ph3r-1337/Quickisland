@@ -33,18 +33,21 @@ ACTION="${1:-}"
 enter_overview() {
     # Save all current window states (address, position, size, floating, fullscreen)
     # and compute which virtual workspace each window belongs to
-    hyprctl clients -j | jq -c --argjson ws "$CUR_WS" --argjson mon_x "$MON_X" --argjson mon_y "$MON_Y" \
-        --argjson mon_w "$MON_W" --argjson mon_h "$MON_H" --argjson vx "$CUR_VX" --argjson vy "$CUR_VY" '
-        [.[] | select(.workspace.id == $ws and .mapped == true) | {
-            addr: .address,
-            x: .at[0],
-            y: .at[1],
-            w: .size[0],
-            h: .size[1],
-            floating: .floating,
-            fullscreen: .fullscreen
-        }]
-    ' > "$SAVE_FILE"
+    # Do not overwrite if we are already in the overview (prevents shrinking loop)
+    if [[ ! -f "$SAVE_FILE" ]]; then
+        hyprctl clients -j | jq -c --argjson ws "$CUR_WS" --argjson mon_x "$MON_X" --argjson mon_y "$MON_Y" \
+            --argjson mon_w "$MON_W" --argjson mon_h "$MON_H" --argjson vx "$CUR_VX" --argjson vy "$CUR_VY" '
+            [.[] | select(.workspace.id == $ws and .mapped == true) | {
+                addr: .address,
+                x: .at[0],
+                y: .at[1],
+                w: .size[0],
+                h: .size[1],
+                floating: .floating,
+                fullscreen: .fullscreen
+            }]
+        ' > "$SAVE_FILE"
+    fi
 
     # Now figure out the bounding box of all occupied virtual workspaces
     # Each window's virtual workspace is determined by its position relative to the monitor
@@ -168,15 +171,17 @@ exit_overview() {
     BATCH_CMD=$(cat "$SAVE_FILE" | jq -r --argjson ws "$CUR_WS" '
         .[] |
         (if .fullscreen > 0 then
-            "dispatch resizewindowpixel exact \(.w) \(.h),address:\(.addr);" +
-            "dispatch movewindowpixel exact \(.x) \(.y),address:\(.addr);" +
-            (if .floating == false then "dispatch togglefloating address:\(.addr);" else "" end) +
+            "dispatch togglefloating address:\(.addr);" +
             "dispatch fullscreen 1,address:\(.addr);"
         else
-            "dispatch resizewindowpixel exact \(.w) \(.h),address:\(.addr);" +
-            "dispatch movewindowpixel exact \(.x) \(.y),address:\(.addr);" +
-            (if .floating == false then "dispatch togglefloating address:\(.addr);" else "" end)
+            (if .floating == false then
+                "dispatch togglefloating address:\(.addr);"
+            else
+                "dispatch resizewindowpixel exact \(.w) \(.h),address:\(.addr);" +
+                "dispatch movewindowpixel exact \(.x) \(.y),address:\(.addr);"
+            end)
         end)
+    echo "$BATCH_CMD" >> /tmp/overview_exit.log
     ' | tr -d '\n')
     
     if [[ -n "$BATCH_CMD" ]]; then
