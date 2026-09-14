@@ -7740,12 +7740,10 @@ Item {     id: clipboardHistoryView
                 }
             }
             
-            // Dim background
+            // Dim background (Removed per user request)
             Rectangle {
                 anchors.fill: parent
-                color: Qt.rgba(0, 0, 0, 0.7)
-                opacity: shell.overviewActive ? 1.0 : 0.0
-                Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.InOutQuad } }
+                color: "transparent"
             }
             
             Item {
@@ -7767,7 +7765,7 @@ Item {     id: clipboardHistoryView
                     onClicked: shell.overviewActive = false
                 }
                 
-                // Grid cell labels and click targets
+                // Grid cell click targets (invisible)
                 Repeater {
                     model: {
                         var d = overviewOverlayWindow.layoutData;
@@ -7781,39 +7779,11 @@ Item {     id: clipboardHistoryView
                         property int row: Math.floor(index / d.cols)
                         property int cellVx: d.min_vx + col
                         property int cellVy: d.max_vy - row
-                        property bool isCurrent: (cellVx === d.vx && cellVy === d.vy)
                         
                         x: d.ox - overviewOverlayWindow.screen.x + col * (d.cell_w + d.gap)
                         y: d.oy - overviewOverlayWindow.screen.y + row * (d.cell_h + d.gap)
                         width: d.cell_w
                         height: d.cell_h
-                        
-                        // Cell border (made more visible)
-                        Rectangle {
-                            anchors.fill: parent
-                            color: isCurrent ? "#114caf50" : "transparent"
-                            border.color: isCurrent ? "#4caf50" : (overviewCellMa.containsMouse ? "#ffffff" : "#66ffffff")
-                            border.width: isCurrent ? 3 : 2
-                            radius: 6
-                            
-                            // Hover highlight
-                            Rectangle {
-                                anchors.fill: parent
-                                color: overviewCellMa.containsMouse ? "#22FFFFFF" : "transparent"
-                                radius: 6
-                            }
-                            
-                            // Coordinate label
-                            Text {
-                                anchors.bottom: parent.bottom
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                anchors.bottomMargin: 8
-                                text: cellVx + "," + cellVy
-                                color: isCurrent ? "#4caf50" : "#ffffff"
-                                font.pixelSize: Math.max(14, d.cell_h * 0.1)
-                                font.bold: true
-                            }
-                        }
                         
                         MouseArea {
                             id: overviewCellMa
