@@ -7660,10 +7660,175 @@ Item {     id: clipboardHistoryView
         }
     }
 
+    // Virtual Workspace Overview - dim overlay + click targets
+    // Uses same always-alive pattern as nightlight to avoid Qt Wayland transparency bug
     Variants {
         model: Quickshell.screens
-        Modules.InfiniteOverview {
+
+        PanelWindow {
+            property var modelData
+            color: "transparent"
             
+            // Click-through when overview is OFF, interactive when ON
+            Region { id: overviewMaskRegion }
+            mask: shell.overviewActive ? null : overviewMaskRegion
+            
+            WlrLayershell.namespace: "quickisland-overview"
+            WlrLayershell.layer: WlrLayer.Overlay
+            WlrLayershell.exclusionMode: ExclusionMode.Ignore
+            WlrLayershell.keyboardFocus: shell.overviewActive ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+            
+            anchors { top: true; bottom: true; left: true; right: true }
+            
+            property var layoutData: null
+            property bool jumpPending: false
+            
+            // Read layout JSON produced by overview_zoom.sh
+            Process {
+                id: overviewLayoutProc
+                command: ["bash", "-c", "cat ~/.cache/quickisland/overview_layout.json 2>/dev/null"]
+                stdout: StdioCollector {
+                    onStreamFinished: {
+                        try {
+                            parent.parent.layoutData = JSON.parse(text);
+                        } catch(e) {
+                            parent.parent.layoutData = null;
+                        }
+                    }
+                }
+            }
+            
+            // Enter overview: physically zoom out all windows
+            Process {
+                id: overviewEnterProc
+                command: ["bash", "-c", "~/.config/quickshell/quickisland/scripts/overview_zoom.sh enter"]
+                stdout: StdioCollector {
+                    onStreamFinished: {
+                        overviewLayoutProc.running = true;
+                    }
+                }
+            }
+            
+            // Exit overview: restore windows
+            Process {
+                id: overviewExitProc
+                command: ["bash", "-c", "~/.config/quickshell/quickisland/scripts/overview_zoom.sh exit"]
+            }
+            
+            // Jump to a workspace
+            Process {
+                id: overviewJumpProc
+                property int targetVx: 0
+                property int targetVy: 0
+                command: ["bash", "-c", "~/.config/quickshell/quickisland/scripts/overview_zoom.sh jump " + targetVx + " " + targetVy]
+            }
+            
+            Connections {
+                target: shell
+                function onOverviewActiveChanged() {
+                    if (shell.overviewActive) {
+                        overviewEnterProc.running = true;
+                        overviewRootItem.forceActiveFocus();
+                    } else {
+                        parent.layoutData = null;
+                        if (!parent.jumpPending) {
+                            overviewExitProc.running = true;
+                        }
+                        parent.jumpPending = false;
+                    }
+                }
+            }
+            
+            // Dim background
+            Rectangle {
+                anchors.fill: parent
+                color: Qt.rgba(0, 0, 0, 0.7)
+                opacity: shell.overviewActive ? 1.0 : 0.0
+                Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.InOutQuad } }
+            }
+            
+            Item {
+                id: overviewRootItem
+                anchors.fill: parent
+                focus: shell.overviewActive
+                visible: shell.overviewActive
+                
+                Keys.onEscapePressed: shell.overviewActive = false
+                Keys.onPressed: (event) => {
+                    if (event.key === Qt.Key_Escape || event.key === Qt.Key_Space) {
+                        shell.overviewActive = false;
+                    }
+                }
+                
+                // Click background to close
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: shell.overviewActive = false
+                }
+                
+                // Grid cell labels and click targets
+                Repeater {
+                    model: {
+                        var d = parent.parent.layoutData;
+                        if (!d) return 0;
+                        return d.cols * d.rows;
+                    }
+                    
+                    Item {
+                        property var d: overviewRootItem.parent.layoutData
+                        property int col: index % d.cols
+                        property int row: Math.floor(index / d.cols)
+                        property int cellVx: d.min_vx + col
+                        property int cellVy: d.max_vy - row
+                        property bool isCurrent: (cellVx === d.vx && cellVy === d.vy)
+                        
+                        x: d.ox - overviewRootItem.parent.screen.x + col * (d.cell_w + d.gap)
+                        y: d.oy - overviewRootItem.parent.screen.y + row * (d.cell_h + d.gap)
+                        width: d.cell_w
+                        height: d.cell_h
+                        
+                        // Cell border (made more visible)
+                        Rectangle {
+                            anchors.fill: parent
+                            color: isCurrent ? "#114caf50" : "transparent"
+                            border.color: isCurrent ? "#4caf50" : (overviewCellMa.containsMouse ? "#ffffff" : "#66ffffff")
+                            border.width: isCurrent ? 3 : 2
+                            radius: 6
+                            
+                            // Hover highlight
+                            Rectangle {
+                                anchors.fill: parent
+                                color: overviewCellMa.containsMouse ? "#22FFFFFF" : "transparent"
+                                radius: 6
+                            }
+                            
+                            // Coordinate label
+                            Text {
+                                anchors.bottom: parent.bottom
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                anchors.bottomMargin: 8
+                                text: cellVx + "," + cellVy
+                                color: isCurrent ? "#4caf50" : "#ffffff"
+                                font.pixelSize: Math.max(14, d.cell_h * 0.1)
+                                font.bold: true
+                            }
+                        }
+                        
+                        MouseArea {
+                            id: overviewCellMa
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            onClicked: {
+                                overviewRootItem.parent.jumpPending = true;
+                                shell.overviewActive = false;
+                                overviewJumpProc.targetVx = cellVx;
+                                overviewJumpProc.targetVy = cellVy;
+                                overviewJumpProc.running = true;
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

@@ -18,45 +18,65 @@ PanelWindow {
     
     anchors { top: true; bottom: true; left: true; right: true }
     
-    property int currentVx: 0
-    property int currentVy: 0
-    property var clientsData: []
+    property var layoutData: null
+    property bool isEntering: false
+    property bool jumpPending: false
     
+    // Read the layout JSON produced by overview_zoom.sh
     Process {
-        id: clientsProc
-        command: ["bash", "-c", "hyprctl clients -j"]
+        id: layoutProc
+        command: ["bash", "-c", "cat ~/.cache/quickisland/overview_layout.json 2>/dev/null"]
         stdout: StdioCollector {
             onStreamFinished: {
                 try {
-                    overviewWindow.clientsData = JSON.parse(text);
-                } catch(e) {}
+                    overviewWindow.layoutData = JSON.parse(text);
+                } catch(e) {
+                    overviewWindow.layoutData = null;
+                }
             }
         }
     }
     
+    // Enter overview: physically zoom out all windows
     Process {
-        id: coordsProc
-        command: ["bash", "-c", "cat ~/.cache/quickisland/infinite_canvas_coords 2>/dev/null || echo '0 0'"]
+        id: enterProc
+        command: ["bash", "-c", "~/.config/quickshell/quickisland/scripts/overview_zoom.sh enter"]
         stdout: StdioCollector {
             onStreamFinished: {
-                var parts = text.trim().split(" ");
-                if (parts.length >= 2) {
-                    overviewWindow.currentVx = parseInt(parts[0]);
-                    overviewWindow.currentVy = parseInt(parts[1]);
-                }
+                // After windows are zoomed out, read the layout
+                layoutProc.running = true;
+                overviewWindow.isEntering = false;
             }
         }
+    }
+    
+    // Exit overview: restore windows
+    Process {
+        id: exitProc
+        command: ["bash", "-c", "~/.config/quickshell/quickisland/scripts/overview_zoom.sh exit"]
+    }
+    
+    // Jump to a workspace
+    Process {
+        id: jumpProc
+        property int targetVx: 0
+        property int targetVy: 0
+        command: ["bash", "-c", "~/.config/quickshell/quickisland/scripts/overview_zoom.sh jump " + targetVx + " " + targetVy]
     }
     
     Connections {
         target: shell
         function onOverviewActiveChanged() {
             if (shell.overviewActive) {
-                coordsProc.running = true;
-                clientsProc.running = true;
+                overviewWindow.isEntering = true;
+                enterProc.running = true;
                 rootItem.forceActiveFocus();
             } else {
-                rootItem.focus = false;
+                overviewWindow.layoutData = null;
+                if (!overviewWindow.jumpPending) {
+                    exitProc.running = true;
+                }
+                overviewWindow.jumpPending = false;
             }
         }
     }
@@ -66,9 +86,6 @@ PanelWindow {
         anchors.fill: parent
         focus: shell.overviewActive
         visible: shell.overviewActive
-        opacity: shell.overviewActive ? 1.0 : 0.0
-        
-        Behavior on opacity { NumberAnimation { duration: 150 } }
         
         Keys.onEscapePressed: shell.overviewActive = false
         Keys.onPressed: (event) => {
@@ -77,9 +94,10 @@ PanelWindow {
             }
         }
         
+        // Dim background behind scaled windows
         Rectangle {
             anchors.fill: parent
-            color: "#D9000000"
+            color: "#B3000000"
             
             MouseArea {
                 anchors.fill: parent
@@ -87,118 +105,76 @@ PanelWindow {
             }
         }
         
-        Item {
-            id: container
-            anchors.centerIn: parent
-            width: overviewWindow.width * 0.8
-            height: overviewWindow.height * 0.8
+        // Grid cell labels and click targets
+        Repeater {
+            model: {
+                if (!overviewWindow.layoutData) return 0;
+                var d = overviewWindow.layoutData;
+                return d.cols * d.rows;
+            }
             
-            property real scaleFactor: (container.width / 5) / overviewWindow.width
-            
-            Repeater {
-                model: 11
+            Item {
+                property var d: overviewWindow.layoutData
+                property int col: index % d.cols
+                property int row: Math.floor(index / d.cols)
+                property int cellVx: d.min_vx + col
+                property int cellVy: d.max_vy - row
+                property bool isCurrent: (cellVx === d.vx && cellVy === d.vy)
+                
+                x: d.ox + col * (d.cell_w + d.gap)
+                y: d.oy + row * (d.cell_h + d.gap)
+                width: d.cell_w
+                height: d.cell_h
+                
+                // Cell border
                 Rectangle {
-                    x: (index - 5) * overviewWindow.width * container.scaleFactor + container.width/2
-                    y: 0
-                    width: 1
-                    height: container.height
-                    color: "#1AFFFFFF"
-                }
-            }
-            Repeater {
-                model: 11
-                Rectangle {
-                    x: 0
-                    y: (index - 5) * overviewWindow.height * container.scaleFactor + container.height/2
-                    width: container.width
-                    height: 1
-                    color: "#1AFFFFFF"
-                }
-            }
-            
-            Repeater {
-                model: overviewWindow.clientsData
-                delegate: Rectangle {
-                    property var client: modelData
-                    property real cx: container.width / 2
-                    property real cy: container.height / 2
-                    property real sx: cx - (overviewWindow.width * container.scaleFactor) / 2
-                    property real sy: cy - (overviewWindow.height * container.scaleFactor) / 2
+                    anchors.fill: parent
+                    color: "transparent"
+                    border.color: isCurrent ? "#4caf50" : (cellMa.containsMouse ? "#66FFFFFF" : "#33FFFFFF")
+                    border.width: isCurrent ? 2 : 1
+                    radius: 6
                     
-                    x: sx + (client.at[0] * container.scaleFactor)
-                    y: sy + (client.at[1] * container.scaleFactor)
-                    width: client.size[0] * container.scaleFactor
-                    height: client.size[1] * container.scaleFactor
-                    
-                    color: "#996496FF"
-                    border.color: "#CCFFFFFF"
-                    border.width: 1
-                    radius: 4
-                    
-                    Text {
-                        anchors.centerIn: parent
-                        text: client.class
-                        color: "white"
-                        font.pixelSize: 10
-                        width: parent.width - 4
-                        wrapMode: Text.Wrap
-                        horizontalAlignment: Text.AlignHCenter
-                        clip: true
-                    }
-                }
-            }
-            
-            Repeater {
-                model: 25
-                Item {
-                    property int gridX: (index % 5) - 2
-                    property int gridY: Math.floor(index / 5) - 2
-                    property int targetVx: overviewWindow.currentVx + gridX
-                    property int targetVy: overviewWindow.currentVy - gridY
-                    property real sx: container.width/2 - (overviewWindow.width * container.scaleFactor)/2
-                    property real sy: container.height/2 - (overviewWindow.height * container.scaleFactor)/2
-                    
-                    x: sx + (gridX * overviewWindow.width * container.scaleFactor)
-                    y: sy + (gridY * overviewWindow.height * container.scaleFactor)
-                    width: overviewWindow.width * container.scaleFactor
-                    height: overviewWindow.height * container.scaleFactor
-                    
+                    // Hover highlight
                     Rectangle {
                         anchors.fill: parent
-                        color: ma.containsMouse ? "#1AFFFFFF" : "transparent"
-                        border.color: (gridX === 0 && gridY === 0) ? "#4caf50" : "transparent"
-                        border.width: 2
-                        
-                        Text {
-                            anchors.bottom: parent.bottom
-                            anchors.right: parent.right
-                            anchors.margins: 4
-                            text: targetVx + "," + targetVy
-                            color: "#4DFFFFFF"
-                            font.pixelSize: 10
-                        }
+                        color: cellMa.containsMouse ? "#1AFFFFFF" : "transparent"
+                        radius: 6
                     }
                     
-                    MouseArea {
-                        id: ma
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        onClicked: {
-                            shell.overviewActive = false;
-                            jumpProc.targetVx = targetVx;
-                            jumpProc.targetVy = targetVy;
-                            jumpProc.running = true;
-                        }
+                    // Coordinate label
+                    Text {
+                        anchors.bottom: parent.bottom
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.bottomMargin: 4
+                        text: cellVx + "," + cellVy
+                        color: isCurrent ? "#4caf50" : "#80FFFFFF"
+                        font.pixelSize: Math.max(10, d.cell_h * 0.08)
+                        font.bold: isCurrent
+                    }
+                }
+                
+                MouseArea {
+                    id: cellMa
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    onClicked: {
+                        overviewWindow.jumpPending = true;
+                        shell.overviewActive = false;
+                        jumpProc.targetVx = cellVx;
+                        jumpProc.targetVy = cellVy;
+                        jumpProc.running = true;
                     }
                 }
             }
         }
-    }
-    
-    Process {
-        id: jumpProc
-        property int targetVx: 0
-        property int targetVy: 0
-        command: ["bash", "-c", "~/.config/quickshell/quickisland/scripts/infinite_canvas.sh jump " + targetVx + " " + targetVy]
+        
+        // Loading indicator
+        Text {
+            anchors.centerIn: parent
+            text: "Loading overview..."
+            color: "#80FFFFFF"
+            font.pixelSize: 16
+            visible: overviewWindow.isEntering
+        }
     }
 }
