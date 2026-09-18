@@ -1106,14 +1106,14 @@ function getCurrentThemeStateKey() {
     Binding {
         target: shell
         property: "sysVolume"
-        value: shell.audioSink && shell.audioSink.audio ? shell.audioSink.audio.volume : 0
+        value: shell.audioSink && shell.audioSink.audio ? Math.max(0.0, Math.min(1.0, shell.audioSink.audio.volume)) : 0
         when: !shell.volDragging
     }
     property bool sysMuted: audioSink && audioSink.audio ? audioSink.audio.muted : true
 
     function setVolume(v) {
         if (audioSink && audioSink.audio) {
-            var targetVol = Math.max(0, Math.min(1.0, v));
+            var targetVol = Math.max(0.0, Math.min(1.0, v));
             shell.sysVolume = targetVol;
             audioSink.audio.volume = targetVol;
         }
@@ -1152,7 +1152,7 @@ function getCurrentThemeStateKey() {
                     var max = parseInt(parts[4]);
                     if (max > 0) {
                         shell.sysBrightnessMax = max;
-                        shell.sysBrightness = cur / max;
+                        shell.sysBrightness = Math.max(0.0, Math.min(1.0, cur / max));
                     }
                 }
             }
@@ -1166,10 +1166,11 @@ function getCurrentThemeStateKey() {
 
     function refreshBrightness() { brightnessReadProc.running = true; }
     function setBrightness(v) {
-        var pct = Math.round(Math.max(0, Math.min(1, v)) * 100);
-        brightnessSetProc.command = ["brightnessctl", "set", pct + "%"];
+        var clamped = Math.max(0.0, Math.min(1.0, v));
+        var pct = Math.round(clamped * 100);
+        brightnessSetProc.command = ["brightnessctl", "set", Math.max(1, pct) + "%"];
         brightnessSetProc.running = true;
-        sysBrightness = v;
+        sysBrightness = clamped;
     }
 
     Timer { interval: 5000; running: (shell.currentState === 1); repeat: true; onTriggered: shell.refreshBrightness() }
@@ -3598,122 +3599,146 @@ function getCurrentThemeStateKey() {
                              color: shell.surfaceAlt
                              border.width: 0
                              border.color: shell.surfaceBorder
+                             clip: true
 
                              Rectangle {
-                                 width: Math.max(18, parent.width * shell.sysVolume)
+                                 readonly property real normVol: Math.max(0.0, Math.min(1.0, shell.sysVolume))
+                                 width: Math.min(parent.width, Math.max(36, 36 + (parent.width - 36) * normVol))
                                  height: parent.height; radius: 18
                                  color: shell.accent
+                                 Behavior on color { ColorAnimation { duration: shell.animFast } }
                                  Behavior on width { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
                              }
 
-                             // Icon (overlayed on left)
-                                Image {
-                                    width: 15; height: 15
-                                    anchors.left: parent.left; anchors.leftMargin: 12; anchors.verticalCenter: parent.verticalCenter
-                                    source: "icons/volume.png"
-                                    fillMode: Image.PreserveAspectFit
-                                    layer.enabled: ccView.ccActive
-                                    layer.effect: MultiEffect {
-                                        brightness: shell.sysVolume > 0.08 && !shell.sysMuted ? -0.8 : 1.0
-                                        colorization: 1.0
-                                        colorizationColor: shell.sysVolume > 0.08 && !shell.sysMuted ? shell._baseSurface : "#ffffff"
-                                    }
-                                }
+                             // Icon (overlayed on left, centered in 36px circle)
+                             Image {
+                                 width: 15; height: 15
+                                 anchors.left: parent.left; anchors.leftMargin: 10.5; anchors.verticalCenter: parent.verticalCenter
+                                 source: "icons/volume.png"
+                                 fillMode: Image.PreserveAspectFit
+                                 layer.enabled: ccView.ccActive
+                                 layer.effect: MultiEffect {
+                                     brightness: -0.8
+                                     colorization: 1.0
+                                     colorizationColor: shell._baseSurface
+                                 }
+                             }
 
+                             MouseArea {
+                                 id: volMouseArea
+                                 anchors.fill: parent
+                                 cursorShape: Qt.PointingHandCursor
+                                 preventStealing: true
 
-                                MouseArea {
-                                    id: volMouseArea
-                                    anchors.fill: parent
-                                    cursorShape: Qt.PointingHandCursor
-                                    preventStealing: true
-                                    onPressed: (mouse) => {
-                                        shell.volDragging = true;
-                                        mouse.accepted = true;
-                                        shell.setVolume(mouse.x / width);
-                                    }
-                                    onReleased: (mouse) => {
-                                        shell.volDragging = false;
-                                    }
-                                    onCanceled: {
-                                        shell.volDragging = false;
-                                    }
-                                    onPositionChanged: (mouse) => {
-                                        if (pressed) {
-                                            shell.setVolume(mouse.x / width);
-                                        }
-                                    }
-                                    onWheel: (wheel) => {
-                                        var step = 0.02;
-                                        if (wheel.angleDelta.y > 0) {
-                                            shell.setVolume(shell.sysVolume + step);
-                                        } else if (wheel.angleDelta.y < 0) {
-                                            shell.setVolume(shell.sysVolume - step);
-                                        }
-                                        wheel.accepted = true;
-                                    }
-                                }
-                            }
+                                 function updateFromMouse(mouseX) {
+                                     if (mouseX <= 36) {
+                                         shell.setVolume(0.0);
+                                     } else if (mouseX >= width) {
+                                         shell.setVolume(1.0);
+                                     } else {
+                                         shell.setVolume((mouseX - 36) / (width - 36));
+                                     }
+                                 }
 
-                            // Brightness Slider (real)
-                            Rectangle {
-                                width: parent.width; height: 36; radius: 18; color: shell.surfaceAlt; clip: true
+                                 onPressed: (mouse) => {
+                                     shell.volDragging = true;
+                                     mouse.accepted = true;
+                                     updateFromMouse(mouse.x);
+                                 }
+                                 onReleased: (mouse) => {
+                                     shell.volDragging = false;
+                                 }
+                                 onCanceled: {
+                                     shell.volDragging = false;
+                                 }
+                                 onPositionChanged: (mouse) => {
+                                     if (pressed) {
+                                         updateFromMouse(mouse.x);
+                                     }
+                                 }
+                                 onWheel: (wheel) => {
+                                     var step = 0.02;
+                                     if (wheel.angleDelta.y > 0) {
+                                         shell.setVolume(Math.min(1.0, shell.sysVolume + step));
+                                     } else if (wheel.angleDelta.y < 0) {
+                                         shell.setVolume(Math.max(0.0, shell.sysVolume - step));
+                                     }
+                                     wheel.accepted = true;
+                                 }
+                             }
+                         }
 
-                                // Fill
-                                Rectangle {
-                                    width: Math.max(18, parent.width * shell.sysBrightness)
-                                    height: parent.height
-                                    radius: 18
-                                    color: shell.accent
-                                    Behavior on color { ColorAnimation { duration: shell.animFast } }
-                                    Behavior on width {
-                                        enabled: !brightMouseArea.pressed
-                                        NumberAnimation { duration: 100; easing.type: Easing.OutCubic }
-                                    }
-                                }
+                         // Brightness Slider (real)
+                         Rectangle {
+                             width: parent.width; height: 36; radius: 18; color: shell.surfaceAlt; clip: true
 
-                                // Icon (overlayed on left)
-                                Image {
-                                    width: 15; height: 15
-                                    anchors.left: parent.left; anchors.leftMargin: 12; anchors.verticalCenter: parent.verticalCenter
-                                    source: "icons/brightness.png"
-                                    fillMode: Image.PreserveAspectFit
-                                    layer.enabled: ccView.ccActive
-                                    layer.effect: MultiEffect {
-                                        brightness: shell.sysBrightness > 0.08 ? -0.8 : 1.0
-                                        colorization: 1.0
-                                        colorizationColor: shell.sysBrightness > 0.08 ? shell._baseSurface : "#ffffff"
-                                    }
-                                }
+                             // Fill
+                             Rectangle {
+                                 readonly property real normBright: Math.max(0.0, Math.min(1.0, shell.sysBrightness))
+                                 width: Math.min(parent.width, Math.max(36, 36 + (parent.width - 36) * normBright))
+                                 height: parent.height
+                                 radius: 18
+                                 color: shell.accent
+                                 Behavior on color { ColorAnimation { duration: shell.animFast } }
+                                 Behavior on width {
+                                     enabled: !brightMouseArea.pressed
+                                     NumberAnimation { duration: 100; easing.type: Easing.OutCubic }
+                                 }
+                             }
 
+                             // Icon (overlayed on left, centered in 36px circle)
+                             Image {
+                                 width: 15; height: 15
+                                 anchors.left: parent.left; anchors.leftMargin: 10.5; anchors.verticalCenter: parent.verticalCenter
+                                 source: "icons/brightness.png"
+                                 fillMode: Image.PreserveAspectFit
+                                 layer.enabled: ccView.ccActive
+                                 layer.effect: MultiEffect {
+                                     brightness: -0.8
+                                     colorization: 1.0
+                                     colorizationColor: shell._baseSurface
+                                 }
+                             }
 
-                                MouseArea {
-                                    id: brightMouseArea
-                                    anchors.fill: parent
-                                    cursorShape: Qt.PointingHandCursor
-                                    preventStealing: true
-                                    onPressed: (mouse) => {
-                                        mouse.accepted = true;
-                                        shell.setBrightness(mouse.x / width);
-                                    }
-                                    onReleased: (mouse) => {
-                                        // Released handler empty
-                                    }
-                                    onPositionChanged: (mouse) => {
-                                        if (pressed) {
-                                            shell.setBrightness(mouse.x / width);
-                                        }
-                                    }
-                                    onWheel: (wheel) => {
-                                        var step = 0.02;
-                                        if (wheel.angleDelta.y > 0) {
-                                            shell.setBrightness(shell.sysBrightness + step);
-                                        } else if (wheel.angleDelta.y < 0) {
-                                            shell.setBrightness(shell.sysBrightness - step);
-                                        }
-                                        wheel.accepted = true;
-                                    }
-                                }
-                            }
+                             MouseArea {
+                                 id: brightMouseArea
+                                 anchors.fill: parent
+                                 cursorShape: Qt.PointingHandCursor
+                                 preventStealing: true
+
+                                 function updateFromMouse(mouseX) {
+                                     if (mouseX <= 36) {
+                                         shell.setBrightness(0.0);
+                                     } else if (mouseX >= width) {
+                                         shell.setBrightness(1.0);
+                                     } else {
+                                         shell.setBrightness((mouseX - 36) / (width - 36));
+                                     }
+                                 }
+
+                                 onPressed: (mouse) => {
+                                     mouse.accepted = true;
+                                     updateFromMouse(mouse.x);
+                                 }
+                                 onReleased: (mouse) => {
+                                     // Released handler empty
+                                 }
+                                 onPositionChanged: (mouse) => {
+                                     if (pressed) {
+                                         updateFromMouse(mouse.x);
+                                     }
+                                 }
+                                 onWheel: (wheel) => {
+                                     var step = 0.02;
+                                     if (wheel.angleDelta.y > 0) {
+                                         shell.setBrightness(Math.min(1.0, shell.sysBrightness + step));
+                                     } else if (wheel.angleDelta.y < 0) {
+                                         shell.setBrightness(Math.max(0.0, shell.sysBrightness - step));
+                                     }
+                                     wheel.accepted = true;
+                                 }
+                             }
+                         }
 
                             // Media Card (real)
                             Rectangle {
