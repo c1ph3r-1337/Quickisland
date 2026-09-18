@@ -6162,7 +6162,7 @@ function getCurrentThemeStateKey() {
                 }
 
                 // =============================================================
-                // STATE 20: THEME SWITCHER (Super+/ or Super+Shift+T)
+                // STATE 20: THEME SWITCHER (Super+Shift+T)
                 // =============================================================
                 Item {
                     id: themeSwitcherView
@@ -6996,6 +6996,7 @@ function getCurrentThemeStateKey() {
                                     { keys: "Super + N", desc: "Toggle Control Center" },
                                     { keys: "Super + V", desc: "Toggle Clipboard" },
                                     { keys: "Super + .", desc: "Toggle Emoji Board" },
+                                    { keys: "Super + Shift + T", desc: "Toggle Theme Switcher" },
                                     { keys: "Super + /", desc: "Toggle Keybindings" },
                                     { keys: "Super + M", desc: "Toggle Settings" },
                                     { keys: "Super + L", desc: "Lock Screen" },
