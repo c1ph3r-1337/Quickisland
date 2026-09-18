@@ -388,9 +388,9 @@ ShellRoot {
         customTextSecondary = p.textSecondary;
         customTextMuted = p.textMuted;
         customRed = p.red || "#f38ba8";
-        customGreen = p.green || "#a6e3a1";
-        customPeach = p.peach || "#fab387";
-        customBlue = p.blue || p.accent || "#89b4fa";
+        customGreen = p.green || p.dot3 || p.accent;
+        customPeach = p.peach || p.dot5 || p.accent;
+        customBlue = p.blue || p.accent;
         activeColorHex = shell[activeColorKey].toString();
         saveCustomPalette();
 
@@ -3656,14 +3656,15 @@ function getCurrentThemeStateKey() {
 
                             // Brightness Slider (real)
                             Rectangle {
-                                width: parent.width; height: 30; radius: 15; color: shell.surfaceBright; clip: true
+                                width: parent.width; height: 36; radius: 18; color: shell.surfaceAlt; clip: true
 
                                 // Fill
                                 Rectangle {
-                                    width: parent.width * shell.sysBrightness
+                                    width: Math.max(18, parent.width * shell.sysBrightness)
                                     height: parent.height
-                                    radius: parent.radius
-                                    color: shell.peach
+                                    radius: 18
+                                    color: shell.accent
+                                    Behavior on color { ColorAnimation { duration: shell.animFast } }
                                     Behavior on width {
                                         enabled: !brightMouseArea.pressed
                                         NumberAnimation { duration: 100; easing.type: Easing.OutCubic }
