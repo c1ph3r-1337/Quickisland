@@ -6161,7 +6161,7 @@ function getCurrentThemeStateKey() {
                 }
 
                 // =============================================================
-                // STATE 20: THEME SWITCHER (Super+Shift+T)
+                // STATE 20: THEME SWITCHER (Super+/ or Super+Shift+T)
                 // =============================================================
                 Item {
                     id: themeSwitcherView
