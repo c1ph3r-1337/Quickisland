@@ -213,52 +213,60 @@ cursor_trail_color      {accent}
             else:
                 cfg = {}
 
-            # Map to installed VS Code theme or customize colors
+            # Map to installed VS Code theme
             theme_mapping = {
-                "catppuccin": "Material Theme",
-                "tokyo night": "Material Theme Ocean",
+                "catppuccin": "Catppuccin Mocha",
+                "tokyo night": "Tokyo Night",
+                "gruvbox": "Gruvbox Dark Medium",
+                "nord": "Nord",
                 "dracula": "Aura Dracula Spirit",
-                "synthwave": "Aura Dracula Spirit Synthwave",
-                "one dark": "Material Theme Darker",
-                "nord": "Material Theme Palenight",
-                "gruvbox": "Material Theme"
+                "synthwave": "Aura Dracula Spirit (Synthwave)",
+                "one dark": "Atom One Dark",
+                "everforest": "Everforest Dark",
+                "rose pine": "Rosé Pine",
+                "wp coastal ocean": "Material Theme Ocean",
+                "wp glacier mist": "Nord",
+                "wp cosmic drift": "Tokyo Night",
+                "wp emerald canopy": "Everforest Dark",
+                "wp autumn lake": "Rosé Pine",
+                "wp golden dusk": "Gruvbox Dark Medium",
+                "wp amber sunset": "Gruvbox Dark Medium",
+                "wp misty mountain": "Nord",
+                "wp azure ocean": "Material Theme Ocean",
+                "wp amethyst violet": "Catppuccin Mocha",
+                "wp desert gold": "Gruvbox Dark Medium",
+                "wp earthy sand": "Gruvbox Dark Medium",
+                "wp warm taupe": "Gruvbox Dark Medium",
+                "wp cyan breeze": "Material Theme Ocean",
+                "anime": "Catppuccin Mocha",
+                "ariadne": "Material Theme Deepforest"
             }
-            target_vscode_theme = theme_mapping.get(name.lower(), "Material Theme Ocean")
+            target_vscode_theme = theme_mapping.get(name.lower(), "Tokyo Night")
             cfg["workbench.colorTheme"] = target_vscode_theme
 
-            # Inject real-time color customizations into VS Code
+            # Retain user's custom transparent ruler settings while syncing accent borders
             customizations = cfg.get("workbench.colorCustomizations", {})
+            # Remove blackish background/foreground overrides so authentic theme backgrounds and syntax colors show
+            for k in [
+                "editor.background", "editor.foreground", "terminal.background", "terminal.foreground",
+                "sideBar.background", "sideBar.foreground", "statusBar.background", "statusBar.foreground",
+                "titleBar.activeBackground", "titleBar.activeForeground", "activityBar.background", "activityBar.foreground",
+                "tab.activeBackground", "tab.inactiveBackground", "tab.inactiveForeground",
+                "input.background", "input.foreground", "list.activeSelectionBackground", "list.hoverBackground",
+                "sideBarSectionHeader.background", "editorLineNumber.foreground", "editorLineNumber.activeForeground"
+            ]:
+                customizations.pop(k, None)
+
+            # Only apply theme accent highlights
             customizations.update({
-                "activityBar.background": surface,
-                "activityBar.foreground": accent,
-                "activityBar.activeBorder": accent,
-                "statusBar.background": surface,
-                "statusBar.foreground": text_primary,
-                "sideBar.background": surface_alt,
-                "sideBar.foreground": text_primary,
-                "sideBarSectionHeader.background": surface,
-                "sideBarSectionHeader.foreground": accent,
-                "editor.background": surface,
-                "editor.foreground": text_primary,
-                "editorLineNumber.foreground": text_muted,
-                "editorLineNumber.activeForeground": accent,
                 "editorCursor.foreground": accent,
-                "titleBar.activeBackground": surface,
-                "titleBar.activeForeground": text_primary,
-                "tab.activeBackground": surface_alt,
-                "tab.activeForeground": accent,
-                "tab.activeBorder": accent,
-                "tab.inactiveBackground": surface,
-                "tab.inactiveForeground": text_secondary,
-                "terminal.background": surface,
-                "terminal.foreground": text_primary,
                 "focusBorder": accent,
-                "input.background": surface_bright,
-                "input.foreground": text_primary,
+                "tab.activeBorder": accent,
+                "tab.activeForeground": accent,
+                "activityBar.activeBorder": accent,
+                "sideBarSectionHeader.foreground": accent,
                 "input.border": accent,
-                "list.activeSelectionBackground": surface_bright,
-                "list.activeSelectionForeground": accent,
-                "list.hoverBackground": blend(surface, surface_bright, 0.5)
+                "list.activeSelectionForeground": accent
             })
             cfg["workbench.colorCustomizations"] = customizations
             settings_file.write_text(json.dumps(cfg, indent=2))

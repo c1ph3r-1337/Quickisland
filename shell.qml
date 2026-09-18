@@ -1220,6 +1220,7 @@ function getCurrentThemeStateKey() {
 
     Timer { interval: 5000; running: (shell.currentState === 1); repeat: true; onTriggered: shell.refreshBrightness() }
     Component.onCompleted: {
+        Quickshell.execDetached(["bash", "-c", "systemctl --user stop dunst.service 2>/dev/null; killall dunst 2>/dev/null || true"]);
         refreshBrightness();
         wifiProc.running = true;
         if (Settings.data.wallpaper.directory === "") {
