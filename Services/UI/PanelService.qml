@@ -55,6 +55,11 @@ Singleton {
     Logger.d("PanelService", "Registered panel:", panel.objectName);
   }
 
+  function unregisterPanel(name) {
+    delete registeredPanels[name];
+    Logger.d("PanelService", "Unregistered panel:", name);
+  }
+
   // Register popup menu window for a screen
   function registerPopupMenuWindow(screen, window) {
     if (!screen || !window)

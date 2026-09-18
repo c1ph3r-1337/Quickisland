@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
 DIR=$1
 
-
 COORD_FILE=~/.cache/quickisland/infinite_canvas_coords
-# Ensure strict sequential execution to prevent race conditions during rapid panning
 exec 200>"$COORD_FILE.lock"
 flock 200
 
@@ -45,14 +43,11 @@ else
     esac
 fi
 
-# If we didn't move, exit
 if [[ "$DX" == "0" ]] && [[ "$DY" == "0" ]]; then
     exit 0
 fi
 
 echo "$VX $VY" > $COORD_FILE
-
-# Tell QuickIsland to update its dual-axis indicator
 quickshell ipc -p ~/.config/quickshell/quickisland call virtual_workspace set_coords "$VX" "$VY" &
 
 CUR_WS=$(hyprctl activeworkspace -j | jq '.id')

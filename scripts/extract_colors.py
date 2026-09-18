@@ -95,11 +95,11 @@ def generate_palette(image_path):
     text_secondary = hsl_to_hex(ah, min(as_ * 0.18, 15), 72)
     text_muted     = hsl_to_hex(ah, min(as_ * 0.12, 10), 46)
 
-    # Semantic colors: shift hue from accent
-    red   = hsl_to_hex((ah + 340) % 360, 75, 68)
-    green = hsl_to_hex((ah + 140) % 360, 65, 68)
-    peach = hsl_to_hex((ah + 30) % 360, 80, 72)
-    blue  = hsl_to_hex((ah + 210) % 360, 75, 72)
+    # Semantic colors: crisp, high-contrast and legible
+    red   = hsl_to_hex(350, 80, 68)
+    green = hsl_to_hex(130, 65, 68)
+    peach = hsl_to_hex(25, 80, 72)
+    blue  = hsl_to_hex(215, 75, 72)
 
     return {
         "accent": accent, "surface": surface,

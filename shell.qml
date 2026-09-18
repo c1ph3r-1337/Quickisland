@@ -1,3 +1,4 @@
+//@ pragma IconTheme Tela-circle-dracula
 import QtQuick
 import QtQuick.Shapes
 import QtQuick.Effects
@@ -173,35 +174,209 @@ ShellRoot {
 
     readonly property var presets: [
         {
-            name: "Catppuccin Mocha",
-            accent: "#cba6f7", surface: "#11111b", surfaceAlt: "#1e1e2e", surfaceBright: "#313244",
-            textPrimary: "#cdd6f4", textSecondary: "#a6adc8", textMuted: "#6c7086",
-            red: "#f38ba8", green: "#a6e3a1", peach: "#fab387", blue: "#89b4fa"
+            name: "wp coastal ocean",
+            accent: "#3df4d7", surface: "#0b1211", surfaceAlt: "#121e1c", surfaceBright: "#1e2e2b",
+            textPrimary: "#e8f2f0", textSecondary: "#a5c9c3", textMuted: "#658b85",
+            dot1: "#1a7465", dot2: "#1dae97", dot3: "#22e6c7", dot4: "#3cf4d7", dot5: "#a3e9de", dot6: "#e3f1ef"
         },
         {
-            name: "Gruvbox Dark",
-            accent: "#fabd2f", surface: "#1d2021", surfaceAlt: "#282828", surfaceBright: "#3c3836",
-            textPrimary: "#fbf1c7", textSecondary: "#bdae93", textMuted: "#928374",
-            red: "#fb4934", green: "#b8bb26", peach: "#fe8019", blue: "#83a598"
+            name: "ariadne",
+            accent: "#5cd9cc", surface: "#111313", surfaceAlt: "#191f1e", surfaceBright: "#2a3231",
+            textPrimary: "#e7e9e9", textSecondary: "#a8b2b1", textMuted: "#6d7877",
+            dot1: "#48807b", dot2: "#4aada4", dot3: "#5accc0", dot4: "#5cd9cc", dot5: "#90d3cd", dot6: "#d7e5e4"
         },
         {
-            name: "Tokyo Night",
-            accent: "#7aa2f7", surface: "#1a1b26", surfaceAlt: "#24283b", surfaceBright: "#414868",
-            textPrimary: "#c0caf5", textSecondary: "#a9b1d6", textMuted: "#565f89",
-            red: "#f7768e", green: "#9ece6a", peach: "#ff9e64", blue: "#7accff"
+            name: "anime",
+            accent: "#e07997", surface: "#131111", surfaceAlt: "#1f191b", surfaceBright: "#322a2c",
+            textPrimary: "#e9e7e7", textSecondary: "#b2a8ab", textMuted: "#786d70",
+            dot1: "#8f5163", dot2: "#b95b76", dot3: "#d47490", dot4: "#e07997", dot5: "#dfaebc", dot6: "#e5d7db"
         },
         {
-            name: "Nord",
-            accent: "#88c0d0", surface: "#2e3440", surfaceAlt: "#3b4252", surfaceBright: "#4c566a",
-            textPrimary: "#eceff4", textSecondary: "#d8dee9", textMuted: "#4c566a",
-            red: "#bf616a", green: "#a3be8c", peach: "#ebcb8b", blue: "#81a1c1"
+            name: "catppuccin",
+            accent: "#a97be0", surface: "#121113", surfaceAlt: "#1c191f", surfaceBright: "#2e2a32",
+            textPrimary: "#e8e7e9", textSecondary: "#ada8b2", textMuted: "#726d78",
+            dot1: "#6e5190", dot2: "#875cba", dot3: "#a175d4", dot4: "#a97be0", dot5: "#c5afe0", dot6: "#ddd7e5"
         },
         {
-            name: "Cyberpunk",
-            accent: "#ff007f", surface: "#0b0813", surfaceAlt: "#161224", surfaceBright: "#2d1b4e",
-            textPrimary: "#00ffff", textSecondary: "#e0ffff", textMuted: "#7b68ee",
-            red: "#ff3333", green: "#33ff33", peach: "#ffaa00", blue: "#00aaff"
-        }
+            name: "tokyo night",
+            accent: "#7b9be0", surface: "#111113", surfaceAlt: "#191b1f", surfaceBright: "#2a2c32",
+            textPrimary: "#e7e8e9", textSecondary: "#a8acb2", textMuted: "#6d7178",
+            dot1: "#516590", dot2: "#5c7aba", dot3: "#7594d4", dot4: "#7b9be0", dot5: "#afbfe0", dot6: "#d7dbe5"
+        },
+        {
+            name: "gruvbox",
+            accent: "#d7af52", surface: "#131211", surfaceAlt: "#1f1d19", surfaceBright: "#32302a",
+            textPrimary: "#e9e9e7", textSecondary: "#b2afa8", textMuted: "#78756d",
+            dot1: "#7b6b46", dot2: "#a78a47", dot3: "#c9a551", dot4: "#d7af52", dot5: "#cfb986", dot6: "#e5e1d7"
+        },
+        {
+            name: "nord",
+            accent: "#88c0d0", surface: "#111213", surfaceAlt: "#1a1d1e", surfaceBright: "#2b3031",
+            textPrimary: "#e7e9e9", textSecondary: "#aaafb1", textMuted: "#6f7577",
+            dot1: "#5a7c86", dot2: "#699cab", dot3: "#82b6c5", dot4: "#88c0d0", dot5: "#b4cfd7", dot6: "#d9e1e3"
+        },
+        {
+            name: "dracula",
+            accent: "#a47be0", surface: "#121113", surfaceAlt: "#1c191f", surfaceBright: "#2d2a32",
+            textPrimary: "#e8e7e9", textSecondary: "#ada8b2", textMuted: "#726d78",
+            dot1: "#6b5190", dot2: "#825cba", dot3: "#9c75d4", dot4: "#a47be0", dot5: "#c3afe0", dot6: "#ddd7e5"
+        },
+        {
+            name: "rose pine",
+            accent: "#da8480", surface: "#131111", surfaceAlt: "#1e1a1a", surfaceBright: "#322a2a",
+            textPrimary: "#e9e7e7", textSecondary: "#b2a9a9", textMuted: "#786e6e",
+            dot1: "#8d5755", dot2: "#b46561", dot3: "#cf7e7a", dot4: "#da8480", dot5: "#ddb4b2", dot6: "#e4d8d7"
+        },
+        {
+            name: "everforest",
+            accent: "#a8c47c", surface: "#121311", surfaceAlt: "#1c1e1a", surfaceBright: "#2e312b",
+            textPrimary: "#e8e9e7", textSecondary: "#aeb1aa", textMuted: "#74766f",
+            dot1: "#6c7a56", dot2: "#879f61", dot3: "#9fb977", dot4: "#a8c47c", dot5: "#bccba5", dot6: "#dfe2d9"
+        },
+        {
+            name: "kanagawa",
+            accent: "#7e9cd8", surface: "#111113", surfaceAlt: "#1a1b1e", surfaceBright: "#2a2d32",
+            textPrimary: "#e7e8e9", textSecondary: "#a9acb2", textMuted: "#6e7178",
+            dot1: "#54668a", dot2: "#607bb2", dot3: "#7894cd", dot4: "#7e9cd8", dot5: "#afbddb", dot6: "#d8dce4"
+        },
+        {
+            name: "cyberpunk",
+            accent: "#df759f", surface: "#131112", surfaceAlt: "#1f191c", surfaceBright: "#322a2d",
+            textPrimary: "#e9e7e8", textSecondary: "#b2a8ac", textMuted: "#786d72",
+            dot1: "#8d5068", dot2: "#b8587e", dot3: "#d37098", dot4: "#df759f", dot5: "#ddaabe", dot6: "#e5d7dc"
+        },
+        {
+            name: "one dark",
+            accent: "#72adde", surface: "#111213", surfaceAlt: "#191c1f", surfaceBright: "#2a2e32",
+            textPrimary: "#e7e8e9", textSecondary: "#a8aeb2", textMuted: "#6d7378",
+            dot1: "#4f708c", dot2: "#568bb7", dot3: "#6da5d2", dot4: "#72adde", dot5: "#a6c4dc", dot6: "#d7dfe5"
+        },
+        {
+            name: "solarized",
+            accent: "#499bd4", surface: "#111213", surfaceAlt: "#191d1f", surfaceBright: "#2a2f32",
+            textPrimary: "#e7e8e9", textSecondary: "#a8aeb2", textMuted: "#6d7478",
+            dot1: "#436177", dot2: "#447aa0", dot3: "#4993c7", dot4: "#499bd4", dot5: "#7dabcc", dot6: "#d7dfe5"
+        },
+        {
+            name: "synthwave",
+            accent: "#cc74df", surface: "#131113", surfaceAlt: "#1e191f", surfaceBright: "#312a32",
+            textPrimary: "#e9e7e9", textSecondary: "#b1a8b2", textMuted: "#766d78",
+            dot1: "#824f8d", dot2: "#a757b8", dot3: "#c170d3", dot4: "#cc74df", dot5: "#d4a9dd", dot6: "#e3d7e5"
+        },
+        {
+            name: "monokai",
+            accent: "#e0d67a", surface: "#131311", surfaceAlt: "#1f1e19", surfaceBright: "#32312a",
+            textPrimary: "#e9e9e7", textSecondary: "#b2b1a8", textMuted: "#78776d",
+            dot1: "#908a51", dot2: "#b9b05b", dot3: "#d4cb75", dot4: "#e0d67a", dot5: "#dfdbaf", dot6: "#e5e4d7"
+        },
+        {
+            name: "github dark",
+            accent: "#78a8df", surface: "#111213", surfaceAlt: "#191c1f", surfaceBright: "#2a2e32",
+            textPrimary: "#e7e8e9", textSecondary: "#a8adb2", textMuted: "#6d7278",
+            dot1: "#506d8f", dot2: "#5a86b9", dot3: "#72a0d3", dot4: "#78a8df", dot5: "#acc4de", dot6: "#d7dde5"
+        },
+        {
+            name: "ashes",
+            accent: "#8ec2cc", surface: "#111213", surfaceAlt: "#1a1d1e", surfaceBright: "#2b3031",
+            textPrimary: "#e7e9e9", textSecondary: "#aaafb1", textMuted: "#6f7576",
+            dot1: "#5d7d84", dot2: "#6e9da7", dot3: "#88b8c2", dot4: "#8ec2cc", dot5: "#b9d1d6", dot6: "#d9e1e2"
+        },
+        {
+            name: "ayu dark",
+            accent: "#d9b05d", surface: "#131211", surfaceAlt: "#1f1d19", surfaceBright: "#322f2a",
+            textPrimary: "#e9e9e7", textSecondary: "#b2afa8", textMuted: "#78756d",
+            dot1: "#816e49", dot2: "#ae8d4a", dot3: "#cca65a", dot4: "#d9b05d", dot5: "#d4bd91", dot6: "#e5e0d7"
+        },
+        {
+            name: "oceanic",
+            accent: "#6699cc", surface: "#111213", surfaceAlt: "#1a1c1e", surfaceBright: "#2a2e31",
+            textPrimary: "#e7e8e9", textSecondary: "#a9adb1", textMuted: "#6e7377",
+            dot1: "#4d637a", dot2: "#537aa2", dot3: "#6391c0", dot4: "#6699cc", dot5: "#94b0cc", dot6: "#d8dee4"
+        },
+        {
+            name: "wp emerald coast",
+            accent: "#59d8c4", surface: "#111313", surfaceAlt: "#191f1e", surfaceBright: "#2a3231",
+            textPrimary: "#e7e9e9", textSecondary: "#a8b2b1", textMuted: "#6d7877",
+            dot1: "#477f76", dot2: "#49ab9c", dot3: "#57cbb9", dot4: "#59d8c4", dot5: "#8dd2c7", dot6: "#d7e5e3"
+        },
+        {
+            name: "wp glacier mist",
+            accent: "#72bfbf", surface: "#111313", surfaceAlt: "#1a1e1e", surfaceBright: "#2b3131",
+            textPrimary: "#e7e9e9", textSecondary: "#aab1b1", textMuted: "#6f7676",
+            dot1: "#527474", dot2: "#5c9898", dot3: "#6db4b4", dot4: "#72bfbf", dot5: "#9ac5c5", dot6: "#d9e2e2"
+        },
+        {
+            name: "wp cosmic drift",
+            accent: "#60add1", surface: "#111213", surfaceAlt: "#1a1d1e", surfaceBright: "#2a2f32",
+            textPrimary: "#e7e9e9", textSecondary: "#a9afb2", textMuted: "#6e7578",
+            dot1: "#4b6c7c", dot2: "#4e8aa6", dot3: "#5da4c4", dot4: "#60add1", dot5: "#91bbce", dot6: "#d7e0e4"
+        },
+        {
+            name: "wp emerald canopy",
+            accent: "#67ca7f", surface: "#111311", surfaceAlt: "#1a1e1b", surfaceBright: "#2b312c",
+            textPrimary: "#e7e9e7", textSecondary: "#a9b1ab", textMuted: "#6e7770",
+            dot1: "#4e7958", dot2: "#54a066", dot3: "#64be7a", dot4: "#67ca7f", dot5: "#94caa2", dot6: "#d8e3db"
+        },
+        {
+            name: "wp autumn lake",
+            accent: "#ad7edd", surface: "#121113", surfaceAlt: "#1c1a1e", surfaceBright: "#2e2a32",
+            textPrimary: "#e8e7e9", textSecondary: "#ada9b2", textMuted: "#736d78",
+            dot1: "#71538e", dot2: "#8b5fb7", dot3: "#a578d1", dot4: "#ad7edd", dot5: "#c7b1de", dot6: "#ded7e5"
+        },
+        {
+            name: "wp golden dusk",
+            accent: "#ddc570", surface: "#131311", surfaceAlt: "#1f1e19", surfaceBright: "#32302a",
+            textPrimary: "#e9e9e7", textSecondary: "#b2b0a8", textMuted: "#78766d",
+            dot1: "#8a7d4e", dot2: "#b6a154", dot3: "#d1bb6b", dot4: "#ddc570", dot5: "#dbcfa4", dot6: "#e5e2d7"
+        },
+        {
+            name: "wp amber sunset",
+            accent: "#c69d58", surface: "#131211", surfaceAlt: "#1e1d1a", surfaceBright: "#312f2b",
+            textPrimary: "#e9e8e7", textSecondary: "#b1aea9", textMuted: "#77746e",
+            dot1: "#716248", dot2: "#977c4e", dot3: "#ba9556", dot4: "#c69d58", dot5: "#c4ac85", dot6: "#e4dfd8"
+        },
+        {
+            name: "wp misty mountain",
+            accent: "#6f9cbf", surface: "#111213", surfaceAlt: "#1a1c1e", surfaceBright: "#2b2e31",
+            textPrimary: "#e7e8e9", textSecondary: "#aaaeb1", textMuted: "#6f7376",
+            dot1: "#516473", dot2: "#5b7d97", dot3: "#6b94b3", dot4: "#6f9cbf", dot5: "#98b1c3", dot6: "#d9dee2"
+        },
+        {
+            name: "wp azure ocean",
+            accent: "#59add8", surface: "#111213", surfaceAlt: "#191d1f", surfaceBright: "#2a2f32",
+            textPrimary: "#e7e9e9", textSecondary: "#a8afb2", textMuted: "#6d7578",
+            dot1: "#476c7f", dot2: "#498aab", dot3: "#57a4cb", dot4: "#59add8", dot5: "#8dbbd2", dot6: "#d7e0e5"
+        },
+        {
+            name: "wp amethyst violet",
+            accent: "#9c6ec3", surface: "#121113", surfaceAlt: "#1c1a1e", surfaceBright: "#2e2b31",
+            textPrimary: "#e8e7e9", textSecondary: "#aeaab1", textMuted: "#736f77",
+            dot1: "#655176", dot2: "#7d599b", dot3: "#946ab8", dot4: "#9c6ec3", dot5: "#b198c6", dot6: "#ded9e3"
+        },
+        {
+            name: "wp desert gold",
+            accent: "#c4a35a", surface: "#131211", surfaceAlt: "#1e1d1a", surfaceBright: "#312f2b",
+            textPrimary: "#e9e8e7", textSecondary: "#b1afaa", textMuted: "#77746e",
+            dot1: "#716449", dot2: "#96804f", dot3: "#b89a58", dot4: "#c4a35a", dot5: "#c2b086", dot6: "#e3e0d8"
+        },
+        {
+            name: "wp earthy sand",
+            accent: "#bf9c72", surface: "#131211", surfaceAlt: "#1e1c1a", surfaceBright: "#312e2b",
+            textPrimary: "#e9e8e7", textSecondary: "#b1aeaa", textMuted: "#76736f",
+            dot1: "#746552", dot2: "#987d5c", dot3: "#b4946d", dot4: "#bf9c72", dot5: "#c5b19a", dot6: "#e2ded9"
+        },
+        {
+            name: "wp warm taupe",
+            accent: "#bd976b", surface: "#131211", surfaceAlt: "#1e1c1a", surfaceBright: "#312e2b",
+            textPrimary: "#e9e8e7", textSecondary: "#b1aeaa", textMuted: "#76736f",
+            dot1: "#716150", dot2: "#947859", dot3: "#b28f68", dot4: "#bd976b", dot5: "#c1ac94", dot6: "#e2ded9"
+        },
+        {
+            name: "wp cyan breeze",
+            accent: "#49d4c8", surface: "#111313", surfaceAlt: "#191f1e", surfaceBright: "#2a3231",
+            textPrimary: "#e7e9e9", textSecondary: "#a8b2b2", textMuted: "#6d7877",
+            dot1: "#437772", dot2: "#44a098", dot3: "#49c7bc", dot4: "#49d4c8", dot5: "#7dccc5", dot6: "#d7e5e4"
+        },
     ]
 
     function applyPreset(p) {
@@ -212,12 +387,25 @@ ShellRoot {
         customTextPrimary = p.textPrimary;
         customTextSecondary = p.textSecondary;
         customTextMuted = p.textMuted;
-        customRed = p.red;
-        customGreen = p.green;
-        customPeach = p.peach;
-        customBlue = p.blue;
+        customRed = p.red || "#f38ba8";
+        customGreen = p.green || "#a6e3a1";
+        customPeach = p.peach || "#fab387";
+        customBlue = p.blue || p.accent || "#89b4fa";
         activeColorHex = shell[activeColorKey].toString();
         saveCustomPalette();
+
+        // System-wide theme propagation (Kitty, Hyprland borders, GTK/Nautilus, VS Code, Pywal)
+        var themeObj = Object.assign({}, p, {
+            red: customRed.toString(),
+            green: customGreen.toString(),
+            peach: customPeach.toString(),
+            blue: customBlue.toString()
+        });
+        Quickshell.execDetached([
+            "python3",
+            Quickshell.shellDir + "/scripts/apply_system_theme.py",
+            JSON.stringify(themeObj)
+        ]);
     }
 
     function rgbToHsl(r, g, b) {
@@ -587,6 +775,14 @@ function getCurrentThemeStateKey() {
         customPaletteFileView.writeAdapter();
     }
 
+    function isSufficientRed(c) {
+        if (!c) return false;
+        var obj = Qt.color(c);
+        var r = obj.r, g = obj.g, b = obj.b;
+        var lum = 0.299 * r + 0.587 * g + 0.114 * b;
+        return (r > g * 1.15 && r > b * 1.15 && lum >= 0.45);
+    }
+
     function loadThemeForWallpaper(path) {
         if (!path) return;
         _loadingTheme = true;
@@ -603,7 +799,7 @@ function getCurrentThemeStateKey() {
             shell.customTextPrimary = saved.customTextPrimary || shell.wpTextPrimary;
             shell.customTextSecondary = saved.customTextSecondary || shell.wpTextSecondary;
             shell.customTextMuted = saved.customTextMuted || shell.wpTextMuted;
-            shell.customRed = saved.customRed || shell.wpRed;
+            shell.customRed = isSufficientRed(saved.customRed) ? saved.customRed : (isSufficientRed(shell.wpRed) ? shell.wpRed : "#f38ba8");
             shell.customGreen = saved.customGreen || shell.wpGreen;
             shell.customPeach = saved.customPeach || shell.wpPeach;
             shell.customBlue = saved.customBlue || shell.wpBlue;
@@ -617,7 +813,7 @@ function getCurrentThemeStateKey() {
             shell.customTextPrimary = shell.wpTextPrimary;
             shell.customTextSecondary = shell.wpTextSecondary;
             shell.customTextMuted = shell.wpTextMuted;
-            shell.customRed = shell.wpRed;
+            shell.customRed = isSufficientRed(shell.wpRed) ? shell.wpRed : "#f38ba8";
             shell.customGreen = shell.wpGreen;
             shell.customPeach = shell.wpPeach;
             shell.customBlue = shell.wpBlue;
@@ -2444,7 +2640,7 @@ function getCurrentThemeStateKey() {
                 focus: true
                 Component.onCompleted: {
                     panelWindow.activeStateChanged.connect(function() {
-                        if (panelWindow.activeState > 1 && panelWindow.activeState !== 4 && panelWindow.activeState !== 15 && panelWindow.activeState !== 16) {
+                        if (panelWindow.activeState > 1 && panelWindow.activeState !== 4 && panelWindow.activeState !== 15 && panelWindow.activeState !== 16 && panelWindow.activeState !== 20) {
                             island.forceActiveFocus();
                         }
                     });
@@ -2488,6 +2684,7 @@ function getCurrentThemeStateKey() {
                         case 17: return 440;
                         case 18: return 440;
                         case 19: return 440;
+                        case 20: return 520;
                         default: return 110;
                     }
                 }
@@ -2513,6 +2710,7 @@ function getCurrentThemeStateKey() {
                         case 17: return Math.min(680, (typeof settingsCol !== "undefined" ? settingsCol.height + 28 : 380));
                         case 18: return Math.min(680, (typeof settingsContent !== "undefined" ? settingsContent.height + 80 : 380));
                         case 19: return Math.min(680, (typeof barIslandCol !== "undefined" ? barIslandCol.height + 28 : 350));
+                        case 20: return 180;
                         default: return 30;
                     }
                 }
@@ -2957,36 +3155,61 @@ function getCurrentThemeStateKey() {
                                          anchors.fill: parent
                                          anchors.margins: 8
 
-                                         Image {
-                                             id: appIcon
-                                             width: 36; height: 36
-                                             anchors.horizontalCenter: parent.horizontalCenter
-                                             y: (lma.containsMouse || (launcherView.hasQuery && index === launcherView.selectedAppIndex)) ? 6 : (parent.height - height) / 2
-                                             Behavior on y {
-                                                  enabled: launcherView.opacity > 0.99
-                                                  NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic }
+                                          Image {
+                                              id: appIcon
+                                              width: 36; height: 36
+                                              anchors.horizontalCenter: parent.horizontalCenter
+                                              y: (lma.containsMouse || (launcherView.hasQuery && index === launcherView.selectedAppIndex)) ? 6 : (parent.height - height) / 2
+                                              Behavior on y {
+                                                   enabled: launcherView.opacity > 0.99
+                                                   NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic }
+                                               }
+                                              fillMode: Image.PreserveAspectFit
+                                              visible: appIcon.status === Image.Ready
+                                              layer.enabled: visible && panelWindow.activeState === 4 && Settings.data.colorSchemes.themedIcons
+                                              layer.effect: MultiEffect {
+                                                  colorization: 1.0; colorizationColor: shell.accent
                                               }
-                                             fillMode: Image.PreserveAspectFit
-                                             layer.enabled: panelWindow.activeState === 4 && Settings.data.colorSchemes.themedIcons
-                                             layer.effect: MultiEffect {
-                                                 colorization: 1.0; colorizationColor: shell.accent
-                                             }
-                                             source: {
-                                                 var path = "";
-                                                 if (appCard.appData && appCard.appData.icon) {
-                                                     if (typeof Quickshell !== 'undefined' && Quickshell.iconPath) {
-                                                         path = Quickshell.iconPath(appCard.appData.icon, "application-x-executable");
-                                                     }
-                                                 }
-                                                 if (path && path !== "") {
-                                                     if (path.startsWith("file://") || path.startsWith("image://")) {
-                                                         return path;
-                                                     }
-                                                     return "file://" + path;
-                                                 }
-                                                 return "";
-                                             }
-                                         }
+                                              source: {
+                                                  if (!appCard.appData) return "";
+                                                  var rawIcon = appCard.appData.icon || "";
+                                                  if (rawIcon.startsWith("/")) {
+                                                      return "file://" + rawIcon;
+                                                  }
+                                                  if (typeof ThemeIcons !== 'undefined') {
+                                                      var ti = ThemeIcons.iconForAppId(appCard.appData.id);
+                                                      if (ti && ti !== "") return ti;
+                                                  }
+                                                  if (typeof Quickshell !== 'undefined' && Quickshell.iconPath) {
+                                                      var p = Quickshell.iconPath(rawIcon, true);
+                                                      if (p && p !== "") return p;
+                                                      p = Quickshell.iconPath(rawIcon, "application-x-executable");
+                                                      if (p && p !== "") return p;
+                                                  }
+                                                  return "";
+                                              }
+                                          }
+
+                                          // Clean fallback placeholder when icon fails or is missing
+                                          Rectangle {
+                                              id: appIconFallback
+                                              width: 36; height: 36
+                                              radius: 10
+                                              anchors.horizontalCenter: parent.horizontalCenter
+                                              y: appIcon.y
+                                              visible: !appIcon.visible
+                                              color: shell.surfaceBright
+                                              border.width: 1
+                                              border.color: shell.surfaceBorder
+
+                                              Text {
+                                                  anchors.centerIn: parent
+                                                  text: (appCard.appData && appCard.appData.name) ? appCard.appData.name.charAt(0).toUpperCase() : "★"
+                                                  color: shell.accent
+                                                  font.pixelSize: 18
+                                                  font.weight: Font.Bold
+                                              }
+                                          }
 
                                          Text {
                                              id: appName
@@ -3755,13 +3978,21 @@ function getCurrentThemeStateKey() {
                             ]
 
                             Rectangle {
+                                id: pBtn
                                 width: 80; height: 70; radius: 16
-                                color: pma.containsMouse
-                                    ? (modelData.danger ? Qt.rgba(shell.red.r, shell.red.g, shell.red.b, 0.2) : shell.surfaceBright)
-                                    : (modelData.danger ? Qt.rgba(shell.red.r, shell.red.g, shell.red.b, 0.08) : shell.surfaceAlt)
+                                readonly property color dangerCol: {
+                                    var r = shell.red.r, g = shell.red.g, b = shell.red.b;
+                                    var lum = 0.299 * r + 0.587 * g + 0.114 * b;
+                                    if (r > g * 1.15 && r > b * 1.15 && lum >= 0.45) return shell.red;
+                                    return "#f38ba8";
+                                }
+
+                                color: modelData.danger
+                                    ? (pma.containsMouse ? Qt.rgba(dangerCol.r, dangerCol.g, dangerCol.b, 0.22) : Qt.rgba(dangerCol.r, dangerCol.g, dangerCol.b, 0.09))
+                                    : (pma.containsMouse ? shell.surfaceBright : shell.surfaceAlt)
                                 Behavior on color { ColorAnimation { duration: shell.animFast } }
+
                                 border.width: 0
-                                border.color: Qt.rgba(shell.red.r, shell.red.g, shell.red.b, 0.2)
 
                                 Column {
                                     anchors.centerIn: parent; spacing: 6
@@ -3773,10 +4004,18 @@ function getCurrentThemeStateKey() {
                                         layer.effect: MultiEffect {
                                             brightness: 1.0
                                             colorization: 1.0
-                                            colorizationColor: modelData.danger ? shell.red : (pma.containsMouse ? shell.accent : shell.textSecondary)
+                                            colorizationColor: modelData.danger ? pBtn.dangerCol : (pma.containsMouse ? shell.accent : shell.textSecondary)
                                         }
                                     }
-                                    Text { text: modelData.label; color: modelData.danger ? shell.red : (pma.containsMouse ? shell.textPrimary : shell.textSecondary); font.pixelSize: 10; font.weight: Font.Medium; anchors.horizontalCenter: parent.horizontalCenter }
+                                    Text {
+                                        text: modelData.label
+                                        color: modelData.danger
+                                            ? (pma.containsMouse ? "#ffffff" : pBtn.dangerCol)
+                                            : (pma.containsMouse ? shell.textPrimary : shell.textSecondary)
+                                        font.pixelSize: 10
+                                        font.weight: Font.Medium
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                    }
                                 }
 
                                 MouseArea {
@@ -4970,6 +5209,44 @@ function getCurrentThemeStateKey() {
                                 }
                             }
 
+                            // Theme Switcher Card (State 20)
+                            Rectangle {
+                                width: parent.width; height: 64; radius: 14; color: themePickerCardMa.containsMouse ? shell.surfaceBright : shell.surfaceAlt
+                                border.width: 0; border.color: shell.surfaceBorder
+                                Behavior on color { ColorAnimation { duration: shell.animFast } }
+
+                                Row {
+                                    anchors.fill: parent; anchors.margins: 12; spacing: 12
+
+                                    Rectangle {
+                                        width: 40; height: 40; radius: 8
+                                        color: shell.accentDim
+                                        Image {
+                                            anchors.centerIn: parent; width: 20; height: 20
+                                            source: "icons/palette.png"
+                                            fillMode: Image.PreserveAspectFit
+                                            layer.enabled: panelWindow.activeState === 12
+                                            layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: shell.accent }
+                                        }
+                                    }
+
+                                    Column {
+                                        width: parent.width - 40 - 24 - 12
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        Text { text: "Browse All Themes"; color: "#ffffff"; font.pixelSize: 12; font.weight: Font.Bold }
+                                        Text { text: "QuickIsland theme picker (Super + Shift + T)"; color: shell.accent; font.pixelSize: 9 }
+                                    }
+                                }
+
+                                MouseArea {
+                                    id: themePickerCardMa
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: shell.setState(20)
+                                }
+                            }
+
                             // 2. Color Theme Card
                             Rectangle {
                                 width: parent.width; height: 105; radius: 14; color: shell.surfaceAlt
@@ -5882,7 +6159,312 @@ function getCurrentThemeStateKey() {
                         }
                     }
                 }
-Item {     id: clipboardHistoryView
+
+                // =============================================================
+                // STATE 20: THEME SWITCHER (Super+Shift+T)
+                // =============================================================
+                Item {
+                    id: themeSwitcherView
+                    anchors.fill: parent
+                    opacity: panelWindow.activeState === 20 ? 1 : 0
+                    scale: panelWindow.activeState === 20 ? 1 : 0.96
+                    visible: opacity > 0.01
+
+                    Behavior on opacity { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
+                    Behavior on scale   { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
+
+                    property string filterQuery: ""
+                    property int selectedIdx: 0
+
+                    readonly property var filteredThemes: {
+                        var q = filterQuery.trim().toLowerCase();
+                        if (!q) return shell.presets;
+                        return shell.presets.filter(function(p) {
+                            return (p.name || "").toLowerCase().indexOf(q) !== -1;
+                        });
+                    }
+
+                    onFilteredThemesChanged: {
+                        if (selectedIdx >= filteredThemes.length) {
+                            selectedIdx = Math.max(0, filteredThemes.length - 1);
+                        }
+                    }
+
+                    onVisibleChanged: {
+                        if (visible) {
+                            filterQuery = "";
+                            themeSearchInput.text = "";
+                            selectedIdx = 0;
+                            // Preselect active preset if matches
+                            for (var i = 0; i < shell.presets.length; i++) {
+                                if (shell.customAccent.toString().toLowerCase() === shell.presets[i].accent.toLowerCase()) {
+                                    selectedIdx = i;
+                                    break;
+                                }
+                            }
+                            Qt.callLater(function() {
+                                themeSearchInput.forceActiveFocus();
+                                if (themeCardsList.count > selectedIdx) {
+                                    themeCardsList.positionViewAtIndex(selectedIdx, ListView.Center);
+                                }
+                            });
+                        }
+                    }
+
+                    function selectCurrentTheme() {
+                        if (filteredThemes && filteredThemes.length > selectedIdx && selectedIdx >= 0) {
+                            var p = filteredThemes[selectedIdx];
+                            shell.themeMode = "custom";
+                            shell.applyPreset(p);
+                            shell.setState(0);
+                        }
+                    }
+
+                    function formatThemeName(raw) {
+                        if (!raw) return "";
+                        return raw.split(" ").map(function(w) {
+                            if (w.toLowerCase() === "wp") return "WP";
+                            return w.charAt(0).toUpperCase() + w.slice(1);
+                        }).join(" ");
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: shell.setState(0)
+                    }
+
+                    Column {
+                        anchors.fill: parent
+                        anchors.margins: 14
+                        spacing: 10
+
+                        // ── Top Header Bar: Search & Counter ──
+                        Item {
+                            width: parent.width
+                            height: 28
+
+                            // Search Icon
+                            Text {
+                                id: searchIcon
+                                anchors.left: parent.left
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "\uf0349"
+                                font.family: "Material Design Icons"
+                                font.pixelSize: 16
+                                color: shell.textSecondary
+                            }
+
+                            TextInput {
+                                id: themeSearchInput
+                                anchors.left: searchIcon.right
+                                anchors.leftMargin: 8
+                                anchors.right: themeCounterText.left
+                                anchors.rightMargin: 12
+                                anchors.verticalCenter: parent.verticalCenter
+                                verticalAlignment: TextInput.AlignVCenter
+                                color: shell.textPrimary
+                                font.pixelSize: 13
+                                font.family: "Inter, sans-serif"
+                                text: themeSwitcherView.filterQuery
+                                selectByMouse: true
+
+                                Text {
+                                    anchors.fill: parent
+                                    verticalAlignment: Text.AlignVCenter
+                                    text: "Search themes..."
+                                    color: Qt.rgba(shell.textSecondary.r, shell.textSecondary.g, shell.textSecondary.b, 0.5)
+                                    font.pixelSize: 13
+                                    font.family: themeSearchInput.font.family
+                                    visible: !themeSearchInput.text && !themeSearchInput.activeFocus
+                                }
+
+                                onTextChanged: {
+                                    themeSwitcherView.filterQuery = text;
+                                    themeSwitcherView.selectedIdx = 0;
+                                }
+
+                                Keys.onLeftPressed: function(event) {
+                                    if (themeSwitcherView.selectedIdx > 0) {
+                                        themeSwitcherView.selectedIdx--;
+                                        themeCardsList.positionViewAtIndex(themeSwitcherView.selectedIdx, ListView.Contain);
+                                        event.accepted = true;
+                                    }
+                                }
+
+                                Keys.onRightPressed: function(event) {
+                                    if (themeSwitcherView.selectedIdx < themeSwitcherView.filteredThemes.length - 1) {
+                                        themeSwitcherView.selectedIdx++;
+                                        themeCardsList.positionViewAtIndex(themeSwitcherView.selectedIdx, ListView.Contain);
+                                        event.accepted = true;
+                                    }
+                                }
+
+                                Keys.onReturnPressed: function(event) {
+                                    themeSwitcherView.selectCurrentTheme();
+                                    event.accepted = true;
+                                }
+                                Keys.onEnterPressed: function(event) {
+                                    themeSwitcherView.selectCurrentTheme();
+                                    event.accepted = true;
+                                }
+
+                                Keys.onEscapePressed: function(event) {
+                                    shell.setState(0);
+                                    event.accepted = true;
+                                }
+                            }
+
+                            // Counter: e.g. "2 / 19"
+                            Text {
+                                id: themeCounterText
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: (themeSwitcherView.filteredThemes.length > 0 ? (themeSwitcherView.selectedIdx + 1) : 0) + " / " + themeSwitcherView.filteredThemes.length
+                                color: shell.textMuted
+                                font.pixelSize: 11
+                                font.weight: Font.Medium
+                            }
+                        }
+
+                        // ── Horizontal Theme Cards List ──
+                        Item {
+                            width: parent.width
+                            height: 94
+
+                            ListView {
+                                id: themeCardsList
+                                anchors.fill: parent
+                                orientation: ListView.Horizontal
+                                spacing: 10
+                                clip: true
+                                boundsBehavior: Flickable.StopAtBounds
+                                model: themeSwitcherView.filteredThemes
+
+                                delegate: Item {
+                                    id: cardDelegate
+                                    width: 154
+                                    height: 94
+
+                                    readonly property bool isSelected: themeSwitcherView.selectedIdx === index
+
+                                    Rectangle {
+                                        id: cardInner
+                                        anchors.centerIn: parent
+                                        width: cardDelegate.isSelected ? 152 : 148
+                                        height: cardDelegate.isSelected ? 92 : 88
+                                        radius: 16
+                                        color: cardDelegate.isSelected 
+                                            ? Qt.rgba(modelData.accent.r, modelData.accent.g, modelData.accent.b, 0.12)
+                                            : (cMa.containsMouse ? shell.surfaceBright : shell.surfaceAlt)
+                                        border.width: cardDelegate.isSelected ? 2 : 1
+                                        border.color: cardDelegate.isSelected 
+                                            ? modelData.accent
+                                            : (cMa.containsMouse ? Qt.rgba(shell.textSecondary.r, shell.textSecondary.g, shell.textSecondary.b, 0.25) : "transparent")
+
+                                        Behavior on color { ColorAnimation { duration: 180 } }
+                                        Behavior on border.color { ColorAnimation { duration: 180 } }
+                                        Behavior on width { NumberAnimation { duration: 180; easing.type: Easing.OutBack } }
+                                        Behavior on height { NumberAnimation { duration: 180; easing.type: Easing.OutBack } }
+
+                                        // Selection dot indicator at top-right
+                                        Rectangle {
+                                            anchors.top: parent.top
+                                            anchors.right: parent.right
+                                            anchors.topMargin: 8
+                                            anchors.rightMargin: 8
+                                            width: 6
+                                            height: 6
+                                            radius: 3
+                                            color: modelData.accent
+                                            visible: cardDelegate.isSelected
+                                        }
+
+                                        Column {
+                                            anchors.centerIn: parent
+                                            width: parent.width - 16
+                                            spacing: 10
+
+                                            // Row of 6 preview color dots
+                                            Row {
+                                                anchors.horizontalCenter: parent.horizontalCenter
+                                                spacing: 6
+
+                                                Repeater {
+                                                    model: [
+                                                        modelData.dot1 || modelData.accent,
+                                                        modelData.dot2 || modelData.accent,
+                                                        modelData.dot3 || modelData.accent,
+                                                        modelData.dot4 || modelData.accent,
+                                                        modelData.dot5 || modelData.accent,
+                                                        modelData.dot6 || modelData.accent
+                                                    ]
+
+                                                    Rectangle {
+                                                        width: 14
+                                                        height: 14
+                                                        radius: 7
+                                                        color: modelData
+                                                    }
+                                                }
+                                            }
+
+                                            // Theme name text
+                                            Text {
+                                                width: parent.width
+                                                horizontalAlignment: Text.AlignHCenter
+                                                text: themeSwitcherView.formatThemeName(modelData.name)
+                                                color: cardDelegate.isSelected ? modelData.accent : shell.textPrimary
+                                                font.pixelSize: 11
+                                                font.weight: cardDelegate.isSelected ? Font.Bold : Font.Medium
+                                                elide: Text.ElideRight
+                                                maximumLineCount: 1
+                                                Behavior on color { ColorAnimation { duration: 150 } }
+                                            }
+                                        }
+
+                                        MouseArea {
+                                            id: cMa
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                themeSwitcherView.selectedIdx = index;
+                                                themeSwitcherView.selectCurrentTheme();
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // ── Bottom Hint Row ──
+                        Item {
+                            width: parent.width
+                            height: 16
+
+                            Text {
+                                anchors.left: parent.left
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "← → Navigate"
+                                color: shell.textMuted
+                                font.pixelSize: 10
+                                font.weight: Font.Normal
+                            }
+
+                            Text {
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "Enter to apply • Esc to close"
+                                color: shell.textMuted
+                                font.pixelSize: 10
+                                font.weight: Font.Normal
+                            }
+                        }
+                    }
+                }
+
+                Item {
+                    id: clipboardHistoryView
                     anchors.fill: parent
                     opacity: panelWindow.activeState === 13 ? 1 : 0; scale: panelWindow.activeState === 13 ? 1 : 0.96; visible: opacity > 0.01
                     Behavior on opacity { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
@@ -7670,7 +8252,7 @@ Item {     id: clipboardHistoryView
             property var modelData
             color: "transparent"
             
-            // Click-through when overview is OFF, interactive when ON
+            // Interactive when ON
             Region { id: overviewMaskRegion }
             mask: shell.overviewActive ? null : overviewMaskRegion
             
@@ -7684,7 +8266,7 @@ Item {     id: clipboardHistoryView
             property var layoutData: null
             property bool jumpPending: false
             
-            // Read layout JSON produced by overview_zoom.sh
+            // Read layout JSON
             Process {
                 id: overviewLayoutProc
                 command: ["bash", "-c", "cat ~/.cache/quickisland/overview_layout.json 2>/dev/null"]
@@ -7699,10 +8281,10 @@ Item {     id: clipboardHistoryView
                 }
             }
             
-            // Enter overview: physically zoom out all windows
+            // Enter
             Process {
                 id: overviewEnterProc
-                command: ["bash", "-c", "~/.config/quickshell/quickisland/scripts/overview_zoom.sh enter"]
+                command: ["bash", "-c", "~/.config/quickshell/quickisland/scripts/overview_zoom.sh enter && hyprctl dispatch spatialoverview toggle"]
                 stdout: StdioCollector {
                     onStreamFinished: {
                         overviewLayoutProc.running = true;
@@ -7710,24 +8292,34 @@ Item {     id: clipboardHistoryView
                 }
             }
             
-            // Exit overview: restore windows
+            // Exit
             Process {
                 id: overviewExitProc
-                command: ["bash", "-c", "~/.config/quickshell/quickisland/scripts/overview_zoom.sh exit"]
+                command: ["bash", "-c", "~/.config/quickshell/quickisland/scripts/overview_zoom.sh exit && hyprctl dispatch spatialoverview toggle"]
             }
             
-            // Jump to a workspace
+            // Jump
             Process {
                 id: overviewJumpProc
                 property int targetVx: 0
                 property int targetVy: 0
-                command: ["bash", "-c", "~/.config/quickshell/quickisland/scripts/overview_zoom.sh jump " + targetVx + " " + targetVy]
+                command: ["bash", "-c", "~/.config/quickshell/quickisland/scripts/overview_zoom.sh jump " + targetVx + " " + targetVy + " && hyprctl dispatch spatialoverview toggle"]
+            }
+            
+            // Pan dispatcher
+            Process {
+                id: overviewPanProc
+                property real panX: 0
+                property real panY: 0
+                command: ["bash", "-c", "hyprctl dispatch spatialoverview_pan " + panX + " " + panY]
             }
             
             Connections {
                 target: shell
                 function onOverviewActiveChanged() {
                     if (shell.overviewActive) {
+                        overviewRootItem.panX = 0;
+                        overviewRootItem.panY = 0;
                         overviewEnterProc.running = true;
                         overviewRootItem.forceActiveFocus();
                     } else {
@@ -7740,17 +8332,14 @@ Item {     id: clipboardHistoryView
                 }
             }
             
-            // Dim background (Removed per user request)
-            Rectangle {
-                anchors.fill: parent
-                color: "transparent"
-            }
-            
             Item {
                 id: overviewRootItem
                 anchors.fill: parent
                 focus: shell.overviewActive
                 visible: shell.overviewActive
+                
+                property real panX: 0
+                property real panY: 0
                 
                 Keys.onEscapePressed: shell.overviewActive = false
                 Keys.onPressed: (event) => {
@@ -7759,34 +8348,70 @@ Item {     id: clipboardHistoryView
                     }
                 }
                 
-                // Click background to close
+                // Pan/Drag Area
                 MouseArea {
                     anchors.fill: parent
-                    onClicked: shell.overviewActive = false
+                    property real startX: 0
+                    property real startY: 0
+                    property real startPanX: 0
+                    property real startPanY: 0
+                    property bool dragging: false
+                    
+                    onPressed: (mouse) => {
+                        startX = mouse.x;
+                        startY = mouse.y;
+                        startPanX = overviewRootItem.panX;
+                        startPanY = overviewRootItem.panY;
+                        dragging = true;
+                    }
+                    onPositionChanged: (mouse) => {
+                        if (dragging) {
+                            overviewRootItem.panX = startPanX + (mouse.x - startX);
+                            overviewRootItem.panY = startPanY + (mouse.y - startY);
+                            // Only update native plugin occasionally to avoid spamming Process, or just let it rip
+                            if (!overviewPanProc.running) {
+                                overviewPanProc.panX = overviewRootItem.panX;
+                                overviewPanProc.panY = overviewRootItem.panY;
+                                overviewPanProc.running = true;
+                            }
+                        }
+                    }
+                    onReleased: {
+                        dragging = false;
+                        overviewPanProc.panX = overviewRootItem.panX;
+                        overviewPanProc.panY = overviewRootItem.panY;
+                        overviewPanProc.running = true;
+                    }
+                    onClicked: {
+                        if (Math.abs(mouse.x - startX) < 10 && Math.abs(mouse.y - startY) < 10) {
+                            shell.overviewActive = false;
+                        }
+                    }
                 }
                 
-                // Grid cell click targets (invisible)
+                // Invisible jump targets (offset by pan!)
                 Repeater {
                     model: {
                         var d = overviewOverlayWindow.layoutData;
                         if (!d) return 0;
-                        return d.cols * d.rows;
+                        var cols = d.max_vx - d.min_vx + 1;
+                        var rows = d.max_vy - d.min_vy + 1;
+                        return cols * rows;
                     }
-                    
                     Item {
                         property var d: overviewOverlayWindow.layoutData
-                        property int col: index % d.cols
-                        property int row: Math.floor(index / d.cols)
+                        property int cols: d.max_vx - d.min_vx + 1
+                        property int col: index % cols
+                        property int row: Math.floor(index / cols)
                         property int cellVx: d.min_vx + col
                         property int cellVy: d.max_vy - row
                         
-                        x: d.ox - overviewOverlayWindow.screen.x + col * (d.cell_w + d.gap)
-                        y: d.oy - overviewOverlayWindow.screen.y + row * (d.cell_h + d.gap)
-                        width: d.cell_w
-                        height: d.cell_h
+                        x: d.center_x + (cellVx - d.vx) * d.dist_x + overviewRootItem.panX
+                        y: d.center_y + (cellVy - d.vy) * d.dist_y + overviewRootItem.panY
+                        width: d.mon_w * d.zoom
+                        height: d.mon_h * d.zoom
                         
                         MouseArea {
-                            id: overviewCellMa
                             anchors.fill: parent
                             hoverEnabled: true
                             onClicked: {
