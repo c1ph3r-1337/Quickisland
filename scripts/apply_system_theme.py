@@ -41,10 +41,18 @@ def main():
     text_primary = data.get("textPrimary", "#cdd6f4")
     text_secondary = data.get("textSecondary", "#a6adc8")
     text_muted = data.get("textMuted", "#6c7086")
-    red = data.get("red") or "#e06c75"
-    green = data.get("green") or "#98c379"
-    peach = data.get("peach") or "#d19a66"
-    blue = data.get("blue") or data.get("accent") or "#61afef"
+
+    dot1 = data.get("dot1") or blend(surface, accent, 0.35)
+    dot2 = data.get("dot2") or blend(surface, accent, 0.55)
+    dot3 = data.get("dot3") or blend(surface, accent, 0.75)
+    dot4 = data.get("dot4") or accent
+    dot5 = data.get("dot5") or blend(accent, text_primary, 0.35)
+    dot6 = data.get("dot6") or blend(accent, text_primary, 0.75)
+
+    red = data.get("red") or dot1
+    green = data.get("green") or dot2
+    peach = data.get("peach") or dot3
+    blue = data.get("blue") or dot4
 
     home = Path.home()
 
@@ -53,20 +61,20 @@ def main():
     kitty_theme_file.parent.mkdir(parents=True, exist_ok=True)
     kitty_content = f"""# QuickIsland Auto-Generated Theme: {name}
 color0 {surface}
-color1 {red}
-color2 {green}
-color3 {peach}
-color4 {blue}
-color5 {accent}
-color6 {blue}
+color1 {dot1}
+color2 {dot2}
+color3 {dot3}
+color4 {dot4}
+color5 {dot5}
+color6 {dot6}
 color7 {text_secondary}
 color8 {surface_bright}
-color9 {red}
-color10 {green}
-color11 {peach}
-color12 {blue}
-color13 {accent}
-color14 {blue}
+color9 {dot1}
+color10 {dot2}
+color11 {dot3}
+color12 {dot4}
+color13 {dot5}
+color14 {dot6}
 color15 {text_primary}
 
 cursor                {accent}
@@ -270,20 +278,20 @@ cursor_trail_color      {accent}
         },
         "colors": {
             "color0": surface,
-            "color1": red,
-            "color2": green,
-            "color3": peach,
-            "color4": blue,
-            "color5": accent,
-            "color6": blue,
+            "color1": dot1,
+            "color2": dot2,
+            "color3": dot3,
+            "color4": dot4,
+            "color5": dot5,
+            "color6": dot6,
             "color7": text_secondary,
             "color8": surface_bright,
-            "color9": red,
-            "color10": green,
-            "color11": peach,
-            "color12": blue,
-            "color13": accent,
-            "color14": blue,
+            "color9": dot1,
+            "color10": dot2,
+            "color11": dot3,
+            "color12": dot4,
+            "color13": dot5,
+            "color14": dot6,
             "color15": text_primary
         }
     }

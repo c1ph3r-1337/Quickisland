@@ -387,10 +387,10 @@ ShellRoot {
         customTextPrimary = p.textPrimary;
         customTextSecondary = p.textSecondary;
         customTextMuted = p.textMuted;
-        customRed = p.red || "#f38ba8";
+        customRed = p.red || p.dot1 || p.accent;
         customGreen = p.green || p.dot3 || p.accent;
         customPeach = p.peach || p.dot5 || p.accent;
-        customBlue = p.blue || p.accent;
+        customBlue = p.blue || p.dot4 || p.accent;
         activeColorHex = shell[activeColorKey].toString();
         saveCustomPalette();
 
