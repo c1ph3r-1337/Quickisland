@@ -1111,6 +1111,32 @@ function getCurrentThemeStateKey() {
     }
     property bool sysMuted: audioSink && audioSink.audio ? audioSink.audio.muted : true
 
+    Connections {
+        target: shell.audioSink && shell.audioSink.audio ? shell.audioSink.audio : null
+        function onVolumeChanged() {
+            if (!shell.volDragging && shell.audioSink && shell.audioSink.audio) {
+                var raw = shell.audioSink.audio.volume;
+                if (raw > 1.0) {
+                    shell.audioSink.audio.volume = 1.0;
+                    raw = 1.0;
+                }
+                shell.sysVolume = Math.max(0.0, Math.min(1.0, raw));
+                if (shell.currentState === 0 || shell.currentState === 2) {
+                    shell.osdType = "volume";
+                    shell.setState(2);
+                    osdTimer.restart();
+                }
+            }
+        }
+        function onMutedChanged() {
+            if (shell.currentState === 0 || shell.currentState === 2) {
+                shell.osdType = "volume";
+                shell.setState(2);
+                osdTimer.restart();
+            }
+        }
+    }
+
     function setVolume(v) {
         if (audioSink && audioSink.audio) {
             var targetVol = Math.max(0.0, Math.min(1.0, v));
@@ -1134,10 +1160,29 @@ function getCurrentThemeStateKey() {
         }
         _lastVolume = sysVolume;
     }
+    onSysMutedChanged: {
+        if (shell.currentState === 0 || shell.currentState === 2) {
+            osdType = "volume";
+            setState(2);
+            osdTimer.restart();
+        }
+    }
 
     // ── Brightness ───────────────────────────────────────────────────────
     property real sysBrightness: 0.5
     property real sysBrightnessMax: 1
+
+    property real _lastBrightness: -1
+    onSysBrightnessChanged: {
+        if (_lastBrightness >= 0 && Math.abs(sysBrightness - _lastBrightness) > 0.001) {
+            if (shell.currentState === 0 || shell.currentState === 2) {
+                osdType = "brightness";
+                setState(2);
+                osdTimer.restart();
+            }
+        }
+        _lastBrightness = sysBrightness;
+    }
 
     Process {
         id: brightnessReadProc
@@ -2693,7 +2738,7 @@ function getCurrentThemeStateKey() {
                     switch (panelWindow.activeState) {
                         case 0: return 30;
                         case 1: return 44;
-                        case 2: return 32;
+                        case 2: return 34;
                         case 3: return 76;
                         case 4: return 445;
                         case 5: return Math.min(680, (typeof ccColumn !== "undefined" ? ccColumn.height + 28 : 590));
@@ -2903,41 +2948,66 @@ function getCurrentThemeStateKey() {
                 // STATE 2: OSD
                 // =============================================================
                 Item {
+                    id: osdView
                     anchors.fill: parent
                     opacity: panelWindow.activeState === 2 ? 1 : 0; scale: panelWindow.activeState === 2 ? 1 : 0.92; visible: opacity > 0.01
                     Behavior on opacity { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
                     Behavior on scale   { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
 
+                    readonly property bool isBright: shell.osdType === "brightness"
+                    readonly property real curVal: osdView.isBright ? Math.max(0.0, Math.min(1.0, shell.sysBrightness)) : (shell.sysMuted ? 0.0 : Math.max(0.0, Math.min(1.0, shell.sysVolume)))
+
                     Row {
-                        anchors.centerIn: parent; spacing: 12
+                        anchors.centerIn: parent
+                        spacing: 8
 
-                        // Icon
-                        Image {
-                            width: 16; height: 16
-                            anchors.verticalCenter: parent.verticalCenter
-                            source: "icons/volume.png"
-                            fillMode: Image.PreserveAspectFit
-                            layer.enabled: true
-                            layer.effect: MultiEffect {
-                                brightness: 1.0
-                                colorization: 1.0
-                                colorizationColor: shell.sysMuted ? shell.textMuted : shell.accent
-                            }
-                        }
-
-                        // Level bar
+                        // Capsule Slider (matching Control Center design)
                         Rectangle {
-                            width: 150; height: 5; radius: 2.5; color: shell.surfaceBright
+                            width: 168
+                            height: 26
+                            radius: 13
+                            color: shell.surfaceAlt
+                            clip: true
                             anchors.verticalCenter: parent.verticalCenter
 
+                            // Fill
                             Rectangle {
-                                width: parent.width * (shell.sysMuted ? 0 : shell.sysVolume)
-                                height: parent.height; radius: parent.radius; color: shell.accent
+                                width: Math.min(parent.width, Math.max(26, 26 + (parent.width - 26) * osdView.curVal))
+                                height: parent.height
+                                radius: 13
+                                color: (shell.sysMuted && !osdView.isBright) ? shell.surfaceBright : shell.accent
+                                Behavior on color { ColorAnimation { duration: shell.animFast } }
                                 Behavior on width { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
                             }
+
+                            // Icon (centered inside the 26px circle at left)
+                            Image {
+                                width: 14; height: 14
+                                anchors.left: parent.left
+                                anchors.leftMargin: 6
+                                anchors.verticalCenter: parent.verticalCenter
+                                source: osdView.isBright ? "icons/brightness.png" : "icons/volume.png"
+                                fillMode: Image.PreserveAspectFit
+                                layer.enabled: true
+                                layer.effect: MultiEffect {
+                                    brightness: -0.8
+                                    colorization: 1.0
+                                    colorizationColor: shell._baseSurface
+                                }
+                            }
                         }
 
-
+                        // Percentage Text
+                        Text {
+                            width: 34
+                            text: (shell.sysMuted && !osdView.isBright) ? "0%" : Math.round(osdView.curVal * 100) + "%"
+                            font.pixelSize: 11
+                            font.weight: Font.DemiBold
+                            font.family: "JetBrainsMono Nerd Font"
+                            color: shell.textPrimary
+                            horizontalAlignment: Text.AlignRight
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
                     }
                 }
 
