@@ -2963,7 +2963,10 @@ function getCurrentThemeStateKey() {
                 width: islandWidth; height: islandHeight
                 Behavior on width  { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
                 Behavior on height { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
-                Behavior on radius { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
+                Behavior on radius {
+                    enabled: panelWindow.activeState > 2
+                    NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic }
+                }
 
                 // =============================================================
                 // STATE 0: IDLE
