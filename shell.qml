@@ -2532,7 +2532,7 @@ function getCurrentThemeStateKey() {
             }
 
             HyprlandFocusGrab {
-                active: panelWindow.activeState > 1 && panelWindow.activeState !== 13
+                active: panelWindow.activeState > 3 && panelWindow.activeState !== 13
                 windows: [ panelWindow ]
                 onCleared: {
                     console.log("[Focus Grab Debug] Focus grab cleared. Current state: " + panelWindow.activeState);
@@ -2701,7 +2701,7 @@ function getCurrentThemeStateKey() {
                     switch (panelWindow.activeState) {
                         case 0: return 15;
                         case 1: return 22;
-                        case 2: return 16;
+                        case 2: return 17;
                         default: return 24;
                     }
                 }
@@ -2751,7 +2751,7 @@ function getCurrentThemeStateKey() {
                     switch (panelWindow.activeState) {
                         case 0: return 110;
                         case 1: return 380;
-                        case 2: return 230;
+                        case 2: return 240;
                         case 3: return 400;
                         case 4: return 445;
                         case 5: return 440;
@@ -2996,56 +2996,55 @@ function getCurrentThemeStateKey() {
                     readonly property bool isBright: shell.osdType === "brightness"
                     readonly property real curVal: osdView.isBright ? Math.max(0.0, Math.min(1.0, shell.sysBrightness)) : (shell.sysMuted ? 0.0 : Math.max(0.0, Math.min(1.0, shell.sysVolume)))
 
-                    Row {
-                        anchors.centerIn: parent
-                        spacing: 8
+                    // Percentage Text (tucked cleanly inside right curve)
+                    Text {
+                        id: osdPercentText
+                        anchors.right: parent.right
+                        anchors.rightMargin: 14
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: (shell.sysMuted && !osdView.isBright) ? "0%" : Math.round(osdView.curVal * 100) + "%"
+                        font.pixelSize: 11
+                        font.weight: Font.DemiBold
+                        color: shell.textPrimary
+                    }
 
-                        // Capsule Slider (matching Control Center design)
+                    // Capsule Slider (left gap matches top/bottom gap to shell)
+                    Rectangle {
+                        id: osdSlider
+                        anchors.left: parent.left
+                        anchors.leftMargin: Math.round((parent.height - height) / 2)
+                        anchors.right: osdPercentText.left
+                        anchors.rightMargin: 10
+                        anchors.verticalCenter: parent.verticalCenter
+                        height: 26
+                        radius: 13
+                        color: shell.surfaceAlt
+                        clip: true
+
+                        // Fill
                         Rectangle {
-                            width: 168
-                            height: 26
+                            width: Math.min(parent.width, Math.max(26, 26 + (parent.width - 26) * osdView.curVal))
+                            height: parent.height
                             radius: 13
-                            color: shell.surfaceAlt
-                            clip: true
-                            anchors.verticalCenter: parent.verticalCenter
-
-                            // Fill
-                            Rectangle {
-                                width: Math.min(parent.width, Math.max(26, 26 + (parent.width - 26) * osdView.curVal))
-                                height: parent.height
-                                radius: 13
-                                color: (shell.sysMuted && !osdView.isBright) ? shell.surfaceBright : shell.accent
-                                Behavior on color { ColorAnimation { duration: shell.animFast } }
-                                Behavior on width { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
-                            }
-
-                            // Icon (centered inside the 26px circle at left)
-                            Image {
-                                width: 14; height: 14
-                                anchors.left: parent.left
-                                anchors.leftMargin: 6
-                                anchors.verticalCenter: parent.verticalCenter
-                                source: osdView.isBright ? "icons/brightness.png" : "icons/volume.png"
-                                fillMode: Image.PreserveAspectFit
-                                layer.enabled: true
-                                layer.effect: MultiEffect {
-                                    brightness: -0.8
-                                    colorization: 1.0
-                                    colorizationColor: shell._baseSurface
-                                }
-                            }
+                            color: (shell.sysMuted && !osdView.isBright) ? shell.surfaceBright : shell.accent
+                            Behavior on color { ColorAnimation { duration: shell.animFast } }
+                            Behavior on width { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
                         }
 
-                        // Percentage Text
-                        Text {
-                            width: 34
-                            text: (shell.sysMuted && !osdView.isBright) ? "0%" : Math.round(osdView.curVal * 100) + "%"
-                            font.pixelSize: 11
-                            font.weight: Font.DemiBold
-                            font.family: "JetBrainsMono Nerd Font"
-                            color: shell.textPrimary
-                            horizontalAlignment: Text.AlignRight
+                        // Icon (centered inside the 26px circle at left)
+                        Image {
+                            width: 14; height: 14
+                            anchors.left: parent.left
+                            anchors.leftMargin: 6
                             anchors.verticalCenter: parent.verticalCenter
+                            source: osdView.isBright ? "icons/brightness.png" : "icons/volume.png"
+                            fillMode: Image.PreserveAspectFit
+                            layer.enabled: true
+                            layer.effect: MultiEffect {
+                                brightness: -0.8
+                                colorization: 1.0
+                                colorizationColor: shell._baseSurface
+                            }
                         }
                     }
                 }
