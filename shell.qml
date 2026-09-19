@@ -3796,7 +3796,7 @@ function getCurrentThemeStateKey() {
                                              color: (panelWindow.activeState === 12 || panelWindow.activeState === 11) ? shell.accent : shell.surfaceBright
                                              Image {
                                                  anchors.centerIn: parent; width: 16; height: 16
-                                                 source: "icons/palette.png"
+                                                 source: "icons/personalization.png"
                                                  fillMode: Image.PreserveAspectFit
                                                  layer.enabled: ccView.ccActive
                                                  layer.effect: MultiEffect {
