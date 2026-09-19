@@ -5208,37 +5208,6 @@ function getCurrentThemeStateKey() {
                                         readonly property bool isSelected: ListView.isCurrentItem
                                         readonly property bool isDesktopWallpaper: modelData === WallpaperService.getWallpaper(panelWindow.modelData.name)
 
-                                        // Shadow source for MultiEffect
-                                        Item {
-                                            id: wpCardShadowSource
-                                            width: 168
-                                            height: 98
-                                            visible: false
-                                            Rectangle {
-                                                anchors.fill: parent
-                                                radius: 14
-                                                color: "black"
-                                            }
-                                        }
-
-                                        // Accent Color Shadow Glow (locked in frame-perfect sync with card)
-                                        MultiEffect {
-                                            id: wpCardShadow
-                                            anchors.centerIn: wpCardInner
-                                            width: wpCardInner.width
-                                            height: wpCardInner.height
-                                            source: wpCardShadowSource
-                                            shadowEnabled: true
-                                            shadowColor: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.25)
-                                            shadowBlur: 0.28
-                                            shadowHorizontalOffset: 0
-                                            shadowVerticalOffset: 0
-                                            opacity: wpCardDelegate.isSelected ? 1.0 : 0.0
-                                            scale: wpCardInner.scale
-                                            z: 0
-
-                                            Behavior on opacity { NumberAnimation { duration: 180 } }
-                                        }
 
                                         Rectangle {
                                             id: wpCardInner
