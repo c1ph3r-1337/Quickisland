@@ -6419,7 +6419,7 @@ function getCurrentThemeStateKey() {
                                     width: 18
                                     height: 18
                                     radius: 9
-                                    color: clearMa.containsMouse ? shell.surfaceBright : "transparent"
+                                    color: themeClearMa.containsMouse ? shell.surfaceBright : "transparent"
                                     visible: themeSearchInput.text.length > 0
 
                                     Text {
@@ -6431,7 +6431,7 @@ function getCurrentThemeStateKey() {
                                     }
 
                                     MouseArea {
-                                        id: clearMa
+                                        id: themeClearMa
                                         anchors.fill: parent
                                         hoverEnabled: true
                                         cursorShape: Qt.PointingHandCursor
