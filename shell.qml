@@ -6323,6 +6323,14 @@ function getCurrentThemeStateKey() {
                         }
                     }
 
+                    onSelectedIdxChanged: {
+                        Qt.callLater(function() {
+                            if (typeof themeCardsList !== "undefined" && themeCardsList && themeCardsList.count > selectedIdx) {
+                                themeCardsList.positionViewAtIndex(selectedIdx, ListView.Center);
+                            }
+                        });
+                    }
+
                     onVisibleChanged: {
                         if (visible) {
                             filterQuery = "";
@@ -6383,7 +6391,7 @@ function getCurrentThemeStateKey() {
                         Keys.onLeftPressed: function(event) {
                             if (themeSwitcherView.selectedIdx > 0) {
                                 themeSwitcherView.selectedIdx--;
-                                themeCardsList.positionViewAtIndex(themeSwitcherView.selectedIdx, ListView.Contain);
+                                themeCardsList.positionViewAtIndex(themeSwitcherView.selectedIdx, ListView.Center);
                                 event.accepted = true;
                             }
                         }
@@ -6391,7 +6399,7 @@ function getCurrentThemeStateKey() {
                         Keys.onRightPressed: function(event) {
                             if (themeSwitcherView.selectedIdx < themeSwitcherView.filteredThemes.length - 1) {
                                 themeSwitcherView.selectedIdx++;
-                                themeCardsList.positionViewAtIndex(themeSwitcherView.selectedIdx, ListView.Contain);
+                                themeCardsList.positionViewAtIndex(themeSwitcherView.selectedIdx, ListView.Center);
                                 event.accepted = true;
                             }
                         }
@@ -6470,6 +6478,13 @@ function getCurrentThemeStateKey() {
                                 clip: true
                                 boundsBehavior: Flickable.StopAtBounds
                                 model: themeSwitcherView.filteredThemes
+                                currentIndex: themeSwitcherView.selectedIdx
+                                preferredHighlightBegin: Math.round((width - 154) / 2)
+                                preferredHighlightEnd: Math.round((width + 154) / 2)
+                                highlightRangeMode: ListView.StrictlyEnforceRange
+                                highlightMoveDuration: 260
+                                header: Item { width: Math.max(0, Math.round((themeCardsList.width - 154) / 2)) }
+                                footer: Item { width: Math.max(0, Math.round((themeCardsList.width - 154) / 2)) }
 
                                 delegate: Item {
                                     id: cardDelegate
@@ -6561,6 +6576,7 @@ function getCurrentThemeStateKey() {
                                             cursorShape: Qt.PointingHandCursor
                                             onClicked: {
                                                 themeSwitcherView.selectedIdx = index;
+                                                themeCardsList.positionViewAtIndex(index, ListView.Center);
                                                 themeSwitcherView.selectCurrentTheme();
                                             }
                                         }
