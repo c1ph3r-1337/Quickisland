@@ -6488,7 +6488,7 @@ function getCurrentThemeStateKey() {
                                         border.color: "transparent"
 
                                         color: cardDelegate.isSelected 
-                                            ? Qt.lighter(shell.surfaceBright, 1.6)
+                                            ? Qt.tint(shell.surfaceBright, Qt.rgba(modelData.accent.r, modelData.accent.g, modelData.accent.b, 0.55))
                                             : (cMa.containsMouse ? shell.surfaceBright : shell.surfaceAlt)
 
                                         // Bounce animation
@@ -6509,14 +6509,6 @@ function getCurrentThemeStateKey() {
                                                 easing.type: Easing.OutBack
                                                 easing.overshoot: 1.8 
                                             } 
-                                        }
-
-                                        // Soft accent wash over the light surface when selected
-                                        Rectangle {
-                                            anchors.fill: parent
-                                            radius: parent.radius
-                                            color: Qt.rgba(modelData.accent.r, modelData.accent.g, modelData.accent.b, 0.10)
-                                            visible: cardDelegate.isSelected
                                         }
 
                                         Column {
@@ -6544,6 +6536,8 @@ function getCurrentThemeStateKey() {
                                                         height: 14
                                                         radius: 7
                                                         color: modelData
+                                                        border.width: 1
+                                                        border.color: Qt.rgba(0, 0, 0, 0.25)
                                                     }
                                                 }
                                             }
@@ -6553,7 +6547,7 @@ function getCurrentThemeStateKey() {
                                                 width: parent.width
                                                 horizontalAlignment: Text.AlignHCenter
                                                 text: themeSwitcherView.formatThemeName(modelData.name)
-                                                color: cardDelegate.isSelected ? modelData.accent : shell.textPrimary
+                                                color: cardDelegate.isSelected ? "#ffffff" : shell.textPrimary
                                                 font.pixelSize: 11
                                                 font.weight: cardDelegate.isSelected ? Font.Bold : Font.Medium
                                                 elide: Text.ElideRight
