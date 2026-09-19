@@ -3991,10 +3991,8 @@ function getCurrentThemeStateKey() {
                                                 spacing: 8
                                                 Rectangle {
                                                     width: 22; height: 22; radius: 11; anchors.verticalCenter: parent.verticalCenter
-                                                    color: {
-                                                        var palette = [shell.wpAccent, shell.wpBlue, shell.wpGreen, shell.wpPeach, shell.wpRed];
-                                                        return palette[index % palette.length];
-                                                    }
+                                                    color: shell.accent
+                                                    Behavior on color { ColorAnimation { duration: shell.animFast } }
 
                                                     Image {
                                                         anchors.centerIn: parent

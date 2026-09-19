@@ -213,60 +213,79 @@ cursor_trail_color      {accent}
             else:
                 cfg = {}
 
-            # Map to installed VS Code theme
-            theme_mapping = {
-                "catppuccin": "Catppuccin Mocha",
-                "tokyo night": "Tokyo Night",
-                "gruvbox": "Gruvbox Dark Medium",
-                "nord": "Nord",
-                "dracula": "Aura Dracula Spirit",
-                "synthwave": "Aura Dracula Spirit (Synthwave)",
-                "one dark": "Atom One Dark",
-                "everforest": "Everforest Dark",
-                "rose pine": "Rosé Pine",
-                "wp coastal ocean": "Material Theme Ocean",
-                "wp glacier mist": "Nord",
-                "wp cosmic drift": "Tokyo Night",
-                "wp emerald canopy": "Everforest Dark",
-                "wp autumn lake": "Rosé Pine",
-                "wp golden dusk": "Gruvbox Dark Medium",
-                "wp amber sunset": "Gruvbox Dark Medium",
-                "wp misty mountain": "Nord",
-                "wp azure ocean": "Material Theme Ocean",
-                "wp amethyst violet": "Catppuccin Mocha",
-                "wp desert gold": "Gruvbox Dark Medium",
-                "wp earthy sand": "Gruvbox Dark Medium",
-                "wp warm taupe": "Gruvbox Dark Medium",
-                "wp cyan breeze": "Material Theme Ocean",
-                "anime": "Catppuccin Mocha",
-                "ariadne": "Material Theme Deepforest"
+            # Background theme map for each theme
+            theme_bg_map = {
+                "catppuccin": ("#1e1e2e", "#181825", "#313244"),
+                "tokyo night": ("#1a1b26", "#16161e", "#24283b"),
+                "gruvbox": ("#282828", "#1d2021", "#3c3836"),
+                "nord": ("#2e3440", "#242933", "#3b4252"),
+                "everforest": ("#2d353b", "#232a2e", "#343f44"),
+                "rose pine": ("#191724", "#1f1d2e", "#26233a"),
+                "dracula": ("#282a36", "#21222c", "#343746"),
+                "one dark": ("#282c34", "#21252b", "#2c313a"),
+                "synthwave": ("#262335", "#1e1c2a", "#34294f"),
+                "anime": ("#261a20", "#1e1419", "#38252f"),
+                "ariadne": ("#142422", "#0d1a18", "#1e3633"),
+                "wp coastal ocean": ("#0e2220", "#091816", "#183633"),
+                "wp glacier mist": ("#162323", "#101a1a", "#223535"),
+                "wp cosmic drift": ("#141d24", "#0e141a", "#202d38"),
+                "wp emerald canopy": ("#142419", "#0e1a12", "#1f3827"),
+                "wp autumn lake": ("#221a28", "#18121d", "#35293e"),
+                "wp golden dusk": ("#262214", "#1b180e", "#3b351f"),
+                "wp amber sunset": ("#261f14", "#1b160e", "#3b301f"),
+                "wp misty mountain": ("#182026", "#11171c", "#25323c"),
+                "wp azure ocean": ("#121f26", "#0c161b", "#1c303c"),
+                "wp amethyst violet": ("#211628", "#170f1d", "#34233f"),
+                "wp desert gold": ("#262014", "#1b170e", "#3a311f"),
+                "wp earthy sand": ("#251f18", "#1a1611", "#393026"),
+                "wp warm taupe": ("#251e17", "#1a1510", "#392f25"),
+                "wp cyan breeze": ("#0e2321", "#091917", "#173633")
             }
-            target_vscode_theme = theme_mapping.get(name.lower(), "Tokyo Night")
-            cfg["workbench.colorTheme"] = target_vscode_theme
+            if name.lower() in theme_bg_map:
+                theme_bg, theme_bg_alt, theme_bg_surface = theme_bg_map[name.lower()]
+            else:
+                theme_bg = blend(surface, accent, 0.18)
+                theme_bg_alt = blend(surface, accent, 0.10)
+                theme_bg_surface = blend(surface, accent, 0.32)
 
-            # Retain user's custom transparent ruler settings while syncing accent borders
+            # Preserve user's preferred code syntax theme (Material Theme Ocean)
+            if not cfg.get("workbench.colorTheme") or cfg.get("workbench.colorTheme") in [
+                "Everforest Dark", "Catppuccin Mocha", "Tokyo Night", "Gruvbox Dark Medium", "Nord", "Rosé Pine", "Atom One Dark", "Material Theme Deepforest"
+            ]:
+                cfg["workbench.colorTheme"] = "Material Theme Ocean"
+
+            # Apply background theme colors to editor/UI while leaving code text syntax untouched
             customizations = cfg.get("workbench.colorCustomizations", {})
-            # Remove blackish background/foreground overrides so authentic theme backgrounds and syntax colors show
+
+            # Clean up old overrides
             for k in [
-                "editor.background", "editor.foreground", "terminal.background", "terminal.foreground",
-                "sideBar.background", "sideBar.foreground", "statusBar.background", "statusBar.foreground",
-                "titleBar.activeBackground", "titleBar.activeForeground", "activityBar.background", "activityBar.foreground",
-                "tab.activeBackground", "tab.inactiveBackground", "tab.inactiveForeground",
-                "input.background", "input.foreground", "list.activeSelectionBackground", "list.hoverBackground",
-                "sideBarSectionHeader.background", "editorLineNumber.foreground", "editorLineNumber.activeForeground"
+                "editor.foreground", "terminal.foreground", "sideBar.foreground", "statusBar.foreground",
+                "titleBar.activeForeground", "activityBar.foreground", "tab.inactiveForeground",
+                "input.foreground", "sideBarSectionHeader.background", "editorLineNumber.foreground", "editorLineNumber.activeForeground"
             ]:
                 customizations.pop(k, None)
 
-            # Only apply theme accent highlights
+            # Update background theme and accents
             customizations.update({
-                "editorCursor.foreground": accent,
-                "focusBorder": accent,
+                "editor.background": theme_bg,
+                "sideBar.background": theme_bg_alt,
+                "activityBar.background": theme_bg_alt,
+                "statusBar.background": theme_bg_alt,
+                "titleBar.activeBackground": theme_bg_alt,
+                "terminal.background": theme_bg,
+                "tab.activeBackground": theme_bg,
+                "tab.inactiveBackground": theme_bg_alt,
                 "tab.activeBorder": accent,
                 "tab.activeForeground": accent,
+                "editorCursor.foreground": accent,
+                "focusBorder": accent,
                 "activityBar.activeBorder": accent,
                 "sideBarSectionHeader.foreground": accent,
+                "input.background": theme_bg_surface,
                 "input.border": accent,
-                "list.activeSelectionForeground": accent
+                "list.activeSelectionBackground": theme_bg_surface,
+                "list.activeSelectionForeground": accent,
+                "list.hoverBackground": blend(theme_bg, theme_bg_surface, 0.5)
             })
             cfg["workbench.colorCustomizations"] = customizations
             settings_file.write_text(json.dumps(cfg, indent=2))
