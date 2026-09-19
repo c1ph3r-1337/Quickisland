@@ -438,8 +438,8 @@ white = '{text_muted}'
         except Exception as e:
             print(f"Error updating Wallbash-Gtk internal CSS: {e}")
 
-    # Write unified GTK 3 & 4 / Libadwaita user override CSS
-    gtk_css_content = f"""/* QuickIsland Live Theme: {name} */
+    # Write GTK 3 CSS (GTK 3 only supports @define-color)
+    gtk3_css_content = f"""/* QuickIsland Live Theme (GTK 3): {name} */
 
 /* --- GTK 3 Named Colors --- */
 @define-color theme_bg_color {surface};
@@ -464,6 +464,21 @@ white = '{text_muted}'
 @define-color success_color {green};
 @define-color content_view_bg {surface};
 @define-color text_view_bg {surface_alt};
+"""
+    for css_target in [
+        home / ".config/gtk-3.0/gtk.css",
+        home / ".config/gtk-3.0/gtk-dark.css",
+        home / ".config/profiles/noctalia/gtk-3.0/gtk.css",
+        home / ".config/profiles/noctalia/gtk-3.0/gtk-dark.css"
+    ]:
+        try:
+            css_target.parent.mkdir(parents=True, exist_ok=True)
+            css_target.write_text(gtk3_css_content)
+        except Exception as e:
+            print(f"Error writing GTK 3 CSS to {css_target}: {e}")
+
+    # Write GTK 4 / Libadwaita CSS (supports @media queries and :root CSS variables)
+    gtk4_css_content = f"""/* QuickIsland Live Theme (GTK 4 / Libadwaita): {name} */
 
 /* --- Libadwaita / GTK 4 Named Colors --- */
 @define-color accent_color {accent};
@@ -586,18 +601,14 @@ white = '{text_muted}'
     for css_target in [
         home / ".config/gtk-4.0/gtk.css",
         home / ".config/gtk-4.0/gtk-dark.css",
-        home / ".config/gtk-3.0/gtk.css",
-        home / ".config/gtk-3.0/gtk-dark.css",
-        home / ".config/profiles/noctalia/gtk-3.0/gtk.css",
-        home / ".config/profiles/noctalia/gtk-3.0/gtk-dark.css",
         home / ".local/share/themes/Wallbash-Gtk/gtk-4.0/gtk.css",
         home / ".local/share/themes/Wallbash-Gtk/gtk-4.0/gtk-dark.css"
     ]:
         try:
             css_target.parent.mkdir(parents=True, exist_ok=True)
-            css_target.write_text(gtk_css_content)
+            css_target.write_text(gtk4_css_content)
         except Exception as e:
-            print(f"Error writing GTK CSS to {css_target}: {e}")
+            print(f"Error writing GTK 4 CSS to {css_target}: {e}")
 
     # ---------------------------------------------------------
     # 5. Rofi Application Launcher
