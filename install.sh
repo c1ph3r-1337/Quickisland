@@ -436,6 +436,40 @@ else
     echo -e "  ${CYAN}hl.on(\"hyprland.start\", function () hl.exec_cmd(\"~/.config/quickshell/quickisland/launch.sh\") end)${NC}"
 fi
 
+# ── Fastfetch + Kitty Setup ───────────────────────────────────────────────────
+header "Fastfetch — Wallpaper Logo Setup"
+
+ZSHRC="$HOME/.zshrc"
+FASTFETCH_ALIAS='alias fastfetch='"'"'fastfetch --logo "$($HOME/.config/fastfetch/make-logo.sh)" --logo-type kitty-direct'"'"''
+FASTFETCH_RUN='fastfetch --logo "$($HOME/.config/fastfetch/make-logo.sh)" --logo-type kitty-direct'
+
+# Remove any old fastfetch logo/alias lines
+if [ -f "$ZSHRC" ]; then
+    sed -i '/fastfetch.*logo.*get-random-logo\|fastfetch.*logo.*kitty-direct/d' "$ZSHRC"
+fi
+
+# Add new wallpaper-based fastfetch alias + auto-run
+if ! grep -q 'current-wallpaper.*kitty-direct\|kitty-direct.*current-wallpaper' "$ZSHRC" 2>/dev/null; then
+    echo "" >> "$ZSHRC"
+    echo "# QuickIsland: fastfetch with active wallpaper as logo (Kitty)" >> "$ZSHRC"
+    echo "$FASTFETCH_ALIAS" >> "$ZSHRC"
+    echo "$FASTFETCH_RUN" >> "$ZSHRC"
+    success "Configured fastfetch to use active wallpaper as logo in Kitty"
+else
+    success "Fastfetch wallpaper logo already configured"
+fi
+
+# Bootstrap the current-wallpaper symlink right now
+mkdir -p "$HOME/.cache/wal"
+CURRENT_WALL=$(awww query 2>/dev/null | grep -oP 'image: \K[^\s]+' | head -1)
+if [ -n "$CURRENT_WALL" ] && [ -f "$CURRENT_WALL" ]; then
+    ln -sf "$CURRENT_WALL" "$HOME/.cache/wal/current-wallpaper"
+    success "Wallpaper symlink created → $CURRENT_WALL"
+else
+    warn "Could not detect active wallpaper via awww (is the daemon running?)"
+    info "The symlink will be created automatically on next wallpaper change"
+fi
+
 # ── Done ─────────────────────────────────────────────────────────────────────
 echo ""
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"

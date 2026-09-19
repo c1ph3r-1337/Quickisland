@@ -800,7 +800,7 @@ Singleton {
     currentWallpapers[screenName] = newEntry;
     saveTimer.restart();
     Quickshell.execDetached(["awww", "img", path, "--transition-type", "none"]);
-    Quickshell.execDetached(["bash", "-c", "ln -sf '" + path + "' \"$HOME/.cache/wal/current-wallpaper\""]);
+    Quickshell.execDetached(["bash", "-c", "ln -sf '" + path + "' \"$HOME/.cache/wal/current-wallpaper\" && $HOME/.config/fastfetch/make-logo.sh > /dev/null 2>&1 &"]);
     root.wallpaperChanged(screenName, _entryToEffectivePath(newEntry));
 
     if (randomWallpaperTimer.running) {
