@@ -507,11 +507,11 @@ theme[process_end]="{red}"
                 "wp cyan breeze": ("#0e2321", "#091917", "#173633")
             }
             if name.lower() in theme_bg_map:
-                theme_bg, theme_bg_alt, theme_bg_surface = theme_bg_map[name.lower()]
+                theme_bg, _, theme_bg_surface = theme_bg_map[name.lower()]
             else:
                 theme_bg = blend(surface, accent, 0.18)
-                theme_bg_alt = blend(surface, accent, 0.10)
                 theme_bg_surface = blend(surface, accent, 0.32)
+            theme_bg_alt = theme_bg  # Workspace and bars are identical in color
 
             if not cfg.get("workbench.colorTheme") or cfg.get("workbench.colorTheme") in [
                 "Everforest Dark", "Catppuccin Mocha", "Tokyo Night", "Gruvbox Dark Medium", "Nord", "Rosé Pine", "Atom One Dark", "Material Theme Deepforest"
@@ -528,18 +528,31 @@ theme[process_end]="{red}"
 
             customizations.update({
                 "editor.background": theme_bg,
-                "sideBar.background": theme_bg_alt,
-                "activityBar.background": theme_bg_alt,
-                "statusBar.background": theme_bg_alt,
-                "titleBar.activeBackground": theme_bg_alt,
+                "sideBar.background": theme_bg,
+                "sideBar.border": theme_bg,
+                "activityBar.background": theme_bg,
+                "activityBar.border": theme_bg,
+                "statusBar.background": theme_bg,
+                "statusBar.border": theme_bg,
+                "titleBar.activeBackground": theme_bg,
+                "titleBar.inactiveBackground": theme_bg,
+                "titleBar.border": theme_bg,
+                "editorGroupHeader.tabsBackground": theme_bg,
+                "editorGroupHeader.noTabsBackground": theme_bg,
+                "editorGroup.border": theme_bg,
+                "panel.background": theme_bg,
+                "panel.border": theme_bg,
                 "terminal.background": theme_bg,
                 "tab.activeBackground": theme_bg,
-                "tab.inactiveBackground": theme_bg_alt,
+                "tab.inactiveBackground": theme_bg,
+                "tab.border": theme_bg,
                 "tab.activeBorder": accent,
                 "tab.activeForeground": accent,
                 "editorCursor.foreground": accent,
                 "focusBorder": accent,
                 "activityBar.activeBorder": accent,
+                "sideBarSectionHeader.background": theme_bg,
+                "sideBarSectionHeader.border": theme_bg,
                 "sideBarSectionHeader.foreground": accent,
                 "input.background": theme_bg_surface,
                 "input.border": accent,
