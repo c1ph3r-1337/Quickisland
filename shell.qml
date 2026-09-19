@@ -7018,14 +7018,6 @@ function getCurrentThemeStateKey() {
                                             }
                                         }
 
-                                        // Accent border ring
-                                        Rectangle {
-                                            anchors.fill: parent
-                                            radius: parent.radius
-                                            color: "transparent"
-                                            border.width: 1
-                                            border.color: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.45)
-                                        }
 
                                         Column {
                                             anchors.centerIn: parent
