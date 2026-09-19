@@ -4035,7 +4035,7 @@ function getCurrentThemeStateKey() {
                                         width: 85; height: 85; radius: 10; color: shell.surfaceBright
                                         anchors.verticalCenter: parent.verticalCenter
 
-                                        layer.enabled: ccView.ccActive
+                                        layer.enabled: true
                                         layer.smooth: true
                                         layer.effect: MultiEffect {
                                             maskEnabled: true
@@ -4060,96 +4060,95 @@ function getCurrentThemeStateKey() {
                                             source: "icons/volume.png"
                                             fillMode: Image.PreserveAspectFit
                                             visible: shell.mediaArtUrl === ""
-                                            layer.enabled: ccView.ccActive
+                                            layer.enabled: true
                                             layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: shell.textMuted }
                                         }
                                     }
 
                                     // Right Content Column
                                     Column {
-                                        width: parent.width - 85 - 15; spacing: 6; anchors.verticalCenter: parent.verticalCenter
+                                        width: parent.width - 85 - 15; spacing: 5; anchors.verticalCenter: parent.verticalCenter
 
                                         // Song info
                                         Column {
-                                            width: parent.width; spacing: 1
-                                            Text { text: shell.mediaTitle; color: shell.textPrimary; font.pixelSize: 13; font.weight: Font.Bold; elide: Text.ElideRight; width: parent.width }
-                                            Text { text: shell.mediaArtist; color: shell.textSecondary; font.pixelSize: 10; elide: Text.ElideRight; width: parent.width }
-                                        }
+                                             width: parent.width; spacing: 1
+                                             Text { text: shell.mediaTitle; color: shell.textPrimary; font.pixelSize: 13; font.weight: Font.Bold; elide: Text.ElideRight; width: parent.width }
+                                             Text { text: shell.mediaArtist; color: shell.textSecondary; font.pixelSize: 10; elide: Text.ElideRight; width: parent.width }
+                                         }
 
                                         // Progress bar
                                         Item {
-                                            width: parent.width; height: 4
-                                            Rectangle {
-                                                width: parent.width; height: 4; radius: 2; color: Qt.rgba(1, 1, 1, 0.1)
-                                                Rectangle {
-                                                    width: shell.mediaLength > 0 ? parent.width * (shell.mediaPosition / shell.mediaLength) : 0
-                                                    height: parent.height; radius: parent.radius; color: shell.accent
-                                                    Behavior on width { NumberAnimation { duration: 500; easing.type: Easing.Linear } }
-                                                }
-                                            }
-                                        }
+                                             width: parent.width; height: 4
+                                             Rectangle {
+                                                 width: parent.width; height: 4; radius: 2; color: Qt.rgba(1, 1, 1, 0.1)
+                                                 Rectangle {
+                                                     width: shell.mediaLength > 0 ? parent.width * (shell.mediaPosition / shell.mediaLength) : 0
+                                                     height: parent.height; radius: parent.radius; color: shell.accent
+                                                     Behavior on width { NumberAnimation { duration: 500; easing.type: Easing.Linear } }
+                                                 }
+                                             }
+                                         }
 
                                         // Time labels
                                         Item {
-                                            width: parent.width; height: 10
-                                            Text {
-                                                function fmt(s) { var m=Math.floor(s/60); var ss=Math.floor(s%60); return m+":"+(ss<10?"0":"")+ss; }
-                                                text: fmt(shell.mediaPosition); color: shell.textMuted; font.pixelSize: 8; anchors.left: parent.left
-                                            }
-                                            Text {
-                                                function fmt(s) { var m=Math.floor(s/60); var ss=Math.floor(s%60); return m+":"+(ss<10?"0":"")+ss; }
-                                                text: fmt(shell.mediaLength); color: shell.textMuted; font.pixelSize: 8; anchors.right: parent.right
-                                            }
-                                        }
+                                             width: parent.width; height: 10
+                                             Text {
+                                                 function fmt(s) { var m=Math.floor(s/60); var ss=Math.floor(s%60); return m+":"+(ss<10?"0":"")+ss; }
+                                                 text: fmt(shell.mediaPosition); color: shell.textMuted; font.pixelSize: 8; anchors.left: parent.left
+                                             }
+                                             Text {
+                                                 function fmt(s) { var m=Math.floor(s/60); var ss=Math.floor(s%60); return m+":"+(ss<10?"0":"")+ss; }
+                                                 text: fmt(shell.mediaLength); color: shell.textMuted; font.pixelSize: 8; anchors.right: parent.right
+                                             }
+                                         }
 
-                                        Item { width: 1; height: 2 } // Spacer
-
-                                        // Media Controls Row
+                                        // Media Controls Row (lifted higher for balance)
                                         Row {
-                                            anchors.horizontalCenter: parent.horizontalCenter
-                                            spacing: 24
+                                             anchors.horizontalCenter: parent.horizontalCenter
+                                             spacing: 24
+                                             transform: Translate { y: -4 }
 
-                                            // Previous
-                                            Item {
-                                                width: 18; height: 18; anchors.verticalCenter: parent.verticalCenter
-                                                Image {
-                                                    anchors.fill: parent; source: "icons/previous.png"
-                                                    fillMode: Image.PreserveAspectFit
-                                                    layer.enabled: ccView.ccActive
-                                                    layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: shell.textSecondary }
-                                                }
-                                                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { if (shell.mediaPlayer) shell.mediaPlayer.previous(); } }
-                                            }
+                                             // Previous
+                                             Item {
+                                                 width: 18; height: 18; anchors.verticalCenter: parent.verticalCenter
+                                                 Image {
+                                                     anchors.fill: parent; source: "icons/previous.png"
+                                                     fillMode: Image.PreserveAspectFit
+                                                     layer.enabled: true
+                                                     layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: shell.textSecondary }
+                                                 }
+                                                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { if (shell.mediaPlayer) shell.mediaPlayer.previous(); } }
+                                             }
 
-                                            // Play/Pause
-                                            Rectangle {
-                                                width: 26; height: 26; radius: 13; color: shell.textPrimary
-                                                anchors.verticalCenter: parent.verticalCenter
-                                                Image {
-                                                    anchors.centerIn: parent
-                                                    width: 12; height: 12
-                                                    source: shell.mediaPlaying ? "icons/pause.png" : "icons/play-button.png"
-                                                    fillMode: Image.PreserveAspectFit
-                                                    layer.enabled: ccView.ccActive
-                                                    layer.effect: MultiEffect { brightness: -0.8; colorization: 1.0; colorizationColor: shell._baseSurface }
-                                                }
-                                                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { if (shell.mediaPlayer) { if (shell.mediaPlaying) shell.mediaPlayer.pause(); else shell.mediaPlayer.play(); } } }
-                                            }
+                                             // Play/Pause
+                                             Rectangle {
+                                                 width: 26; height: 26; radius: 13; color: shell.textPrimary
+                                                 anchors.verticalCenter: parent.verticalCenter
+                                                 Image {
+                                                     anchors.centerIn: parent
+                                                     width: 12; height: 12
+                                                     source: shell.mediaPlaying ? "icons/pause.png" : "icons/play-button.png"
+                                                     fillMode: Image.PreserveAspectFit
+                                                     layer.enabled: true
+                                                     layer.effect: MultiEffect { brightness: -0.8; colorization: 1.0; colorizationColor: shell._baseSurface }
+                                                 }
+                                                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { if (shell.mediaPlayer) { if (shell.mediaPlaying) shell.mediaPlayer.pause(); else shell.mediaPlayer.play(); } } }
+                                             }
 
-                                            // Next
-                                            Item {
-                                                width: 18; height: 18; anchors.verticalCenter: parent.verticalCenter
-                                                Image {
-                                                    anchors.fill: parent; source: "icons/next.png"
-                                                    fillMode: Image.PreserveAspectFit
-                                                    layer.enabled: ccView.ccActive
-                                                    layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: shell.textSecondary }
-                                                }
-                                                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { if (shell.mediaPlayer) shell.mediaPlayer.next(); } }
-                                            }
-                                        }
-                                    }
-                                }
+                                             // Next
+                                             Item {
+                                                 width: 18; height: 18; anchors.verticalCenter: parent.verticalCenter
+                                                 Image {
+                                                     anchors.fill: parent; source: "icons/next.png"
+                                                     fillMode: Image.PreserveAspectFit
+                                                     layer.enabled: true
+                                                     layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: shell.textSecondary }
+                                                 }
+                                                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { if (shell.mediaPlayer) shell.mediaPlayer.next(); } }
+                                             }
+                                         }
+                                     }
+                                 }
                             }
 
                             // No media placeholder
