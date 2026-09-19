@@ -499,6 +499,108 @@ theme[process_end]="{red}"
     except Exception as e:
         print(f"Error writing Pywal cache: {e}")
 
+    # ---------------------------------------------------------
+    # 10. VS Code — accent-tinted dark backgrounds only
+    #     We blend near-black (#0d0d0d) with the accent at a
+    #     low factor so the workspace feels dark but tinted,
+    #     like a black+accent mix.  Syntax / token colors are
+    #     NEVER touched — VS Code's own theme handles those.
+    # ---------------------------------------------------------
+    BLACK = "#0d0d0d"
+    # Main editor area — 8% accent in deep black
+    vsc_editor_bg   = blend(BLACK, accent, 0.08)
+    # Sidebar slightly lighter — 10% accent
+    vsc_sidebar_bg  = blend(BLACK, accent, 0.10)
+    # Tab bar / title area — between the two
+    vsc_tabs_bg     = blend(BLACK, accent, 0.09)
+    # Active tab slightly brighter
+    vsc_tab_active  = blend(BLACK, accent, 0.13)
+    # Inactive tab, indistinguishable from tabs bar
+    vsc_tab_inactive = vsc_tabs_bg
+    # Editor group empty state
+    vsc_group_bg    = vsc_editor_bg
+    # Input / dropdown backgrounds
+    vsc_input_bg    = blend(BLACK, accent, 0.12)
+    # List hover  
+    vsc_list_hover  = blend(BLACK, accent, 0.18)
+    # Scrollbar track
+    vsc_scroll      = blend(BLACK, accent, 0.06)
+    # Panel (terminal) area
+    vsc_panel_bg    = blend(BLACK, accent, 0.07)
+    # Borders / separators — very subtle accent tint
+    vsc_border      = blend(BLACK, accent, 0.20)
+    # Cursor / active line
+    vsc_cursor      = accent
+
+    vsc_colors = {
+        # Core backgrounds
+        "editor.background":                         vsc_editor_bg,
+        "sideBar.background":                        vsc_sidebar_bg,
+        "sideBarSectionHeader.background":           vsc_sidebar_bg,
+        "activityBar.background":                    vsc_sidebar_bg,
+        "editorGroupHeader.tabsBackground":          vsc_tabs_bg,
+        "editorGroupHeader.noTabsBackground":        vsc_tabs_bg,
+        "tab.activeBackground":                      vsc_tab_active,
+        "tab.inactiveBackground":                    vsc_tab_inactive,
+        "tab.unfocusedActiveBackground":             vsc_tab_active,
+        "editorGroup.emptyBackground":               vsc_group_bg,
+        "panel.background":                          vsc_panel_bg,
+        "panelSectionHeader.background":             vsc_panel_bg,
+        "terminal.background":                       vsc_panel_bg,
+        "breadcrumb.background":                     vsc_editor_bg,
+        "input.background":                          vsc_input_bg,
+        "dropdown.background":                       vsc_input_bg,
+        "quickInput.background":                     vsc_sidebar_bg,
+        "quickInputList.focusBackground":            vsc_list_hover,
+        # Borders
+        "sideBar.border":                            vsc_border,
+        "tab.border":                                "#00000000",
+        "editorGroup.border":                        vsc_border,
+        "panel.border":                              vsc_border,
+        # List hover
+        "list.hoverBackground":                      vsc_list_hover,
+        "list.focusBackground":                      vsc_list_hover,
+        # Scrollbars
+        "scrollbarSlider.background":                vsc_scroll + "44",
+        "scrollbarSlider.hoverBackground":           vsc_scroll + "66",
+        "scrollbarSlider.activeBackground":          vsc_scroll + "88",
+        # Cursor color (accent)
+        "editorCursor.foreground":                   vsc_cursor,
+        # Keep overview ruler transparent (user preference)
+        "editor.lineHighlightBackground":            "#00000000",
+        "editor.lineHighlightBorder":                "#00000000",
+        "editorOverviewRuler.errorForeground":       "#00000000",
+        "editorOverviewRuler.warningForeground":     "#00000000",
+        "editorOverviewRuler.infoForeground":        "#00000000",
+        "editorOverviewRuler.modifiedForeground":    "#00000000",
+        "editorOverviewRuler.addedForeground":       "#00000000",
+        "editorOverviewRuler.deletedForeground":     "#00000000",
+        "editorOverviewRuler.selectionHighlightForeground": "#00000000",
+        "editorOverviewRuler.findMatchForeground":   "#00000000",
+        "editorOverviewRuler.rangeHighlightForeground": "#00000000",
+        "editorOverviewRuler.wordHighlightForeground": "#00000000",
+        "editorOverviewRuler.wordHighlightStrongForeground": "#00000000",
+        "editorOverviewRuler.currentContentForeground": "#00000000",
+        "editorOverviewRuler.cursorForeground":      "#00000000",
+        "editorOverviewRuler.bracketMatchForeground": "#00000000",
+        "editorOverviewRuler.border":                "#00000000",
+    }
+
+    for settings_path in [
+        home / ".config/Code/User/settings.json",
+        home / ".config/Code - OSS/User/settings.json",
+    ]:
+        if not settings_path.exists():
+            continue
+        try:
+            with open(settings_path, "r") as f:
+                vsc_settings = json.load(f)
+            vsc_settings["workbench.colorCustomizations"] = vsc_colors
+            with open(settings_path, "w") as f:
+                json.dump(vsc_settings, f, indent=2)
+        except Exception as e:
+            print(f"Error updating VS Code settings at {settings_path}: {e}")
+
     print(f"Successfully applied system-wide theme: {name}")
 
 if __name__ == "__main__":
