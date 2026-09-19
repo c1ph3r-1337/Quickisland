@@ -349,6 +349,13 @@ white = '{text_muted}'
         
         subprocess.run(["gsettings", "set", "org.gnome.desktop.interface", "gtk-theme", matched_gtk_theme], stderr=subprocess.DEVNULL)
         subprocess.run(["gsettings", "set", "org.gnome.desktop.interface", "icon-theme", matched_icon_theme], stderr=subprocess.DEVNULL)
+
+        # Clear any hardcoded GTK_THEME environment variables from active Hyprland & systemd sessions
+        try:
+            subprocess.run(["hyprctl", "keyword", "env", "GTK_THEME,"], stderr=subprocess.DEVNULL)
+            subprocess.run(["systemctl", "--user", "unset-environment", "GTK_THEME"], stderr=subprocess.DEVNULL)
+        except Exception:
+            pass
     except Exception as e:
         print(f"Error setting gsettings: {e}")
 
@@ -495,13 +502,45 @@ white = '{text_muted}'
 @define-color success_bg_color {green};
 @define-color success_fg_color {green_fg};
 
-/* Backdrop / unfocused states */
-@define-color theme_unfocused_fg_color @window_fg_color;
-@define-color theme_unfocused_text_color @view_fg_color;
-@define-color theme_unfocused_bg_color @window_bg_color;
-@define-color theme_unfocused_base_color @window_bg_color;
-@define-color theme_unfocused_selected_bg_color @accent_bg_color;
-@define-color theme_unfocused_selected_fg_color @accent_fg_color;
+/* Override Libadwaita dark mode media query so dark mode honors the theme palette */
+@media (prefers-color-scheme: dark) {{
+    @define-color window_bg_color {surface};
+    @define-color window_fg_color {text_primary};
+    @define-color view_bg_color {surface};
+    @define-color view_fg_color {text_primary};
+    @define-color headerbar_bg_color {surface_alt};
+    @define-color headerbar_fg_color {text_primary};
+    @define-color headerbar_backdrop_color @window_bg_color;
+    @define-color card_bg_color {surface_alt};
+    @define-color card_fg_color {text_primary};
+    @define-color popover_bg_color {surface_alt};
+    @define-color popover_fg_color {text_primary};
+    @define-color dialog_bg_color {surface};
+    @define-color dialog_fg_color {text_primary};
+    @define-color sidebar_bg_color {surface_alt};
+    @define-color sidebar_fg_color {text_primary};
+    @define-color sidebar_backdrop_color @window_bg_color;
+    @define-color sidebar_border_color @window_bg_color;
+    @define-color secondary_sidebar_bg_color {surface};
+    @define-color secondary_sidebar_fg_color {text_primary};
+
+    :root {{
+        --window-bg-color: {surface};
+        --window-fg-color: {text_primary};
+        --view-bg-color: {surface};
+        --view-fg-color: {text_primary};
+        --headerbar-bg-color: {surface_alt};
+        --headerbar-fg-color: {text_primary};
+        --sidebar-bg-color: {surface_alt};
+        --sidebar-fg-color: {text_primary};
+        --card-bg-color: {surface_alt};
+        --card-fg-color: {text_primary};
+        --dialog-bg-color: {surface};
+        --dialog-fg-color: {text_primary};
+        --popover-bg-color: {surface_alt};
+        --popover-fg-color: {text_primary};
+    }}
+}}
 
 /* --- Libadwaita CSS Variables --- */
 :root {{
@@ -543,11 +582,40 @@ white = '{text_muted}'
     --success-bg-color: {green};
     --success-fg-color: {green_fg};
 }}
+
+/* Ensure container backgrounds strictly follow palette without disrupting layouts */
+window,
+window.background {{
+    background-color: {surface};
+    color: {text_primary};
+}}
+
+.view,
+view {{
+    background-color: {surface};
+    color: {text_primary};
+}}
+
+.navigation-sidebar,
+sidebar {{
+    background-color: {surface_alt};
+    color: {text_primary};
+}}
+
+headerbar {{
+    background-color: {surface_alt};
+    color: {text_primary};
+}}
 """
     for css_target in [
         home / ".config/gtk-4.0/gtk.css",
+        home / ".config/gtk-4.0/gtk-dark.css",
         home / ".config/gtk-3.0/gtk.css",
-        home / ".config/profiles/noctalia/gtk-3.0/gtk.css"
+        home / ".config/gtk-3.0/gtk-dark.css",
+        home / ".config/profiles/noctalia/gtk-3.0/gtk.css",
+        home / ".config/profiles/noctalia/gtk-3.0/gtk-dark.css",
+        home / ".local/share/themes/Wallbash-Gtk/gtk-4.0/gtk.css",
+        home / ".local/share/themes/Wallbash-Gtk/gtk-4.0/gtk-dark.css"
     ]:
         try:
             css_target.parent.mkdir(parents=True, exist_ok=True)
