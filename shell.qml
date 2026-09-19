@@ -5208,6 +5208,50 @@ function getCurrentThemeStateKey() {
                                         readonly property bool isSelected: ListView.isCurrentItem
                                         readonly property bool isDesktopWallpaper: modelData === WallpaperService.getWallpaper(panelWindow.modelData.name)
 
+                                        // Shadow source for MultiEffect
+                                        Item {
+                                            id: wpCardShadowSource
+                                            anchors.fill: wpCardInner
+                                            visible: false
+                                            Rectangle {
+                                                anchors.fill: parent
+                                                radius: wpCardInner.radius
+                                                color: "black"
+                                            }
+                                        }
+
+                                        // Accent Color Shadow Glow (replaces the border)
+                                        MultiEffect {
+                                            id: wpCardShadow
+                                            anchors.fill: wpCardInner
+                                            source: wpCardShadowSource
+                                            shadowEnabled: true
+                                            shadowColor: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.85)
+                                            shadowBlur: 0.9
+                                            shadowHorizontalOffset: 0
+                                            shadowVerticalOffset: 0
+                                            opacity: wpCardDelegate.isSelected ? 1.0 : 0.0
+                                            scale: wpCardInner.scale
+                                            anchors.verticalCenterOffset: wpCardInner.anchors.verticalCenterOffset
+                                            z: 0
+
+                                            Behavior on opacity { NumberAnimation { duration: 250 } }
+                                            Behavior on scale {
+                                                NumberAnimation {
+                                                    duration: 280
+                                                    easing.type: Easing.OutBack
+                                                    easing.overshoot: 1.5
+                                                }
+                                            }
+                                            Behavior on anchors.verticalCenterOffset {
+                                                NumberAnimation {
+                                                    duration: 280
+                                                    easing.type: Easing.OutBack
+                                                    easing.overshoot: 1.5
+                                                }
+                                            }
+                                        }
+
                                         Rectangle {
                                             id: wpCardInner
                                             anchors.horizontalCenter: parent.horizontalCenter
@@ -5217,10 +5261,9 @@ function getCurrentThemeStateKey() {
                                             height: 98
                                             radius: 14
                                             color: wpMa.containsMouse ? shell.surfaceBright : shell.surfaceAlt
-
-                                            border.width: wpCardDelegate.isSelected ? 2 : (wpCardDelegate.isDesktopWallpaper ? 1 : 0)
-                                            border.color: wpCardDelegate.isSelected ? shell.accent : Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.4)
-                                            Behavior on border.color { ColorAnimation { duration: 200 } }
+                                            border.width: 0
+                                            border.color: "transparent"
+                                            z: 1
 
                                             // Lively bounce pop on selected card
                                             scale: wpCardDelegate.isSelected ? 1.08 : (wpMa.containsMouse ? 1.02 : 0.94)
@@ -5245,8 +5288,7 @@ function getCurrentThemeStateKey() {
                                             Rectangle {
                                                 id: wpImgClip
                                                 anchors.fill: parent
-                                                anchors.margins: wpCardDelegate.isSelected ? 2 : 0
-                                                radius: Math.max(0, wpCardInner.radius - (wpCardDelegate.isSelected ? 2 : 0))
+                                                radius: wpCardInner.radius
                                                 color: "transparent"
 
                                                 layer.enabled: panelWindow.activeState === 10 && shell.wallpaperCarouselMode
@@ -5275,57 +5317,19 @@ function getCurrentThemeStateKey() {
                                                 }
                                             }
 
-                                            // Active desktop wallpaper pill badge
+                                            // Active desktop wallpaper accent circle indicator
                                             Rectangle {
                                                 anchors.top: parent.top
                                                 anchors.right: parent.right
-                                                anchors.margins: 6
-                                                height: 18
-                                                width: isDesktopWpRow.implicitWidth + 10
-                                                radius: 9
-                                                color: Qt.rgba(0, 0, 0, 0.75)
-                                                border.width: 1
-                                                border.color: shell.accent
+                                                anchors.margins: 8
+                                                width: 10
+                                                height: 10
+                                                radius: 5
+                                                color: shell.accent
+                                                border.width: 1.5
+                                                border.color: Qt.rgba(0, 0, 0, 0.6)
                                                 visible: wpCardDelegate.isDesktopWallpaper
-
-                                                Row {
-                                                    id: isDesktopWpRow
-                                                    anchors.centerIn: parent
-                                                    spacing: 3
-                                                    Text {
-                                                        text: "✓"
-                                                        color: shell.accent
-                                                        font.pixelSize: 9
-                                                        font.weight: Font.Bold
-                                                    }
-                                                    Text {
-                                                        text: "Active"
-                                                        color: "#ffffff"
-                                                        font.pixelSize: 8
-                                                        font.weight: Font.Bold
-                                                    }
-                                                }
-                                            }
-
-                                            // Click to Apply overlay pill on hovered center card
-                                            Rectangle {
-                                                anchors.bottom: parent.bottom
-                                                anchors.horizontalCenter: parent.horizontalCenter
-                                                anchors.bottomMargin: 6
-                                                height: 18
-                                                width: applyHintText.implicitWidth + 12
-                                                radius: 9
-                                                color: Qt.rgba(0, 0, 0, 0.78)
-                                                visible: wpCardDelegate.isSelected && !wpCardDelegate.isDesktopWallpaper && wpMa.containsMouse
-
-                                                Text {
-                                                    id: applyHintText
-                                                    anchors.centerIn: parent
-                                                    text: "Click to Apply"
-                                                    color: shell.accent
-                                                    font.pixelSize: 9
-                                                    font.weight: Font.Bold
-                                                }
+                                                z: 2
                                             }
 
                                             MouseArea {
