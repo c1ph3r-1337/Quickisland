@@ -1160,8 +1160,8 @@ function getCurrentThemeStateKey() {
         debounceExtractTimer.restart();
     }
 
-    readonly property int animFast:   75
-    readonly property int animNormal: 140
+    readonly property int animFast:   65
+    readonly property int animNormal: 120
 
     // =========================================================================
     // STATE MACHINE
@@ -2962,11 +2962,11 @@ function getCurrentThemeStateKey() {
                 }
 
                 width: islandWidth; height: islandHeight
-                Behavior on width  { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutQuart } }
-                Behavior on height { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutQuart } }
+                Behavior on width  { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
+                Behavior on height { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
                 Behavior on radius {
                     enabled: !island.isPillState
-                    NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutQuart }
+                    NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic }
                 }
 
                 // =============================================================
