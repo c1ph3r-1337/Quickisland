@@ -5759,154 +5759,208 @@ function getCurrentThemeStateKey() {
                                 Text { text: "Personalization"; color: "#ffffff"; font.pixelSize: 16; font.weight: Font.Bold; anchors.verticalCenter: parent.verticalCenter }
                             }
 
-                            // 1. Wallpaper Card
-                            Rectangle {
-                                width: parent.width; height: 64; radius: 14; color: wallpaperCardMa.containsMouse ? shell.surfaceBright : shell.surfaceAlt
-                                border.width: 0; border.color: shell.surfaceBorder
-                                Behavior on color { ColorAnimation { duration: shell.animFast } }
+                            // Wallpaper & Themes Row (Side by Side)
+                            Row {
+                                width: parent.width
+                                spacing: 10
 
-                                Row {
-                                    anchors.fill: parent; anchors.margins: 12; spacing: 12
+                                // 1. Wallpaper Card
+                                Rectangle {
+                                    width: (parent.width - 10) / 2
+                                    height: 64
+                                    radius: 14
+                                    color: wallpaperCardMa.containsMouse ? shell.surfaceBright : shell.surfaceAlt
+                                    border.width: 0
+                                    border.color: shell.surfaceBorder
+                                    Behavior on color { ColorAnimation { duration: shell.animFast } }
 
-                                    Rectangle {
-                                         id: wpThumbCard
-                                         width: 40; height: 40; radius: 8
-                                         color: shell.surfaceBright
+                                    Row {
+                                        anchors.fill: parent
+                                        anchors.margins: 12
+                                        spacing: 10
 
-                                         Rectangle {
-                                             id: wpThumbClip
-                                             anchors.fill: parent
-                                             radius: wpThumbCard.radius
-                                             color: "transparent"
+                                        Rectangle {
+                                            id: wpThumbCard
+                                            width: 40
+                                            height: 40
+                                            radius: 8
+                                            color: shell.surfaceBright
+                                            anchors.verticalCenter: parent.verticalCenter
 
-                                             layer.enabled: panelWindow.activeState === 12
-                                             layer.smooth: true
-                                             layer.effect: MultiEffect {
-                                                 maskEnabled: true
-                                                 maskSource: ShaderEffectSource {
-                                                     sourceItem: Rectangle {
-                                                         width: wpThumbClip.width
-                                                         height: wpThumbClip.height
-                                                         radius: wpThumbClip.radius
-                                                         color: "white"
-                                                     }
-                                                 }
-                                             }
+                                            Rectangle {
+                                                id: wpThumbClip
+                                                anchors.fill: parent
+                                                radius: wpThumbCard.radius
+                                                color: "transparent"
 
-                                              Image {
-                                                  id: personalizationWallpaperPreview
-                                                  anchors.fill: parent
-                                                  source: (panelWindow && panelWindow.modelData) ? "file://" + WallpaperService.getWallpaper(panelWindow.modelData.name) : ""
-                                                  fillMode: Image.PreserveAspectCrop
-                                                  visible: source.toString() !== ""
+                                                layer.enabled: panelWindow.activeState === 12
+                                                layer.smooth: true
+                                                layer.effect: MultiEffect {
+                                                    maskEnabled: true
+                                                    maskSource: ShaderEffectSource {
+                                                        sourceItem: Rectangle {
+                                                            width: wpThumbClip.width
+                                                            height: wpThumbClip.height
+                                                            radius: wpThumbClip.radius
+                                                            color: "white"
+                                                        }
+                                                    }
+                                                }
 
-                                                  Connections {
-                                                      target: WallpaperService
-                                                      function onWallpaperChanged(screenName, path) {
-                                                          if (panelWindow && panelWindow.modelData && screenName === panelWindow.modelData.name) {
-                                                              personalizationWallpaperPreview.source = "file://" + path;
-                                                          }
-                                                      }
-                                                  }
-                                              }
-                                         }
+                                                Image {
+                                                    id: personalizationWallpaperPreview
+                                                    anchors.fill: parent
+                                                    source: (panelWindow && panelWindow.modelData) ? "file://" + WallpaperService.getWallpaper(panelWindow.modelData.name) : ""
+                                                    fillMode: Image.PreserveAspectCrop
+                                                    visible: source.toString() !== ""
 
-                                         Image {
-                                             anchors.centerIn: parent; width: 18; height: 18
-                                             source: "icons/palette.png"
-                                             fillMode: Image.PreserveAspectFit
-                                             visible: !wpThumbClip.children[0].visible
-                                             layer.enabled: panelWindow.activeState === 12
-                                             layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: shell.accent }
-                                         }
-                                    }
-
-                                    Column {
-                                        width: parent.width - 40 - 24 - 12
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        Text { text: "Desktop Wallpaper"; color: "#ffffff"; font.pixelSize: 12; font.weight: Font.Bold }
-                                        Text { text: "Select a background image"; color: shell.textSecondary; font.pixelSize: 9 }
-                                    }
-                                }
-
-                                MouseArea {
-                                    id: wallpaperCardMa
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: shell.setState(10)
-                                }
-                            }
-
-                            // Theme Switcher Card (State 20)
-                            Rectangle {
-                                width: parent.width; height: 64; radius: 14; color: themePickerCardMa.containsMouse ? shell.surfaceBright : shell.surfaceAlt
-                                border.width: 0; border.color: shell.surfaceBorder
-                                Behavior on color { ColorAnimation { duration: shell.animFast } }
-
-                                Row {
-                                    anchors.fill: parent; anchors.margins: 12; spacing: 12
-
-                                    Rectangle {
-                                        width: 40; height: 40; radius: 8
-                                        color: shell.surfaceBright
-
-                                        Grid {
-                                            anchors.centerIn: parent
-                                            columns: 2
-                                            spacing: 2.5
-
-                                            Repeater {
-                                                model: {
-                                                    if (shell.themeMode === "custom") {
-                                                        for (var i = 0; i < shell.presets.length; i++) {
-                                                            var p = shell.presets[i];
-                                                            if (shell.customAccent.toString().toLowerCase() === p.accent.toLowerCase()) {
-                                                                return [
-                                                                    p.dot1 || p.accent,
-                                                                    p.dot2 || p.accent,
-                                                                    p.dot3 || p.accent,
-                                                                    p.dot4 || p.accent
-                                                                ];
+                                                    Connections {
+                                                        target: WallpaperService
+                                                        function onWallpaperChanged(screenName, path) {
+                                                            if (panelWindow && panelWindow.modelData && screenName === panelWindow.modelData.name) {
+                                                                personalizationWallpaperPreview.source = "file://" + path;
                                                             }
                                                         }
                                                     }
-                                                    // Derive 4 cohesive tonal shades directly from the current accent color
-                                                    var a = shell.accent;
-                                                    var s = shell._baseSurface;
-                                                    return [
-                                                        Qt.rgba(s.r * 0.60 + a.r * 0.40, s.g * 0.60 + a.g * 0.40, s.b * 0.60 + a.b * 0.40, 1.0),
-                                                        Qt.rgba(s.r * 0.40 + a.r * 0.60, s.g * 0.40 + a.g * 0.60, s.b * 0.40 + a.b * 0.60, 1.0),
-                                                        Qt.rgba(s.r * 0.20 + a.r * 0.80, s.g * 0.20 + a.g * 0.80, s.b * 0.20 + a.b * 0.80, 1.0),
-                                                        a
-                                                    ];
                                                 }
+                                            }
 
-                                                Rectangle {
-                                                    width: 9.5
-                                                    height: 9.5
-                                                    radius: 4.75
-                                                    color: modelData
-                                                    Behavior on color { ColorAnimation { duration: 180 } }
-                                                }
+                                            Image {
+                                                anchors.centerIn: parent
+                                                width: 18
+                                                height: 18
+                                                source: "icons/palette.png"
+                                                fillMode: Image.PreserveAspectFit
+                                                visible: !wpThumbClip.children[0].visible
+                                                layer.enabled: panelWindow.activeState === 12
+                                                layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: shell.accent }
+                                            }
+                                        }
+
+                                        Column {
+                                            width: parent.width - 40 - 10
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            spacing: 2
+                                            Text {
+                                                width: parent.width
+                                                text: "Wallpaper"
+                                                color: "#ffffff"
+                                                font.pixelSize: 12
+                                                font.weight: Font.Bold
+                                                elide: Text.ElideRight
+                                            }
+                                            Text {
+                                                width: parent.width
+                                                text: "Choose background"
+                                                color: shell.textSecondary
+                                                font.pixelSize: 9
+                                                elide: Text.ElideRight
                                             }
                                         }
                                     }
 
-                                    Column {
-                                        width: parent.width - 40 - 24 - 12
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        Text { text: "Browse All Themes"; color: "#ffffff"; font.pixelSize: 12; font.weight: Font.Bold }
-                                        Text { text: "QuickIsland theme picker (Super + Shift + T)"; color: shell.accent; font.pixelSize: 9 }
+                                    MouseArea {
+                                        id: wallpaperCardMa
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: shell.setState(10)
                                     }
                                 }
 
-                                MouseArea {
-                                    id: themePickerCardMa
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: shell.setState(20)
+                                // 2. Theme Switcher Card (State 20)
+                                Rectangle {
+                                    width: (parent.width - 10) / 2
+                                    height: 64
+                                    radius: 14
+                                    color: themePickerCardMa.containsMouse ? shell.surfaceBright : shell.surfaceAlt
+                                    border.width: 0
+                                    border.color: shell.surfaceBorder
+                                    Behavior on color { ColorAnimation { duration: shell.animFast } }
+
+                                    Row {
+                                        anchors.fill: parent
+                                        anchors.margins: 12
+                                        spacing: 10
+
+                                        Rectangle {
+                                            width: 40
+                                            height: 40
+                                            radius: 8
+                                            color: shell.surfaceBright
+                                            anchors.verticalCenter: parent.verticalCenter
+
+                                            Grid {
+                                                anchors.centerIn: parent
+                                                columns: 2
+                                                spacing: 2.5
+
+                                                Repeater {
+                                                    model: {
+                                                        if (shell.themeMode === "custom") {
+                                                            for (var i = 0; i < shell.presets.length; i++) {
+                                                                var p = shell.presets[i];
+                                                                if (shell.customAccent.toString().toLowerCase() === p.accent.toLowerCase()) {
+                                                                    return [
+                                                                        p.dot1 || p.accent,
+                                                                        p.dot2 || p.accent,
+                                                                        p.dot3 || p.accent,
+                                                                        p.dot4 || p.accent
+                                                                    ];
+                                                                }
+                                                            }
+                                                        }
+                                                        // Derive 4 cohesive tonal shades directly from the current accent color
+                                                        var a = shell.accent;
+                                                        var s = shell._baseSurface;
+                                                        return [
+                                                            Qt.rgba(s.r * 0.60 + a.r * 0.40, s.g * 0.60 + a.g * 0.40, s.b * 0.60 + a.b * 0.40, 1.0),
+                                                            Qt.rgba(s.r * 0.40 + a.r * 0.60, s.g * 0.40 + a.g * 0.60, s.b * 0.40 + a.b * 0.60, 1.0),
+                                                            Qt.rgba(s.r * 0.20 + a.r * 0.80, s.g * 0.20 + a.g * 0.80, s.b * 0.20 + a.b * 0.80, 1.0),
+                                                            a
+                                                        ];
+                                                    }
+
+                                                    Rectangle {
+                                                        width: 9.5
+                                                        height: 9.5
+                                                        radius: 4.75
+                                                        color: modelData
+                                                        Behavior on color { ColorAnimation { duration: 180 } }
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        Column {
+                                            width: parent.width - 40 - 10
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            spacing: 2
+                                            Text {
+                                                width: parent.width
+                                                text: "Themes"
+                                                color: "#ffffff"
+                                                font.pixelSize: 12
+                                                font.weight: Font.Bold
+                                                elide: Text.ElideRight
+                                            }
+                                            Text {
+                                                width: parent.width
+                                                text: "Theme picker"
+                                                color: shell.accent
+                                                font.pixelSize: 9
+                                                elide: Text.ElideRight
+                                            }
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        id: themePickerCardMa
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: shell.setState(20)
+                                    }
                                 }
                             }
 
