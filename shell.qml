@@ -7557,12 +7557,13 @@ function getCurrentThemeStateKey() {
 
                     onVisibleChanged: {
                         if (visible) {
+                            emojiBoardView.activeCategory = "people";
                             emojiSearchInput.text = "";
                             Qt.callLater(() => emojiSearchInput.forceActiveFocus());
                         }
                     }
 
-                    property string activeCategory: "popular"
+                    property string activeCategory: "people"
                     property string searchQuery: ""
 
                     MouseArea {
@@ -7636,7 +7637,7 @@ function getCurrentThemeStateKey() {
                                         if (text !== "") {
                                             emojiBoardView.activeCategory = "";
                                         } else {
-                                            emojiBoardView.activeCategory = "popular";
+                                            emojiBoardView.activeCategory = "people";
                                         }
                                     }
 
@@ -7660,7 +7661,7 @@ function getCurrentThemeStateKey() {
                                 id: categoryRow
                                 spacing: 8
                                 Repeater {
-                                    model: ["popular", "people", "nature", "food", "travel", "activities", "objects", "symbols", "flags"]
+                                    model: ["people", "nature", "food", "travel", "activities", "objects", "symbols", "flags"]
                                     delegate: Rectangle {
                                         width: 36; height: 30; radius: 8
                                         color: emojiBoardView.activeCategory === modelData ? shell.accent : shell.surfaceBright
@@ -7670,7 +7671,6 @@ function getCurrentThemeStateKey() {
                                             anchors.centerIn: parent
                                             text: {
                                                 switch (modelData) {
-                                                    case "popular": return "🕒";
                                                     case "people": return "😀";
                                                     case "nature": return "🐱";
                                                     case "food": return "🍔";
@@ -8224,7 +8224,7 @@ function getCurrentThemeStateKey() {
                                         text: "Display Configuration"
                                         color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold
                                         anchors.left: backBtnIcon.right; anchors.leftMargin: 10
-                                        anchors.verticalCenter: editBackIcon.verticalCenter 
+                                        anchors.verticalCenter: parent.verticalCenter 
                                     }
                                 }
 
@@ -8371,26 +8371,7 @@ function getCurrentThemeStateKey() {
 
                                         property int monitorIndex: index
 
-                                        // Line 1: Name and Configure button
-                                        Text {
-                                            id: nameText
-                                            text: modelData.name + (modelData.disabled ? " [Off]" : " [" + modelData.width + "x" + modelData.height + "]")
-                                            color: shell.textPrimary; font.pixelSize: 11; font.weight: Font.Bold
-                                            anchors.left: parent.left; anchors.leftMargin: 12
-                                            anchors.top: (shell.monitorsList.length > 1 && !modelData.disabled) ? parent.top : undefined
-                                            anchors.topMargin: (shell.monitorsList.length > 1 && !modelData.disabled) ? 10 : 0
-                                            anchors.verticalCenter: (shell.monitorsList.length > 1 && !modelData.disabled) ? undefined : parent.verticalCenter
-                                        }
-
-                                        Text {
-                                            text: modelData.make + " " + modelData.model
-                                            color: shell.textMuted; font.pixelSize: 9; font.weight: Font.Medium
-                                            anchors.left: nameText.right; anchors.leftMargin: 8
-                                            anchors.right: configureBtn.left; anchors.rightMargin: 10
-                                            anchors.verticalCenter: nameText.verticalCenter
-                                            elide: Text.ElideRight
-                                        }
-
+                                        // Line 1: Configure button (anchored right)
                                         Rectangle {
                                             id: configureBtn
                                             width: 80; height: 26; radius: 6
@@ -8414,6 +8395,24 @@ function getCurrentThemeStateKey() {
                                                     settingsPopupView.currentSubView = 1
                                                 }
                                             }
+                                        }
+
+                                        // Line 1: Name and details (vertically centered with configureBtn)
+                                        Text {
+                                            id: nameText
+                                            text: modelData.name + (modelData.disabled ? " [Off]" : " [" + modelData.width + "x" + modelData.height + "]")
+                                            color: shell.textPrimary; font.pixelSize: 11; font.weight: Font.Bold
+                                            anchors.left: parent.left; anchors.leftMargin: 12
+                                            anchors.verticalCenter: configureBtn.verticalCenter
+                                        }
+
+                                        Text {
+                                            text: (modelData.make ? modelData.make + " " : "") + (modelData.model || "")
+                                            color: shell.textMuted; font.pixelSize: 9; font.weight: Font.Medium
+                                            anchors.left: nameText.right; anchors.leftMargin: 8
+                                            anchors.right: configureBtn.left; anchors.rightMargin: 10
+                                            anchors.verticalCenter: configureBtn.verticalCenter
+                                            elide: Text.ElideRight
                                         }
 
                                         // Line 2: Manual snaps associated directly inside the display card
