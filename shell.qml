@@ -6054,123 +6054,128 @@ function getCurrentThemeStateKey() {
                                 width: parent.width; height: 50; radius: 14; color: shell.surfaceAlt
                                 border.width: 0; border.color: shell.surfaceBorder
 
-                                Row {
-                                    anchors.fill: parent; anchors.margins: 12; spacing: 12
-
-                                    Rectangle {
-                                        width: 28; height: 28; radius: 14
-                                        color: Settings.data.colorSchemes.themedIcons ? shell.accent : shell.surfaceBright
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        Image {
-                                            anchors.centerIn: parent; width: 14; height: 14
-                                            source: "icons/palette.png"
-                                            layer.enabled: panelWindow.activeState === 12
-                                            layer.effect: MultiEffect {
-                                                brightness: 1.0; colorization: 1.0
-                                                colorizationColor: Settings.data.colorSchemes.themedIcons ? shell.surface : shell.textMuted
-                                            }
-                                        }
-                                    }
-
-                                    Column {
-                                        width: parent.width - 28 - 44 - 36
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        Text { text: "Themed Icons"; color: "#ffffff"; font.pixelSize: 12; font.weight: Font.Bold }
-                                        Text { text: "Tint desktop and launcher icons with accent"; color: shell.textSecondary; font.pixelSize: 9 }
-                                    }
-
+                                Rectangle {
+                                    id: themedIconsIconBox
+                                    width: 28; height: 28; radius: 14
+                                    anchors.left: parent.left; anchors.leftMargin: 12
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    color: Settings.data.colorSchemes.themedIcons ? shell.accent : shell.surfaceBright
                                     Image {
-                                        width: 44; height: 24
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        source: "icons/on.png"
-                                        mirror: !Settings.data.colorSchemes.themedIcons
-                                        fillMode: Image.PreserveAspectFit
+                                        anchors.centerIn: parent; width: 14; height: 14
+                                        source: "icons/palette.png"
                                         layer.enabled: panelWindow.activeState === 12
                                         layer.effect: MultiEffect {
-                                            brightness: 1.0
-                                            colorization: 1.0
-                                            colorizationColor: Settings.data.colorSchemes.themedIcons ? shell.accent : shell.textMuted
-                                        }
-                                        MouseArea {
-                                            anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                            onClicked: Settings.data.colorSchemes.themedIcons = !Settings.data.colorSchemes.themedIcons
+                                            brightness: 1.0; colorization: 1.0
+                                            colorizationColor: Settings.data.colorSchemes.themedIcons ? shell.surface : shell.textMuted
                                         }
                                     }
                                 }
+
+                                Image {
+                                    id: themedIconsToggle
+                                    width: 44; height: 24
+                                    anchors.right: parent.right; anchors.rightMargin: 12
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    source: "icons/on.png"
+                                    mirror: !Settings.data.colorSchemes.themedIcons
+                                    fillMode: Image.PreserveAspectFit
+                                    layer.enabled: panelWindow.activeState === 12
+                                    layer.effect: MultiEffect {
+                                        brightness: 1.0
+                                        colorization: 1.0
+                                        colorizationColor: Settings.data.colorSchemes.themedIcons ? shell.accent : shell.textMuted
+                                    }
+                                    MouseArea {
+                                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                        onClicked: Settings.data.colorSchemes.themedIcons = !Settings.data.colorSchemes.themedIcons
+                                    }
+                                }
+
+                                Column {
+                                    anchors.left: themedIconsIconBox.right; anchors.leftMargin: 12
+                                    anchors.right: themedIconsToggle.left; anchors.rightMargin: 8
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    spacing: 2
+                                    Text { width: parent.width; text: "Themed Icons"; color: "#ffffff"; font.pixelSize: 12; font.weight: Font.Bold; elide: Text.ElideRight }
+                                    Text { width: parent.width; text: "Tint desktop and launcher icons with accent"; color: shell.textSecondary; font.pixelSize: 9; elide: Text.ElideRight }
+                                }
                             }
 
-                                                        // 4. Liquid Glass Toggle Card
+                            // 4. Liquid Glass Toggle Card
                             Rectangle {
                                 width: parent.width; height: 50; radius: 14; color: shell.surfaceAlt
                                 border.width: 0; border.color: shell.surfaceBorder
 
-                                Row {
-                                    anchors.fill: parent; anchors.margins: 12; spacing: 12
-
-                                    Rectangle {
-                                        width: 28; height: 28; radius: 14
-                                        color: (Settings.data.colorSchemes.hyprglass || Settings.data.colorSchemes.hyprglassIsland) ? shell.accent : shell.surfaceBright
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        Image {
-                                            anchors.centerIn: parent; width: 14; height: 14
-                                            source: "icons/palette.png"
-                                            layer.enabled: panelWindow.activeState === 12
-                                            layer.effect: MultiEffect {
-                                                brightness: 1.0; colorization: 1.0; colorizationColor: (Settings.data.colorSchemes.hyprglass || Settings.data.colorSchemes.hyprglassIsland) ? shell._baseSurface : shell.textMuted
-                                            }
-                                        }
-                                    }
-
-                                    Column {
-                                        width: parent.width - 28 - 44 - 28 - 36
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        Text { text: "Liquid Glass"; color: "#ffffff"; font.pixelSize: 12; font.weight: Font.Bold }
-                                        Text { text: "Enable glass refraction on windows and the island"; color: shell.textSecondary; font.pixelSize: 9 }
-                                    }
-
-                                    // Settings Button (opens config file separately)
-                                    Rectangle {
-                                        width: 28; height: 28; radius: 14; color: "transparent"
-                                        anchors.verticalCenter: parent.verticalCenter
-
-                                        Text {
-                                            anchors.centerIn: parent
-                                            text: "⚙"
-                                            color: settingsMa.containsMouse ? shell.accent : shell.textSecondary
-                                            font.pixelSize: 16
-                                        }
-
-                                        MouseArea {
-                                            id: settingsMa
-                                            anchors.fill: parent
-                                            hoverEnabled: true
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: shell.setState(18)
-                                        }
-                                    }
-
-                                    // Toggle Switch
+                                Rectangle {
+                                    id: liquidGlassIconBox
+                                    width: 28; height: 28; radius: 14
+                                    anchors.left: parent.left; anchors.leftMargin: 12
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    color: (Settings.data.colorSchemes.hyprglass || Settings.data.colorSchemes.hyprglassIsland) ? shell.accent : shell.surfaceBright
                                     Image {
-                                        width: 44; height: 24
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        source: "icons/on.png"
-                                        mirror: !(Settings.data.colorSchemes.hyprglass || Settings.data.colorSchemes.hyprglassIsland)
-                                        fillMode: Image.PreserveAspectFit
+                                        anchors.centerIn: parent; width: 14; height: 14
+                                        source: "icons/palette.png"
                                         layer.enabled: panelWindow.activeState === 12
                                         layer.effect: MultiEffect {
-                                            brightness: 1.0
-                                            colorization: 1.0
-                                            colorizationColor: (Settings.data.colorSchemes.hyprglass || Settings.data.colorSchemes.hyprglassIsland) ? shell.accent : shell.textMuted
-                                        }
-                                        MouseArea {
-                                            anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                            onClicked: {
-                                                var val = !(Settings.data.colorSchemes.hyprglass || Settings.data.colorSchemes.hyprglassIsland);
-                                                Settings.data.colorSchemes.hyprglass = val;
-                                                Settings.data.colorSchemes.hyprglassIsland = val;
-                                            }
+                                            brightness: 1.0; colorization: 1.0; colorizationColor: (Settings.data.colorSchemes.hyprglass || Settings.data.colorSchemes.hyprglassIsland) ? shell._baseSurface : shell.textMuted
                                         }
                                     }
+                                }
+
+                                Image {
+                                    id: liquidGlassToggle
+                                    width: 44; height: 24
+                                    anchors.right: parent.right; anchors.rightMargin: 12
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    source: "icons/on.png"
+                                    mirror: !(Settings.data.colorSchemes.hyprglass || Settings.data.colorSchemes.hyprglassIsland)
+                                    fillMode: Image.PreserveAspectFit
+                                    layer.enabled: panelWindow.activeState === 12
+                                    layer.effect: MultiEffect {
+                                        brightness: 1.0
+                                        colorization: 1.0
+                                        colorizationColor: (Settings.data.colorSchemes.hyprglass || Settings.data.colorSchemes.hyprglassIsland) ? shell.accent : shell.textMuted
+                                    }
+                                    MouseArea {
+                                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            var val = !(Settings.data.colorSchemes.hyprglass || Settings.data.colorSchemes.hyprglassIsland);
+                                            Settings.data.colorSchemes.hyprglass = val;
+                                            Settings.data.colorSchemes.hyprglassIsland = val;
+                                        }
+                                    }
+                                }
+
+                                // Settings Button (sits immediately to the left of the toggle)
+                                Rectangle {
+                                    id: liquidGlassSettingsBtn
+                                    width: 28; height: 28; radius: 14; color: "transparent"
+                                    anchors.right: liquidGlassToggle.left; anchors.rightMargin: 6
+                                    anchors.verticalCenter: parent.verticalCenter
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "⚙"
+                                        color: settingsMa.containsMouse ? shell.accent : shell.textSecondary
+                                        font.pixelSize: 16
+                                    }
+
+                                    MouseArea {
+                                        id: settingsMa
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: shell.setState(18)
+                                    }
+                                }
+
+                                Column {
+                                    anchors.left: liquidGlassIconBox.right; anchors.leftMargin: 12
+                                    anchors.right: liquidGlassSettingsBtn.left; anchors.rightMargin: 8
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    spacing: 2
+                                    Text { width: parent.width; text: "Liquid Glass"; color: "#ffffff"; font.pixelSize: 12; font.weight: Font.Bold; elide: Text.ElideRight }
+                                    Text { width: parent.width; text: "Enable glass refraction on windows and the island"; color: shell.textSecondary; font.pixelSize: 9; elide: Text.ElideRight }
                                 }
                             }
 
@@ -6179,52 +6184,54 @@ function getCurrentThemeStateKey() {
                                 width: parent.width; height: 50; radius: 14; color: shell.surfaceAlt
                                 border.width: 0; border.color: shell.surfaceBorder
 
-                                Row {
-                                    anchors.fill: parent; anchors.margins: 12; spacing: 12
-
-                                    Rectangle {
-                                        width: 28; height: 28; radius: 14
-                                        color: shell.spatialWmEnabled ? shell.accent : shell.surfaceBright
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        Image {
-                                            anchors.centerIn: parent; width: 14; height: 14
-                                            source: "icons/palette.png"
-                                            layer.enabled: panelWindow.activeState === 12
-                                            layer.effect: MultiEffect {
-                                                brightness: 1.0; colorization: 1.0
-                                                colorizationColor: shell.spatialWmEnabled ? shell.surface : shell.textMuted
-                                            }
-                                        }
-                                    }
-
-                                    Column {
-                                        width: parent.width - 28 - 44 - 36
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        Text { text: "Infinite Canvas WM"; color: "#ffffff"; font.pixelSize: 12; font.weight: Font.Bold }
-                                        Text { text: "Use 2D Workspace Grid & Overview (HyprExpo)"; color: shell.textSecondary; font.pixelSize: 9 }
-                                    }
-
+                                Rectangle {
+                                    id: spatialWmIconBox
+                                    width: 28; height: 28; radius: 14
+                                    anchors.left: parent.left; anchors.leftMargin: 12
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    color: shell.spatialWmEnabled ? shell.accent : shell.surfaceBright
                                     Image {
-                                        width: 44; height: 24
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        source: "icons/on.png"
-                                        mirror: !shell.spatialWmEnabled
-                                        fillMode: Image.PreserveAspectFit
+                                        anchors.centerIn: parent; width: 14; height: 14
+                                        source: "icons/palette.png"
                                         layer.enabled: panelWindow.activeState === 12
                                         layer.effect: MultiEffect {
-                                            brightness: 1.0
-                                            colorization: 1.0
-                                            colorizationColor: shell.spatialWmEnabled ? shell.accent : shell.textMuted
-                                        }
-                                        MouseArea {
-                                            anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                            onClicked: {
-                                                shell.spatialWmEnabled = !shell.spatialWmEnabled;
-                                                spatialWmProc.command = ["bash", "-c", "~/.config/quickshell/quickisland/scripts/toggle_spatial_wm.sh " + (shell.spatialWmEnabled ? "on" : "off")];
-                                                spatialWmProc.running = true;
-                                            }
+                                            brightness: 1.0; colorization: 1.0
+                                            colorizationColor: shell.spatialWmEnabled ? shell.surface : shell.textMuted
                                         }
                                     }
+                                }
+
+                                Image {
+                                    id: spatialWmToggle
+                                    width: 44; height: 24
+                                    anchors.right: parent.right; anchors.rightMargin: 12
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    source: "icons/on.png"
+                                    mirror: !shell.spatialWmEnabled
+                                    fillMode: Image.PreserveAspectFit
+                                    layer.enabled: panelWindow.activeState === 12
+                                    layer.effect: MultiEffect {
+                                        brightness: 1.0
+                                        colorization: 1.0
+                                        colorizationColor: shell.spatialWmEnabled ? shell.accent : shell.textMuted
+                                    }
+                                    MouseArea {
+                                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            shell.spatialWmEnabled = !shell.spatialWmEnabled;
+                                            spatialWmProc.command = ["bash", "-c", "~/.config/quickshell/quickisland/scripts/toggle_spatial_wm.sh " + (shell.spatialWmEnabled ? "on" : "off")];
+                                            spatialWmProc.running = true;
+                                        }
+                                    }
+                                }
+
+                                Column {
+                                    anchors.left: spatialWmIconBox.right; anchors.leftMargin: 12
+                                    anchors.right: spatialWmToggle.left; anchors.rightMargin: 8
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    spacing: 2
+                                    Text { width: parent.width; text: "Infinite Canvas WM"; color: "#ffffff"; font.pixelSize: 12; font.weight: Font.Bold; elide: Text.ElideRight }
+                                    Text { width: parent.width; text: "Use 2D Workspace Grid & Overview (HyprExpo)"; color: shell.textSecondary; font.pixelSize: 9; elide: Text.ElideRight }
                                 }
                             }
 
