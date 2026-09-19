@@ -3115,22 +3115,56 @@ function getCurrentThemeStateKey() {
                                     }
                                 }
 
-                                // Battery
+                                // Battery (Graphic styling matching iOS/macOS pill)
                                 Item {
-                                    width: 26; height: 12; anchors.verticalCenter: parent.verticalCenter
+                                    width: 26; height: 12
+                                    anchors.verticalCenter: parent.verticalCenter
                                     visible: shell.batteryPercent >= 0
 
+                                    // Outer Battery Body Frame
                                     Rectangle {
-                                        width: 24; height: 12; radius: 3; color: "transparent"
-                                        border.width: 0; border.color: shell.textMuted
+                                        id: batteryBody
+                                        width: 23; height: 12
+                                        radius: 4
+                                        color: Qt.rgba(shell.textPrimary.r, shell.textPrimary.g, shell.textPrimary.b, 0.06)
+                                        border.width: 1.2
+                                        border.color: Qt.rgba(shell.textPrimary.r, shell.textPrimary.g, shell.textPrimary.b, 0.45)
+                                        anchors.left: parent.left
+                                        anchors.verticalCenter: parent.verticalCenter
+
+                                        // Inset Level Fill
                                         Rectangle {
-                                            x: 2.5; y: 2.5
-                                            width: (parent.width - 5) * Math.max(0, Math.min(1, shell.batteryPercent / 100))
-                                            height: parent.height - 5; radius: 1.5
+                                            id: batteryFill
+                                            x: 2; y: 2
+                                            height: parent.height - 4
+                                            width: Math.max(0, (parent.width - 4) * Math.max(0, Math.min(1.0, shell.batteryPercent / 100)))
+                                            radius: 2
                                             color: shell.batteryPercent < 20 ? shell.red : (shell.batteryCharging ? shell.green : shell.accent)
+
+                                            Behavior on width {
+                                                NumberAnimation { duration: 300; easing.type: Easing.OutCubic }
+                                            }
+                                        }
+
+                                        // Charging indicator
+                                        Text {
+                                            visible: shell.batteryCharging
+                                            anchors.centerIn: parent
+                                            text: "⚡"
+                                            font.pixelSize: 8
+                                            color: shell.batteryPercent > 55 ? shell._baseSurface : shell.green
                                         }
                                     }
-                                    Rectangle { x: 24; y: 3; width: 2; height: 6; radius: 1; color: shell.textMuted }
+
+                                    // Battery Terminal Tip / Nub
+                                    Rectangle {
+                                        width: 1.8; height: 4.5
+                                        radius: 1
+                                        anchors.left: batteryBody.right
+                                        anchors.leftMargin: 1
+                                        anchors.verticalCenter: batteryBody.verticalCenter
+                                        color: Qt.rgba(shell.textPrimary.r, shell.textPrimary.g, shell.textPrimary.b, 0.45)
+                                    }
                                 }
 
                                 Text {
