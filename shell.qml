@@ -5226,10 +5226,10 @@ function getCurrentThemeStateKey() {
                                             anchors.fill: wpCardInner
                                             source: wpCardShadowSource
                                             shadowEnabled: true
-                                            shadowColor: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.85)
-                                            shadowBlur: 0.9
+                                            shadowColor: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.25)
+                                            shadowBlur: 0.35
                                             shadowHorizontalOffset: 0
-                                            shadowVerticalOffset: 0
+                                            shadowVerticalOffset: 2
                                             opacity: wpCardDelegate.isSelected ? 1.0 : 0.0
                                             scale: wpCardInner.scale
                                             anchors.verticalCenterOffset: wpCardInner.anchors.verticalCenterOffset
