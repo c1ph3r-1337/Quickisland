@@ -2717,7 +2717,7 @@ function getCurrentThemeStateKey() {
                     anchors.bottom: parent.bottom
                     anchors.left: parent.left
                     anchors.right: parent.right
-                    radius: typeof island !== "undefined" ? island.islandRadius : 0
+                    radius: typeof island !== "undefined" ? island.radius : 0
                     color: "black"
                 }
             }
@@ -2860,7 +2860,7 @@ function getCurrentThemeStateKey() {
                 property real islandRadius: {
                     switch (panelWindow.activeState) {
                         case 0: return 15;
-                        case 1: return 22;
+                        case 1: return 10;
                         case 2: return 17;
                         default: return 24;
                     }
@@ -3144,15 +3144,6 @@ function getCurrentThemeStateKey() {
                                             Behavior on width {
                                                 NumberAnimation { duration: 300; easing.type: Easing.OutCubic }
                                             }
-                                        }
-
-                                        // Charging indicator
-                                        Text {
-                                            visible: shell.batteryCharging
-                                            anchors.centerIn: parent
-                                            text: "⚡"
-                                            font.pixelSize: 8
-                                            color: shell.batteryPercent > 55 ? shell._baseSurface : shell.green
                                         }
                                     }
 
