@@ -2363,7 +2363,8 @@ function getCurrentThemeStateKey() {
         model: Quickshell.screens
 
         PanelWindow {
-            property var modelData
+            required property ShellScreen modelData
+            screen: modelData
             color: "transparent"
             mask: Region {}
 
@@ -2382,7 +2383,8 @@ function getCurrentThemeStateKey() {
         model: Quickshell.screens
 
         PanelWindow {
-            property var modelData
+            required property ShellScreen modelData
+            screen: modelData
             color: "transparent"
             mask: Region {} // Completely click-through
 
@@ -2407,8 +2409,9 @@ function getCurrentThemeStateKey() {
 
         PanelWindow {
             id: panelWindow
+            required property ShellScreen modelData
+            screen: modelData
             visible: !(typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) || panelWindow.activeState > 0
-            property var modelData
             color: "transparent"
             property var shellRootObj: shell
 
@@ -2467,6 +2470,8 @@ function getCurrentThemeStateKey() {
                     var newId = 1;
                     if (monitor && monitor.focusedWorkspace) {
                         newId = monitor.focusedWorkspace.id;
+                    } else if (monitor && monitor.activeWorkspace) {
+                        newId = monitor.activeWorkspace.id;
                     } else if (Hyprland.focusedWorkspace) {
                         newId = Hyprland.focusedWorkspace.id;
                     }
@@ -2479,6 +2484,8 @@ function getCurrentThemeStateKey() {
                 var initialId = 1;
                 if (monitor && monitor.focusedWorkspace) {
                     initialId = monitor.focusedWorkspace.id;
+                } else if (monitor && monitor.activeWorkspace) {
+                    initialId = monitor.activeWorkspace.id;
                 } else if (Hyprland.focusedWorkspace) {
                     initialId = Hyprland.focusedWorkspace.id;
                 }
@@ -2593,6 +2600,7 @@ function getCurrentThemeStateKey() {
             Item {
                 id: islandMask
                 anchors.horizontalCenter: parent.horizontalCenter
+                anchors.horizontalCenterOffset: island ? island.anchors.horizontalCenterOffset : 0
                 anchors.top: parent.top
                 anchors.topMargin: (Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 0 : 6
                 width: panelWindow.maskWidth
@@ -2653,6 +2661,7 @@ function getCurrentThemeStateKey() {
             Item {
                 id: islandMaskTopSquare
                 anchors.horizontalCenter: parent.horizontalCenter
+                anchors.horizontalCenterOffset: island ? island.anchors.horizontalCenterOffset : 0
                 anchors.top: parent.top
                 anchors.topMargin: (Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 0 : 6
                 width: panelWindow.maskWidth
@@ -9007,7 +9016,8 @@ function getCurrentThemeStateKey() {
     Variants {
         model: Quickshell.screens
         PanelWindow {
-            property var modelData
+            required property ShellScreen modelData
+            screen: modelData
             color: "transparent"
             Region { id: ccMaskRegion }
             mask: (ccPanel.isPanelVisible || ccPanel.isPanelOpen) ? null : ccMaskRegion
@@ -9044,8 +9054,9 @@ function getCurrentThemeStateKey() {
 
         PanelWindow {
             id: notchPanelWindow
+            required property ShellScreen modelData
+            screen: modelData
             visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode
-            property var modelData
             color: "transparent"
 
             WlrLayershell.namespace: "macnotch-bar"
@@ -9083,7 +9094,8 @@ function getCurrentThemeStateKey() {
 
         PanelWindow {
             id: overviewOverlayWindow
-            property var modelData
+            required property ShellScreen modelData
+            screen: modelData
             color: "transparent"
             
             // Interactive when ON

@@ -411,6 +411,17 @@ white = '{text_muted}'
         except Exception as e:
             print(f"Error updating xsettingsd: {e}")
 
+    # Calculate theme-tinted backgrounds for GTK
+    # For wallpaper themes or very dark surfaces, a subtle tint (6-8% blend) of the accent provides
+    # an atmospheric, rich dark background that visibly matches the theme/wallpaper across apps
+    lum_surf = get_luminance(surface)
+    if lum_surf < 0.08:
+        gtk_bg = blend(surface, accent, 0.08)
+        gtk_sidebar = blend(surface_alt, accent, 0.12)
+    else:
+        gtk_bg = surface
+        gtk_sidebar = surface_alt
+
     # Update Wallbash-Gtk theme color definitions directly
     wallbash_dir = home / ".local/share/themes/Wallbash-Gtk"
     if wallbash_dir.exists():
@@ -420,14 +431,14 @@ white = '{text_muted}'
                     txt = wb_css_file.read_text()
                     txt = re.sub(r'@define-color theme_fg_color\s+[^;]+;', f'@define-color theme_fg_color {text_primary};', txt)
                     txt = re.sub(r'@define-color theme_text_color\s+[^;]+;', f'@define-color theme_text_color {text_primary};', txt)
-                    txt = re.sub(r'@define-color theme_bg_color\s+[^;]+;', f'@define-color theme_bg_color {surface};', txt)
-                    txt = re.sub(r'@define-color theme_base_color\s+[^;]+;', f'@define-color theme_base_color {surface};', txt)
+                    txt = re.sub(r'@define-color theme_bg_color\s+[^;]+;', f'@define-color theme_bg_color {gtk_bg};', txt)
+                    txt = re.sub(r'@define-color theme_base_color\s+[^;]+;', f'@define-color theme_base_color {gtk_bg};', txt)
                     txt = re.sub(r'@define-color theme_selected_bg_color\s+[^;]+;', f'@define-color theme_selected_bg_color {accent};', txt)
                     txt = re.sub(r'@define-color theme_selected_fg_color\s+[^;]+;', f'@define-color theme_selected_fg_color {accent_fg};', txt)
                     txt = re.sub(r'@define-color theme_unfocused_fg_color\s+[^;]+;', f'@define-color theme_unfocused_fg_color {text_secondary};', txt)
                     txt = re.sub(r'@define-color theme_unfocused_text_color\s+[^;]+;', f'@define-color theme_unfocused_text_color {text_secondary};', txt)
-                    txt = re.sub(r'@define-color theme_unfocused_bg_color\s+[^;]+;', f'@define-color theme_unfocused_bg_color {surface};', txt)
-                    txt = re.sub(r'@define-color theme_unfocused_base_color\s+[^;]+;', f'@define-color theme_unfocused_base_color {surface};', txt)
+                    txt = re.sub(r'@define-color theme_unfocused_bg_color\s+[^;]+;', f'@define-color theme_unfocused_bg_color {gtk_bg};', txt)
+                    txt = re.sub(r'@define-color theme_unfocused_base_color\s+[^;]+;', f'@define-color theme_unfocused_base_color {gtk_bg};', txt)
                     txt = re.sub(r'@define-color theme_unfocused_selected_bg_color\s+[^;]+;', f'@define-color theme_unfocused_selected_bg_color {accent};', txt)
                     txt = re.sub(r'@define-color theme_unfocused_selected_fg_color\s+[^;]+;', f'@define-color theme_unfocused_selected_fg_color {accent_fg};', txt)
                     txt = re.sub(r'@define-color borders\s+[^;]+;', f'@define-color borders {surface_bright};', txt)
@@ -442,28 +453,28 @@ white = '{text_muted}'
     gtk3_css_content = f"""/* QuickIsland Live Theme (GTK 3): {name} */
 
 /* --- GTK 3 Named Colors --- */
-@define-color theme_bg_color {surface};
+@define-color theme_bg_color {gtk_bg};
 @define-color theme_fg_color {text_primary};
-@define-color theme_base_color {surface};
+@define-color theme_base_color {gtk_bg};
 @define-color theme_text_color {text_primary};
 @define-color theme_selected_bg_color {accent};
 @define-color theme_selected_fg_color {accent_fg};
-@define-color theme_unfocused_bg_color {surface};
+@define-color theme_unfocused_bg_color {gtk_bg};
 @define-color theme_unfocused_fg_color {text_secondary};
-@define-color theme_unfocused_base_color {surface};
+@define-color theme_unfocused_base_color {gtk_bg};
 @define-color theme_unfocused_text_color {text_secondary};
 @define-color theme_unfocused_selected_bg_color {accent};
 @define-color theme_unfocused_selected_fg_color {accent_fg};
 @define-color borders {surface_bright};
 @define-color unfocused_borders {surface_alt};
-@define-color insensitive_bg_color {surface};
+@define-color insensitive_bg_color {gtk_bg};
 @define-color insensitive_fg_color {text_muted};
 @define-color insensitive_base_color {surface_alt};
 @define-color warning_color {peach};
 @define-color error_color {red};
 @define-color success_color {green};
-@define-color content_view_bg {surface};
-@define-color text_view_bg {surface_alt};
+@define-color content_view_bg {gtk_bg};
+@define-color text_view_bg {gtk_sidebar};
 """
     for css_target in [
         home / ".config/gtk-3.0/gtk.css",
@@ -477,7 +488,7 @@ white = '{text_muted}'
         except Exception as e:
             print(f"Error writing GTK 3 CSS to {css_target}: {e}")
 
-    # Write GTK 4 / Libadwaita CSS (supports @media queries and :root CSS variables)
+    # Write GTK 4 / Libadwaita CSS (supports top-level @define-color and :root CSS variables)
     gtk4_css_content = f"""/* QuickIsland Live Theme (GTK 4 / Libadwaita): {name} */
 
 /* --- Libadwaita / GTK 4 Named Colors --- */
@@ -490,72 +501,32 @@ white = '{text_muted}'
 @define-color error_bg_color {red};
 @define-color error_fg_color {red_fg};
 
-@define-color window_bg_color {surface};
+@define-color window_bg_color {gtk_bg};
 @define-color window_fg_color {text_primary};
-@define-color view_bg_color {surface};
+@define-color view_bg_color {gtk_bg};
 @define-color view_fg_color {text_primary};
-@define-color headerbar_bg_color {surface_alt};
+@define-color headerbar_bg_color {gtk_sidebar};
 @define-color headerbar_fg_color {text_primary};
 @define-color headerbar_backdrop_color @window_bg_color;
-@define-color card_bg_color {surface_alt};
+@define-color card_bg_color {gtk_sidebar};
 @define-color card_fg_color {text_primary};
-@define-color popover_bg_color {surface_alt};
+@define-color popover_bg_color {gtk_sidebar};
 @define-color popover_fg_color {text_primary};
-@define-color dialog_bg_color {surface};
+@define-color dialog_bg_color {gtk_bg};
 @define-color dialog_fg_color {text_primary};
 
-@define-color sidebar_bg_color {surface_alt};
+@define-color sidebar_bg_color {gtk_sidebar};
 @define-color sidebar_fg_color {text_primary};
 @define-color sidebar_backdrop_color @window_bg_color;
 @define-color sidebar_border_color @window_bg_color;
 
-@define-color secondary_sidebar_bg_color {surface};
+@define-color secondary_sidebar_bg_color {gtk_bg};
 @define-color secondary_sidebar_fg_color {text_primary};
 
 @define-color warning_bg_color {peach};
 @define-color warning_fg_color {peach_fg};
 @define-color success_bg_color {green};
 @define-color success_fg_color {green_fg};
-
-/* Override Libadwaita dark mode media query so dark mode honors the theme palette */
-@media (prefers-color-scheme: dark) {{
-    @define-color window_bg_color {surface};
-    @define-color window_fg_color {text_primary};
-    @define-color view_bg_color {surface};
-    @define-color view_fg_color {text_primary};
-    @define-color headerbar_bg_color {surface_alt};
-    @define-color headerbar_fg_color {text_primary};
-    @define-color headerbar_backdrop_color @window_bg_color;
-    @define-color card_bg_color {surface_alt};
-    @define-color card_fg_color {text_primary};
-    @define-color popover_bg_color {surface_alt};
-    @define-color popover_fg_color {text_primary};
-    @define-color dialog_bg_color {surface};
-    @define-color dialog_fg_color {text_primary};
-    @define-color sidebar_bg_color {surface_alt};
-    @define-color sidebar_fg_color {text_primary};
-    @define-color sidebar_backdrop_color @window_bg_color;
-    @define-color sidebar_border_color @window_bg_color;
-    @define-color secondary_sidebar_bg_color {surface};
-    @define-color secondary_sidebar_fg_color {text_primary};
-
-    :root {{
-        --window-bg-color: {surface};
-        --window-fg-color: {text_primary};
-        --view-bg-color: {surface};
-        --view-fg-color: {text_primary};
-        --headerbar-bg-color: {surface_alt};
-        --headerbar-fg-color: {text_primary};
-        --sidebar-bg-color: {surface_alt};
-        --sidebar-fg-color: {text_primary};
-        --card-bg-color: {surface_alt};
-        --card-fg-color: {text_primary};
-        --dialog-bg-color: {surface};
-        --dialog-fg-color: {text_primary};
-        --popover-bg-color: {surface_alt};
-        --popover-fg-color: {text_primary};
-    }}
-}}
 
 /* --- Libadwaita CSS Variables --- */
 :root {{
@@ -568,26 +539,26 @@ white = '{text_muted}'
     --error-bg-color: {red};
     --error-fg-color: {red_fg};
 
-    --window-bg-color: {surface};
+    --window-bg-color: {gtk_bg};
     --window-fg-color: {text_primary};
 
-    --view-bg-color: {surface};
+    --view-bg-color: {gtk_bg};
     --view-fg-color: {text_primary};
 
-    --headerbar-bg-color: {surface_alt};
+    --headerbar-bg-color: {gtk_sidebar};
     --headerbar-fg-color: {text_primary};
     --headerbar-backdrop-color: @window_bg_color;
 
-    --popover-bg-color: {surface_alt};
+    --popover-bg-color: {gtk_sidebar};
     --popover-fg-color: {text_primary};
 
-    --card-bg-color: {surface_alt};
+    --card-bg-color: {gtk_sidebar};
     --card-fg-color: {text_primary};
 
-    --dialog-bg-color: {surface};
+    --dialog-bg-color: {gtk_bg};
     --dialog-fg-color: {text_primary};
 
-    --sidebar-bg-color: {surface_alt};
+    --sidebar-bg-color: {gtk_sidebar};
     --sidebar-fg-color: {text_primary};
     --sidebar-backdrop-color: @window_bg_color;
     --sidebar-border-color: @window_bg_color;
@@ -596,6 +567,22 @@ white = '{text_muted}'
     --warning-fg-color: {peach_fg};
     --success-bg-color: {green};
     --success-fg-color: {green_fg};
+}}
+
+/* Safe container background rules for GTK 4 / Libadwaita */
+window.background {{
+    background-color: {gtk_bg};
+    color: {text_primary};
+}}
+
+.navigation-sidebar {{
+    background-color: {gtk_sidebar};
+    color: {text_primary};
+}}
+
+headerbar {{
+    background-color: {gtk_sidebar};
+    color: {text_primary};
 }}
 """
     for css_target in [
