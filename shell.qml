@@ -860,6 +860,8 @@ function getCurrentThemeStateKey() {
 
         var saved = (customPaletteAdapter.palettes && customPaletteAdapter.palettes[fullKey]) ? customPaletteAdapter.palettes[fullKey] : null;
         if (saved) {
+            // Restore palette colors only — never override themeMode here.
+            // themeMode is a global persistent setting controlled by the toggle / preset selection.
             shell.customAccent = saved.customAccent || shell.wpAccent;
             shell.customSurface = saved.customSurface || shell.wpSurface;
             shell.customSurfaceAlt = saved.customSurfaceAlt || shell.wpSurfaceAlt;
@@ -871,9 +873,8 @@ function getCurrentThemeStateKey() {
             shell.customGreen = saved.customGreen || shell.wpGreen;
             shell.customPeach = saved.customPeach || shell.wpPeach;
             shell.customBlue = saved.customBlue || shell.wpBlue;
-            shell.themeMode = saved.themeMode || "wallpaper";
         } else {
-            shell.themeMode = "wallpaper";
+            // No saved entry for this wallpaper — seed custom colors from extracted wp palette
             shell.customAccent = shell.wpAccent;
             shell.customSurface = shell.wpSurface;
             shell.customSurfaceAlt = shell.wpSurfaceAlt;
