@@ -2103,11 +2103,33 @@ function getCurrentThemeStateKey() {
             if (!app || !app.name) return false;
             if (queryLower === "") return true;
             
-            var nameMatch = app.name.toLowerCase().indexOf(queryLower) !== -1;
-            var idMatch = app.id && app.id.toLowerCase().indexOf(queryLower) !== -1;
-            var genericMatch = app.genericName && app.genericName.toLowerCase().indexOf(queryLower) !== -1;
+            var lowerName = app.name.toLowerCase();
+            var lowerId = app.id ? app.id.toLowerCase() : "";
+            var lowerGeneric = app.genericName ? app.genericName.toLowerCase() : "";
+            var lowerComment = app.comment ? app.comment.toLowerCase() : "";
+            var lowerIcon = app.icon ? String(app.icon).toLowerCase() : "";
             
-            return nameMatch || idMatch || genericMatch;
+            var nameMatch = lowerName.indexOf(queryLower) !== -1;
+            var idMatch = lowerId.indexOf(queryLower) !== -1;
+            var genericMatch = lowerGeneric.indexOf(queryLower) !== -1;
+            var commentMatch = lowerComment.indexOf(queryLower) !== -1;
+            var iconMatch = lowerIcon.indexOf(queryLower) !== -1;
+            
+            var keywordsMatch = false;
+            if (app.keywords) {
+                var kwStr = Array.isArray(app.keywords) ? app.keywords.join(" ") : String(app.keywords);
+                keywordsMatch = kwStr.toLowerCase().indexOf(queryLower) !== -1;
+            }
+
+            // Tech aliases and abbreviations (e.g. vscode -> Visual Studio Code)
+            var aliasMatch = false;
+            if (lowerName.indexOf("visual studio code") !== -1 || lowerId === "code.desktop" || lowerId === "code" || lowerId.indexOf("code") !== -1) {
+                if (queryLower.indexOf("vsc") !== -1 || queryLower.indexOf("code") !== -1 || "vscode".indexOf(queryLower) !== -1 || "vsc".indexOf(queryLower) !== -1) {
+                    aliasMatch = true;
+                }
+            }
+            
+            return nameMatch || idMatch || genericMatch || commentMatch || iconMatch || keywordsMatch || aliasMatch;
         });
         
         // Normalize recentIds for robust extension-agnostic matching
@@ -2118,6 +2140,22 @@ function getCurrentThemeStateKey() {
         filtered.sort(function(a, b) {
             var idA = a.id ? a.id.toLowerCase().replace(/\.desktop$/, "") : "";
             var idB = b.id ? b.id.toLowerCase().replace(/\.desktop$/, "") : "";
+            var nameA = a.name.toLowerCase();
+            var nameB = b.name.toLowerCase();
+
+            if (queryLower !== "") {
+                function getScore(name, id) {
+                    if (name === queryLower || id === queryLower) return 100;
+                    if ((queryLower === "vscode" || queryLower === "vsc") && (name.indexOf("visual studio code") !== -1 || id.indexOf("code") !== -1)) return 95;
+                    if (name.startsWith(queryLower) || id.startsWith(queryLower)) return 80;
+                    if (name.indexOf(queryLower) !== -1) return 60;
+                    if (id.indexOf(queryLower) !== -1) return 50;
+                    return 20;
+                }
+                var scoreA = getScore(nameA, idA);
+                var scoreB = getScore(nameB, idB);
+                if (scoreA !== scoreB) return scoreB - scoreA;
+            }
             
             var idxA = normalizedRecent.indexOf(idA);
             var idxB = normalizedRecent.indexOf(idB);
