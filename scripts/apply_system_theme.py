@@ -226,61 +226,157 @@ white = '{text_muted}'
         print(f"Error updating Hyprland: {e}")
 
     # ---------------------------------------------------------
-    # 4. GTK 3 & 4 / Libadwaita
+    # 4. GTK 2, 3 & 4 / Libadwaita & Wallbash-Gtk
     # ---------------------------------------------------------
-    gtk_theme_map = {
-        "catppuccin": "Catppuccin-Mocha",
-        "tokyo night": "Tokyo-Night",
-        "gruvbox": "Gruvbox-Retro",
-        "nord": "Nordic-Blue",
-        "rose pine": "Rose-Pine",
-        "synthwave": "Synth-Wave",
-        "anime": "Catppuccin-Mocha",
-        "ariadne": "Decay-Green"
-    }
-    matched_gtk_theme = gtk_theme_map.get(name.lower(), "Catppuccin-Mocha")
+    name_clean = name.lower().strip()
+    matched_gtk_theme = "Wallbash-Gtk"
 
-    # Set gsettings
+    if "catppuccin latte" in name_clean:
+        matched_gtk_theme = "Catppuccin-Latte"
+    elif "catppuccin" in name_clean or "mocha" in name_clean:
+        matched_gtk_theme = "Catppuccin-Mocha"
+    elif "tokyo" in name_clean:
+        matched_gtk_theme = "Tokyo-Night"
+    elif "gruvbox" in name_clean:
+        matched_gtk_theme = "Gruvbox-Retro"
+    elif "nord" in name_clean:
+        matched_gtk_theme = "Nordic-Blue"
+    elif "rose" in name_clean or "rosé" in name_clean:
+        matched_gtk_theme = "Rose-Pine"
+    elif "synth" in name_clean:
+        matched_gtk_theme = "Synth-Wave"
+    elif "ariadne" in name_clean or "decay" in name_clean:
+        matched_gtk_theme = "Decay-Green"
+    elif "cyberpunk" in name_clean or "edge" in name_clean or "runner" in name_clean:
+        matched_gtk_theme = "Edge-Runner"
+    elif "anime" in name_clean or "sakura" in name_clean or "material" in name_clean:
+        matched_gtk_theme = "Material-Sakura"
+    elif "frosted" in name_clean or "glass" in name_clean:
+        matched_gtk_theme = "Frosted-Glass"
+    elif any(k in name_clean for k in ["graphite", "mono", "monokai", "github", "ashes"]):
+        matched_gtk_theme = "Graphite-Mono"
+    else:
+        # All wallpaper themes ("wp ...", "Wallpaper ...") and custom palettes
+        # use Wallbash-Gtk which dynamically adapts to the exact palette colors
+        matched_gtk_theme = "Wallbash-Gtk"
+
+    # Set gsettings with live-reload toggle
     try:
+        current_gtk = ""
+        try:
+            current_gtk = subprocess.check_output(
+                ["gsettings", "get", "org.gnome.desktop.interface", "gtk-theme"],
+                text=True, stderr=subprocess.DEVNULL
+            ).strip().strip("'")
+        except Exception:
+            pass
+
         subprocess.run(["gsettings", "set", "org.gnome.desktop.interface", "color-scheme", "prefer-dark"], stderr=subprocess.DEVNULL)
+        
+        # If theme name is identical, toggle briefly to trigger GSettings change signal for running apps
+        if current_gtk == matched_gtk_theme:
+            temp_theme = "Adwaita" if matched_gtk_theme != "Adwaita" else "Default"
+            subprocess.run(["gsettings", "set", "org.gnome.desktop.interface", "gtk-theme", temp_theme], stderr=subprocess.DEVNULL)
+        
         subprocess.run(["gsettings", "set", "org.gnome.desktop.interface", "gtk-theme", matched_gtk_theme], stderr=subprocess.DEVNULL)
     except Exception as e:
         print(f"Error setting gsettings: {e}")
 
-    # Write GTK 3 settings.ini
-    gtk3_ini = home / ".config/gtk-3.0/settings.ini"
-    if gtk3_ini.exists():
-        try:
-            content = gtk3_ini.read_text()
-            lines = []
-            for line in content.splitlines():
-                if line.startswith("gtk-theme-name="):
-                    lines.append(f"gtk-theme-name={matched_gtk_theme}")
+    # Write GTK 3 & 4 settings.ini
+    for ini_path in [
+        home / ".config/gtk-3.0/settings.ini",
+        home / ".config/gtk-4.0/settings.ini",
+        home / ".config/profiles/noctalia/gtk-3.0/settings.ini"
+    ]:
+        if ini_path.exists():
+            try:
+                content = ini_path.read_text()
+                if "gtk-theme-name=" in content:
+                    content = re.sub(r'gtk-theme-name=.*', f'gtk-theme-name={matched_gtk_theme}', content)
                 else:
-                    lines.append(line)
-            gtk3_ini.write_text("\n".join(lines) + "\n")
-        except Exception as e:
-            print(f"Error updating gtk-3 settings: {e}")
+                    content = content + f"\ngtk-theme-name={matched_gtk_theme}\n"
+                ini_path.write_text(content)
+            except Exception as e:
+                print(f"Error updating {ini_path}: {e}")
 
-    # Write GTK 4 settings.ini
-    gtk4_ini = home / ".config/gtk-4.0/settings.ini"
-    if gtk4_ini.exists():
+    # Update GTK 2 (~/.gtkrc-2.0)
+    gtk2_file = home / ".gtkrc-2.0"
+    if gtk2_file.exists():
         try:
-            content = gtk4_ini.read_text()
-            lines = []
-            for line in content.splitlines():
-                if line.startswith("gtk-theme-name="):
-                    lines.append(f"gtk-theme-name={matched_gtk_theme}")
-                else:
-                    lines.append(line)
-            gtk4_ini.write_text("\n".join(lines) + "\n")
+            g2 = gtk2_file.read_text()
+            if "gtk-theme-name=" in g2:
+                g2 = re.sub(r'gtk-theme-name\s*=\s*"[^"]*"', f'gtk-theme-name="{matched_gtk_theme}"', g2)
+                gtk2_file.write_text(g2)
         except Exception as e:
-            print(f"Error updating gtk-4 settings: {e}")
+            print(f"Error updating gtkrc-2.0: {e}")
 
-    # Write GTK 3 & 4 CSS
-    gtk4_css = home / ".config/gtk-4.0/gtk.css"
-    gtk3_css = home / ".config/gtk-3.0/gtk.css"
+    # Update xsettingsd
+    xsettingsd_file = home / ".config/xsettingsd/xsettingsd.conf"
+    if xsettingsd_file.exists():
+        try:
+            xc = xsettingsd_file.read_text()
+            if "Net/ThemeName" in xc:
+                xc = re.sub(r'Net/ThemeName\s+"[^"]*"', f'Net/ThemeName "{matched_gtk_theme}"', xc)
+                xsettingsd_file.write_text(xc)
+                subprocess.run(["killall", "-HUP", "xsettingsd"], stderr=subprocess.DEVNULL)
+        except Exception as e:
+            print(f"Error updating xsettingsd: {e}")
+
+    # Update Wallbash-Gtk theme color definitions directly
+    wallbash_dir = home / ".local/share/themes/Wallbash-Gtk"
+    if wallbash_dir.exists():
+        try:
+            for wb_css_file in [wallbash_dir / "gtk-3.0/gtk.css", wallbash_dir / "gtk-3.0/gtk-dark.css"]:
+                if wb_css_file.exists():
+                    txt = wb_css_file.read_text()
+                    txt = re.sub(r'@define-color theme_fg_color\s+[^;]+;', f'@define-color theme_fg_color {text_primary};', txt)
+                    txt = re.sub(r'@define-color theme_text_color\s+[^;]+;', f'@define-color theme_text_color {text_primary};', txt)
+                    txt = re.sub(r'@define-color theme_bg_color\s+[^;]+;', f'@define-color theme_bg_color {surface};', txt)
+                    txt = re.sub(r'@define-color theme_base_color\s+[^;]+;', f'@define-color theme_base_color {surface};', txt)
+                    txt = re.sub(r'@define-color theme_selected_bg_color\s+[^;]+;', f'@define-color theme_selected_bg_color {accent};', txt)
+                    txt = re.sub(r'@define-color theme_selected_fg_color\s+[^;]+;', f'@define-color theme_selected_fg_color {surface};', txt)
+                    txt = re.sub(r'@define-color theme_unfocused_fg_color\s+[^;]+;', f'@define-color theme_unfocused_fg_color {text_secondary};', txt)
+                    txt = re.sub(r'@define-color theme_unfocused_text_color\s+[^;]+;', f'@define-color theme_unfocused_text_color {text_secondary};', txt)
+                    txt = re.sub(r'@define-color theme_unfocused_bg_color\s+[^;]+;', f'@define-color theme_unfocused_bg_color {surface};', txt)
+                    txt = re.sub(r'@define-color theme_unfocused_base_color\s+[^;]+;', f'@define-color theme_unfocused_base_color {surface};', txt)
+                    txt = re.sub(r'@define-color theme_unfocused_selected_bg_color\s+[^;]+;', f'@define-color theme_unfocused_selected_bg_color {accent};', txt)
+                    txt = re.sub(r'@define-color theme_unfocused_selected_fg_color\s+[^;]+;', f'@define-color theme_unfocused_selected_fg_color {surface};', txt)
+                    txt = re.sub(r'@define-color borders\s+[^;]+;', f'@define-color borders {surface_bright};', txt)
+                    txt = re.sub(r'@define-color warning_color\s+[^;]+;', f'@define-color warning_color {peach};', txt)
+                    txt = re.sub(r'@define-color error_color\s+[^;]+;', f'@define-color error_color {red};', txt)
+                    txt = re.sub(r'@define-color success_color\s+[^;]+;', f'@define-color success_color {green};', txt)
+                    wb_css_file.write_text(txt)
+        except Exception as e:
+            print(f"Error updating Wallbash-Gtk internal CSS: {e}")
+
+    # Write unified GTK 3 & 4 / Libadwaita user override CSS
     gtk_css_content = f"""/* QuickIsland Live Theme: {name} */
+
+/* --- GTK 3 Named Colors --- */
+@define-color theme_bg_color {surface};
+@define-color theme_fg_color {text_primary};
+@define-color theme_base_color {surface};
+@define-color theme_text_color {text_primary};
+@define-color theme_selected_bg_color {accent};
+@define-color theme_selected_fg_color {surface};
+@define-color theme_unfocused_bg_color {surface};
+@define-color theme_unfocused_fg_color {text_secondary};
+@define-color theme_unfocused_base_color {surface};
+@define-color theme_unfocused_text_color {text_secondary};
+@define-color theme_unfocused_selected_bg_color {accent};
+@define-color theme_unfocused_selected_fg_color {surface};
+@define-color borders {surface_bright};
+@define-color unfocused_borders {surface_alt};
+@define-color insensitive_bg_color {surface};
+@define-color insensitive_fg_color {text_muted};
+@define-color insensitive_base_color {surface_alt};
+@define-color warning_color {peach};
+@define-color error_color {red};
+@define-color success_color {green};
+@define-color content_view_bg {surface};
+@define-color text_view_bg {surface_alt};
+
+/* --- Libadwaita / GTK 4 Named Colors --- */
 @define-color accent_color {accent};
 @define-color accent_bg_color {accent};
 @define-color accent_fg_color {surface};
@@ -304,14 +400,47 @@ white = '{text_muted}'
 @define-color warning_fg_color {surface};
 @define-color success_bg_color {green};
 @define-color success_fg_color {surface};
+
+/* Global Accent Styling for Widgets */
+selection {{
+    background-color: {accent};
+    color: {surface};
+}}
+
+*:selected {{
+    background-color: {accent};
+    color: {surface};
+}}
+
+button.suggested-action,
+.suggested-action {{
+    background-color: {accent};
+    color: {surface};
+}}
+
+progressbar progress,
+scale highlight {{
+    background-color: {accent};
+}}
+
+switch:checked {{
+    background-color: {accent};
+}}
+
+entry:focus {{
+    border-color: {accent};
+}}
 """
-    try:
-        gtk4_css.parent.mkdir(parents=True, exist_ok=True)
-        gtk4_css.write_text(gtk_css_content)
-        gtk3_css.parent.mkdir(parents=True, exist_ok=True)
-        gtk3_css.write_text(gtk_css_content)
-    except Exception as e:
-        print(f"Error writing GTK CSS: {e}")
+    for css_target in [
+        home / ".config/gtk-4.0/gtk.css",
+        home / ".config/gtk-3.0/gtk.css",
+        home / ".config/profiles/noctalia/gtk-3.0/gtk.css"
+    ]:
+        try:
+            css_target.parent.mkdir(parents=True, exist_ok=True)
+            css_target.write_text(gtk_css_content)
+        except Exception as e:
+            print(f"Error writing GTK CSS to {css_target}: {e}")
 
     # ---------------------------------------------------------
     # 5. Rofi Application Launcher
