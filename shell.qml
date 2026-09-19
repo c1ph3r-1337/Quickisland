@@ -3438,7 +3438,7 @@ function getCurrentThemeStateKey() {
                                                }
                                               fillMode: Image.PreserveAspectFit
                                               visible: appIcon.status === Image.Ready
-                                              layer.enabled: visible && panelWindow.activeState === 4 && Settings.data.colorSchemes.themedIcons
+                                              layer.enabled: !!(Settings.data && Settings.data.colorSchemes && Settings.data.colorSchemes.themedIcons)
                                               layer.effect: MultiEffect {
                                                   colorization: 1.0; colorizationColor: shell.accent
                                               }
@@ -3798,7 +3798,7 @@ function getCurrentThemeStateKey() {
                                                  anchors.centerIn: parent; width: 16; height: 16
                                                  source: "icons/personalization.png"
                                                  fillMode: Image.PreserveAspectFit
-                                                 layer.enabled: ccView.ccActive
+                                                 layer.enabled: true
                                                  layer.effect: MultiEffect {
                                                      brightness: 1.0
                                                      colorization: 1.0
@@ -3839,7 +3839,7 @@ function getCurrentThemeStateKey() {
                                                   anchors.centerIn: parent; width: 16; height: 16
                                                   source: "icons/screentools.png"
                                                   fillMode: Image.PreserveAspectFit
-                                                  layer.enabled: ccView.ccActive
+                                                  layer.enabled: true
                                                   layer.effect: MultiEffect {
                                                       brightness: 1.0
                                                       colorization: 1.0
@@ -5751,7 +5751,7 @@ function getCurrentThemeStateKey() {
                                         anchors.centerIn: parent; width: 20; height: 20
                                         source: "icons/back.png"
                                         fillMode: Image.PreserveAspectFit
-                                        layer.enabled: panelWindow.activeState === 12
+                                        layer.enabled: true
                                         layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: shell.textPrimary }
                                     }
                                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: shell.setState(5) }
@@ -5832,7 +5832,7 @@ function getCurrentThemeStateKey() {
                                                 source: "icons/palette.png"
                                                 fillMode: Image.PreserveAspectFit
                                                 visible: !wpThumbClip.children[0].visible
-                                                layer.enabled: panelWindow.activeState === 12
+                                                layer.enabled: true
                                                 layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: shell.accent }
                                             }
                                         }
@@ -6063,7 +6063,7 @@ function getCurrentThemeStateKey() {
                                     Image {
                                         anchors.centerIn: parent; width: 14; height: 14
                                         source: "icons/palette.png"
-                                        layer.enabled: panelWindow.activeState === 12
+                                        layer.enabled: true
                                         layer.effect: MultiEffect {
                                             brightness: 1.0; colorization: 1.0
                                             colorizationColor: Settings.data.colorSchemes.themedIcons ? shell.surface : shell.textMuted
@@ -6079,7 +6079,7 @@ function getCurrentThemeStateKey() {
                                     source: "icons/on.png"
                                     mirror: !Settings.data.colorSchemes.themedIcons
                                     fillMode: Image.PreserveAspectFit
-                                    layer.enabled: panelWindow.activeState === 12
+                                    layer.enabled: true
                                     layer.effect: MultiEffect {
                                         brightness: 1.0
                                         colorization: 1.0
@@ -6115,7 +6115,7 @@ function getCurrentThemeStateKey() {
                                     Image {
                                         anchors.centerIn: parent; width: 14; height: 14
                                         source: "icons/palette.png"
-                                        layer.enabled: panelWindow.activeState === 12
+                                        layer.enabled: true
                                         layer.effect: MultiEffect {
                                             brightness: 1.0; colorization: 1.0; colorizationColor: (Settings.data.colorSchemes.hyprglass || Settings.data.colorSchemes.hyprglassIsland) ? shell._baseSurface : shell.textMuted
                                         }
@@ -6130,7 +6130,7 @@ function getCurrentThemeStateKey() {
                                     source: "icons/on.png"
                                     mirror: !(Settings.data.colorSchemes.hyprglass || Settings.data.colorSchemes.hyprglassIsland)
                                     fillMode: Image.PreserveAspectFit
-                                    layer.enabled: panelWindow.activeState === 12
+                                    layer.enabled: true
                                     layer.effect: MultiEffect {
                                         brightness: 1.0
                                         colorization: 1.0
@@ -6193,7 +6193,7 @@ function getCurrentThemeStateKey() {
                                     Image {
                                         anchors.centerIn: parent; width: 14; height: 14
                                         source: "icons/palette.png"
-                                        layer.enabled: panelWindow.activeState === 12
+                                        layer.enabled: true
                                         layer.effect: MultiEffect {
                                             brightness: 1.0; colorization: 1.0
                                             colorizationColor: shell.spatialWmEnabled ? shell.surface : shell.textMuted
@@ -6209,7 +6209,7 @@ function getCurrentThemeStateKey() {
                                     source: "icons/on.png"
                                     mirror: !shell.spatialWmEnabled
                                     fillMode: Image.PreserveAspectFit
-                                    layer.enabled: panelWindow.activeState === 12
+                                    layer.enabled: true
                                     layer.effect: MultiEffect {
                                         brightness: 1.0
                                         colorization: 1.0
