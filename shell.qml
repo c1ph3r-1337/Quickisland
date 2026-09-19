@@ -5229,10 +5229,10 @@ function getCurrentThemeStateKey() {
                                             height: wpCardInner.height
                                             source: wpCardShadowSource
                                             shadowEnabled: true
-                                            shadowColor: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.35)
-                                            shadowBlur: 0.4
+                                            shadowColor: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.25)
+                                            shadowBlur: 0.28
                                             shadowHorizontalOffset: 0
-                                            shadowVerticalOffset: 2
+                                            shadowVerticalOffset: 0
                                             opacity: wpCardDelegate.isSelected ? 1.0 : 0.0
                                             scale: wpCardInner.scale
                                             z: 0
