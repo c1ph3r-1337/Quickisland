@@ -6488,7 +6488,7 @@ function getCurrentThemeStateKey() {
                                         border.color: "transparent"
 
                                         color: cardDelegate.isSelected 
-                                            ? Qt.rgba(modelData.accent.r, modelData.accent.g, modelData.accent.b, 0.16)
+                                            ? Qt.lighter(shell.surfaceBright, 1.6)
                                             : (cMa.containsMouse ? shell.surfaceBright : shell.surfaceAlt)
 
                                         // Bounce animation
@@ -6509,6 +6509,14 @@ function getCurrentThemeStateKey() {
                                                 easing.type: Easing.OutBack
                                                 easing.overshoot: 1.8 
                                             } 
+                                        }
+
+                                        // Soft accent wash over the light surface when selected
+                                        Rectangle {
+                                            anchors.fill: parent
+                                            radius: parent.radius
+                                            color: Qt.rgba(modelData.accent.r, modelData.accent.g, modelData.accent.b, 0.10)
+                                            visible: cardDelegate.isSelected
                                         }
 
                                         Column {
