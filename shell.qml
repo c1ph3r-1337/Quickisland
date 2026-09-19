@@ -5849,13 +5849,52 @@ function getCurrentThemeStateKey() {
 
                                     Rectangle {
                                         width: 40; height: 40; radius: 8
-                                        color: shell.accentDim
-                                        Image {
-                                            anchors.centerIn: parent; width: 20; height: 20
-                                            source: "icons/palette.png"
-                                            fillMode: Image.PreserveAspectFit
-                                            layer.enabled: panelWindow.activeState === 12
-                                            layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: shell.accent }
+                                        color: shell.surfaceBright
+
+                                        Grid {
+                                            anchors.centerIn: parent
+                                            columns: 2
+                                            spacing: 4
+
+                                            Repeater {
+                                                model: {
+                                                    if (shell.themeMode === "wallpaper") {
+                                                        return [
+                                                            shell.accent,
+                                                            shell.green,
+                                                            shell.peach,
+                                                            shell.blue
+                                                        ];
+                                                    }
+                                                    for (var i = 0; i < shell.presets.length; i++) {
+                                                        var p = shell.presets[i];
+                                                        if (shell.customAccent.toString().toLowerCase() === p.accent.toLowerCase()) {
+                                                            return [
+                                                                p.dot1 || p.accent,
+                                                                p.dot2 || p.accent,
+                                                                p.dot3 || p.accent,
+                                                                p.dot4 || p.accent
+                                                            ];
+                                                        }
+                                                    }
+                                                    return [
+                                                        shell.accent,
+                                                        shell.green,
+                                                        shell.peach,
+                                                        shell.blue
+                                                    ];
+                                                }
+
+                                                Rectangle {
+                                                    width: 10
+                                                    height: 10
+                                                    radius: 5
+                                                    color: modelData
+                                                    border.width: 1
+                                                    border.color: Qt.rgba(0, 0, 0, 0.25)
+                                                    Behavior on color { ColorAnimation { duration: 180 } }
+                                                }
+                                            }
                                         }
                                     }
 
