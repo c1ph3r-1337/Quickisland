@@ -543,6 +543,9 @@ theme[process_end]="{red}"
         "tab.activeBackground":                      vsc_tab_active,
         "tab.inactiveBackground":                    vsc_tab_inactive,
         "tab.unfocusedActiveBackground":             vsc_tab_active,
+        # Filename accent — active tab text uses the accent color
+        "tab.activeForeground":                      accent,
+        "tab.unfocusedActiveForeground":             blend(accent, text_secondary, 0.4),
         "editorGroup.emptyBackground":               vsc_group_bg,
         "panel.background":                          vsc_panel_bg,
         "panelSectionHeader.background":             vsc_panel_bg,
@@ -601,6 +604,8 @@ theme[process_end]="{red}"
             with open(settings_path, "r") as f:
                 vsc_settings = json.load(f)
             vsc_settings["workbench.colorCustomizations"] = vsc_colors
+            # Hide path beside filename natively (no CSS needed)
+            vsc_settings["workbench.editor.labelFormat"] = "short"
             with open(settings_path, "w") as f:
                 json.dump(vsc_settings, f, indent=2)
         except Exception as e:
