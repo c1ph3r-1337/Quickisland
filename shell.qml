@@ -5854,41 +5854,38 @@ function getCurrentThemeStateKey() {
                                         Grid {
                                             anchors.centerIn: parent
                                             columns: 2
-                                            spacing: 4
+                                            spacing: 2.5
 
                                             Repeater {
                                                 model: {
-                                                    if (shell.themeMode === "wallpaper") {
-                                                        return [
-                                                            shell.accent,
-                                                            shell.green,
-                                                            shell.peach,
-                                                            shell.blue
-                                                        ];
-                                                    }
-                                                    for (var i = 0; i < shell.presets.length; i++) {
-                                                        var p = shell.presets[i];
-                                                        if (shell.customAccent.toString().toLowerCase() === p.accent.toLowerCase()) {
-                                                            return [
-                                                                p.dot1 || p.accent,
-                                                                p.dot2 || p.accent,
-                                                                p.dot3 || p.accent,
-                                                                p.dot4 || p.accent
-                                                            ];
+                                                    if (shell.themeMode === "custom") {
+                                                        for (var i = 0; i < shell.presets.length; i++) {
+                                                            var p = shell.presets[i];
+                                                            if (shell.customAccent.toString().toLowerCase() === p.accent.toLowerCase()) {
+                                                                return [
+                                                                    p.dot1 || p.accent,
+                                                                    p.dot2 || p.accent,
+                                                                    p.dot3 || p.accent,
+                                                                    p.dot4 || p.accent
+                                                                ];
+                                                            }
                                                         }
                                                     }
+                                                    // Derive 4 cohesive tonal shades directly from the current accent color
+                                                    var a = shell.accent;
+                                                    var s = shell._baseSurface;
                                                     return [
-                                                        shell.accent,
-                                                        shell.green,
-                                                        shell.peach,
-                                                        shell.blue
+                                                        Qt.rgba(s.r * 0.60 + a.r * 0.40, s.g * 0.60 + a.g * 0.40, s.b * 0.60 + a.b * 0.40, 1.0),
+                                                        Qt.rgba(s.r * 0.40 + a.r * 0.60, s.g * 0.40 + a.g * 0.60, s.b * 0.40 + a.b * 0.60, 1.0),
+                                                        Qt.rgba(s.r * 0.20 + a.r * 0.80, s.g * 0.20 + a.g * 0.80, s.b * 0.20 + a.b * 0.80, 1.0),
+                                                        a
                                                     ];
                                                 }
 
                                                 Rectangle {
-                                                    width: 10
-                                                    height: 10
-                                                    radius: 5
+                                                    width: 9.5
+                                                    height: 9.5
+                                                    radius: 4.75
                                                     color: modelData
                                                     border.width: 1
                                                     border.color: Qt.rgba(0, 0, 0, 0.25)
