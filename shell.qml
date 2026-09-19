@@ -6487,27 +6487,25 @@ function getCurrentThemeStateKey() {
                                         border.width: 0
                                         border.color: "transparent"
 
-                                        color: cardDelegate.isSelected 
-                                            ? Qt.tint(shell.surfaceBright, Qt.rgba(modelData.accent.r, modelData.accent.g, modelData.accent.b, 0.55))
-                                            : (cMa.containsMouse ? shell.surfaceBright : shell.surfaceAlt)
+                                        color: cMa.containsMouse ? shell.surfaceBright : shell.surfaceAlt
 
-                                        // Bounce animation
-                                        scale: cardDelegate.isSelected ? 1.05 : (cMa.containsMouse ? 1.02 : 0.96)
-                                        y: cardDelegate.isSelected ? -2 : 0
+                                        // Prominent bounce animation to show selection
+                                        scale: cardDelegate.isSelected ? 1.08 : (cMa.containsMouse ? 1.02 : 0.94)
+                                        y: cardDelegate.isSelected ? -4 : 0
 
                                         Behavior on color { ColorAnimation { duration: 180 } }
                                         Behavior on scale { 
                                             NumberAnimation { 
-                                                duration: 250
+                                                duration: 260
                                                 easing.type: Easing.OutBack
-                                                easing.overshoot: 1.8 
+                                                easing.overshoot: 2.0 
                                             } 
                                         }
                                         Behavior on y { 
                                             NumberAnimation { 
-                                                duration: 250
+                                                duration: 260
                                                 easing.type: Easing.OutBack
-                                                easing.overshoot: 1.8 
+                                                easing.overshoot: 2.0 
                                             } 
                                         }
 
@@ -6547,7 +6545,7 @@ function getCurrentThemeStateKey() {
                                                 width: parent.width
                                                 horizontalAlignment: Text.AlignHCenter
                                                 text: themeSwitcherView.formatThemeName(modelData.name)
-                                                color: cardDelegate.isSelected ? "#ffffff" : shell.textPrimary
+                                                color: cardDelegate.isSelected ? modelData.accent : shell.textPrimary
                                                 font.pixelSize: 11
                                                 font.weight: cardDelegate.isSelected ? Font.Bold : Font.Medium
                                                 elide: Text.ElideRight
