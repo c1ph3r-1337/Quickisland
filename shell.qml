@@ -1077,6 +1077,26 @@ function getCurrentThemeStateKey() {
         }
 
         shell._pendingWallpaperPath = resolvedPath;
+
+        // Instant sync: if we have a cached palette for this wallpaper, apply it
+        // immediately to all apps — no waiting for ImageMagick to finish.
+        var modeKey = getCurrentThemeStateKey();
+        var fullKey = resolvedPath + "_" + modeKey;
+        var cached = (customPaletteAdapter.palettes && customPaletteAdapter.palettes[fullKey])
+                        ? customPaletteAdapter.palettes[fullKey] : null;
+        if (cached && shell.themeMode === "wallpaper") {
+            // Load cached colors into wp* props immediately so sync sends correct palette
+            shell.wpAccent        = cached.customAccent        || shell.wpAccent;
+            shell.wpSurface       = cached.customSurface       || shell.wpSurface;
+            shell.wpSurfaceAlt    = cached.customSurfaceAlt    || shell.wpSurfaceAlt;
+            shell.wpSurfaceBright = cached.customSurfaceBright || shell.wpSurfaceBright;
+            shell.wpTextPrimary   = cached.customTextPrimary   || shell.wpTextPrimary;
+            shell.wpTextSecondary = cached.customTextSecondary || shell.wpTextSecondary;
+            shell.wpTextMuted     = cached.customTextMuted     || shell.wpTextMuted;
+            shell.syncCurrentThemeToSystem();
+        }
+
+        // Always run extraction in the background to refresh / build the cache
         debounceExtractTimer.restart();
     }
 
