@@ -6342,19 +6342,8 @@ function getCurrentThemeStateKey() {
                     }
 
                     onSelectedIdxChanged: {
-                        if (typeof themeCardsList !== "undefined" && themeCardsList) {
-                            themeCardsList.centerOnIndex(selectedIdx, true);
-                        }
-                    }
-
-                    Timer {
-                        id: centerEnsureTimer
-                        interval: 320
-                        repeat: false
-                        onTriggered: {
-                            if (typeof themeCardsList !== "undefined" && themeCardsList && themeSwitcherView.visible) {
-                                themeCardsList.centerOnIndex(themeSwitcherView.selectedIdx, false);
-                            }
+                        if (typeof themeCardsList !== "undefined" && themeCardsList && themeCardsList.currentIndex !== selectedIdx && selectedIdx >= 0) {
+                            themeCardsList.currentIndex = selectedIdx;
                         }
                     }
 
@@ -6371,11 +6360,11 @@ function getCurrentThemeStateKey() {
                                 }
                             }
                             selectedIdx = activeIdx;
-                            centerEnsureTimer.restart();
                             Qt.callLater(function() {
                                 themeSearchInput.forceActiveFocus();
-                                if (typeof themeCardsList !== "undefined" && themeCardsList && themeCardsList.count > selectedIdx) {
-                                    themeCardsList.centerOnIndex(selectedIdx, false);
+                                if (typeof themeCardsList !== "undefined" && themeCardsList && themeCardsList.count > activeIdx) {
+                                    themeCardsList.currentIndex = activeIdx;
+                                    themeCardsList.positionViewAtIndex(activeIdx, ListView.Center);
                                 }
                             });
                         }
@@ -6506,37 +6495,16 @@ function getCurrentThemeStateKey() {
                                 boundsBehavior: Flickable.StopAtBounds
                                 model: themeSwitcherView.filteredThemes
 
-                                // Target list width when island is expanded (510 - 28 = 482)
-                                readonly property real sideInset: Math.max(0, Math.round(((width > 200 ? width : 482) - 154) / 2))
-                                header: Item { width: themeCardsList.sideInset }
-                                footer: Item { width: themeCardsList.sideInset }
+                                currentIndex: themeSwitcherView.selectedIdx
+                                preferredHighlightBegin: Math.round((width - 154) / 2)
+                                preferredHighlightEnd: Math.round((width - 154) / 2)
+                                highlightRangeMode: ListView.StrictlyEnforceRange
+                                highlightMoveDuration: 280
 
-                                onWidthChanged: {
-                                    if (width >= 480 && themeSwitcherView.visible && themeSwitcherView.selectedIdx >= 0) {
-                                        centerOnIndex(themeSwitcherView.selectedIdx, false);
+                                onCurrentIndexChanged: {
+                                    if (themeSwitcherView.selectedIdx !== currentIndex && currentIndex >= 0) {
+                                        themeSwitcherView.selectedIdx = currentIndex;
                                     }
-                                }
-
-                                function centerOnIndex(idx, animated) {
-                                    if (count === 0 || idx < 0 || idx >= count) return;
-                                    var targetX = idx * (154 + spacing);
-                                    if (animated) {
-                                        scrollAnim.stop();
-                                        scrollAnim.from = contentX;
-                                        scrollAnim.to = targetX;
-                                        scrollAnim.start();
-                                    } else {
-                                        scrollAnim.stop();
-                                        contentX = targetX;
-                                    }
-                                }
-
-                                NumberAnimation {
-                                    id: scrollAnim
-                                    target: themeCardsList
-                                    property: "contentX"
-                                    duration: 280
-                                    easing.type: Easing.OutCubic
                                 }
 
                                 delegate: Item {
@@ -6544,13 +6512,13 @@ function getCurrentThemeStateKey() {
                                     width: 154
                                     height: 94
 
-                                    readonly property bool isSelected: themeSwitcherView.selectedIdx === index
+                                    readonly property bool isSelected: ListView.isCurrentItem
 
                                     Rectangle {
                                         id: cardInner
                                         anchors.horizontalCenter: parent.horizontalCenter
                                         anchors.verticalCenter: parent.verticalCenter
-                                        anchors.verticalCenterOffset: cardDelegate.isSelected ? -4 : 0
+                                        anchors.verticalCenterOffset: cardDelegate.isSelected ? -6 : 0
                                         width: 148
                                         height: 88
                                         radius: 16
@@ -6567,13 +6535,14 @@ function getCurrentThemeStateKey() {
                                             NumberAnimation { 
                                                 duration: 280
                                                 easing.type: Easing.OutBack
-                                                easing.overshoot: 1.4
+                                                easing.overshoot: 1.6
                                             } 
                                         }
                                         Behavior on anchors.verticalCenterOffset { 
                                             NumberAnimation { 
                                                 duration: 280
-                                                easing.type: Easing.OutCubic
+                                                easing.type: Easing.OutBack
+                                                easing.overshoot: 1.6
                                             } 
                                         }
 
