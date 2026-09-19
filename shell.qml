@@ -6329,21 +6329,34 @@ function getCurrentThemeStateKey() {
                         }
                     }
 
+                    Timer {
+                        id: centerEnsureTimer
+                        interval: 320
+                        repeat: false
+                        onTriggered: {
+                            if (typeof themeCardsList !== "undefined" && themeCardsList && themeSwitcherView.visible) {
+                                themeCardsList.centerOnIndex(themeSwitcherView.selectedIdx, false);
+                            }
+                        }
+                    }
+
                     onVisibleChanged: {
                         if (visible) {
                             filterQuery = "";
                             themeSearchInput.text = "";
-                            selectedIdx = 0;
+                            var activeIdx = 0;
                             // Preselect active preset if matches
                             for (var i = 0; i < shell.presets.length; i++) {
                                 if (shell.customAccent.toString().toLowerCase() === shell.presets[i].accent.toLowerCase()) {
-                                    selectedIdx = i;
+                                    activeIdx = i;
                                     break;
                                 }
                             }
+                            selectedIdx = activeIdx;
+                            centerEnsureTimer.restart();
                             Qt.callLater(function() {
                                 themeSearchInput.forceActiveFocus();
-                                if (themeCardsList.count > selectedIdx) {
+                                if (typeof themeCardsList !== "undefined" && themeCardsList && themeCardsList.count > selectedIdx) {
                                     themeCardsList.centerOnIndex(selectedIdx, false);
                                 }
                             });
@@ -6475,14 +6488,23 @@ function getCurrentThemeStateKey() {
                                 boundsBehavior: Flickable.StopAtBounds
                                 model: themeSwitcherView.filteredThemes
 
-                                header: Item { width: Math.max(0, Math.round((themeCardsList.width - 154) / 2)) }
-                                footer: Item { width: Math.max(0, Math.round((themeCardsList.width - 154) / 2)) }
+                                // Target list width when island is expanded (510 - 28 = 482)
+                                readonly property real sideInset: Math.max(0, Math.round(((width > 200 ? width : 482) - 154) / 2))
+                                header: Item { width: themeCardsList.sideInset }
+                                footer: Item { width: themeCardsList.sideInset }
+
+                                onWidthChanged: {
+                                    if (width >= 480 && themeSwitcherView.visible && themeSwitcherView.selectedIdx >= 0) {
+                                        centerOnIndex(themeSwitcherView.selectedIdx, false);
+                                    }
+                                }
 
                                 function centerOnIndex(idx, animated) {
                                     if (count === 0 || idx < 0 || idx >= count) return;
                                     var targetX = idx * (154 + spacing);
                                     if (animated) {
                                         scrollAnim.stop();
+                                        scrollAnim.from = contentX;
                                         scrollAnim.to = targetX;
                                         scrollAnim.start();
                                     } else {
@@ -6508,7 +6530,9 @@ function getCurrentThemeStateKey() {
 
                                     Rectangle {
                                         id: cardInner
-                                        anchors.centerIn: parent
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        anchors.verticalCenterOffset: cardDelegate.isSelected ? -4 : 0
                                         width: 148
                                         height: 88
                                         radius: 16
@@ -6517,20 +6541,20 @@ function getCurrentThemeStateKey() {
 
                                         color: cMa.containsMouse ? shell.surfaceBright : shell.surfaceAlt
 
-                                        // Smooth subtle lift & scale on selected card
-                                        scale: cardDelegate.isSelected ? 1.05 : 0.95
-                                        y: cardDelegate.isSelected ? -3 : 0
+                                        // Lively bounce pop on selected card
+                                        scale: cardDelegate.isSelected ? 1.08 : (cMa.containsMouse ? 1.02 : 0.94)
 
                                         Behavior on color { ColorAnimation { duration: 180 } }
                                         Behavior on scale { 
                                             NumberAnimation { 
-                                                duration: 260
-                                                easing.type: Easing.OutCubic
+                                                duration: 280
+                                                easing.type: Easing.OutBack
+                                                easing.overshoot: 1.4
                                             } 
                                         }
-                                        Behavior on y { 
+                                        Behavior on anchors.verticalCenterOffset { 
                                             NumberAnimation { 
-                                                duration: 260
+                                                duration: 280
                                                 easing.type: Easing.OutCubic
                                             } 
                                         }
@@ -6586,8 +6610,11 @@ function getCurrentThemeStateKey() {
                                             hoverEnabled: true
                                             cursorShape: Qt.PointingHandCursor
                                             onClicked: {
-                                                themeSwitcherView.selectedIdx = index;
-                                                themeSwitcherView.selectCurrentTheme();
+                                                if (cardDelegate.isSelected) {
+                                                    themeSwitcherView.selectCurrentTheme();
+                                                } else {
+                                                    themeSwitcherView.selectedIdx = index;
+                                                }
                                             }
                                         }
                                     }
