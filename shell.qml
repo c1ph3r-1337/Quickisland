@@ -1055,9 +1055,10 @@ function getCurrentThemeStateKey() {
                     shell.wpIsLight       = palette.isLight;
                     shell.lastExtractedWallpaperPath = shell._pendingWallpaperPath;
                     shell.loadThemeForWallpaper(shell.lastExtractedWallpaperPath);
-                    if (shell.themeMode === "wallpaper") {
-                        shell.syncCurrentThemeToSystem();
-                    }
+                    // Always switch to wallpaper palette on every wallpaper change.
+                    // User can manually pick another preset after if they want.
+                    shell.themeMode = "wallpaper";
+                    shell.syncCurrentThemeToSystem();
                 } catch(e) { console.log("Color parse error:", e, text); }
             }
         }
