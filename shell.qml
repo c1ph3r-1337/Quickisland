@@ -2664,7 +2664,7 @@ function getCurrentThemeStateKey() {
                 id: islandRegion
                 Region {
                     item: islandMask
-                    radius: island ? island.radius : 0
+                    radius: island ? island.islandRadius : 0
                 }
                 Region {
                     item: islandMaskTopSquare
@@ -2859,13 +2859,14 @@ function getCurrentThemeStateKey() {
                 color: "transparent"
                 property real islandRadius: {
                     switch (panelWindow.activeState) {
-                        case 0: return island.height / 2;
-                        case 1: return island.height / 2;
-                        case 2: return island.height / 2;
+                        case 0: return 15;
+                        case 1: return 22;
+                        case 2: return 17;
                         default: return 24;
                     }
                 }
-                radius: (panelWindow.activeState <= 2) ? (island.height / 2) : islandRadius
+                readonly property bool isPillState: panelWindow.activeState <= 1 && shell.prevState <= 1
+                radius: isPillState ? (island.height / 2) : islandRadius
                 clip: true
 
                 LiquidGlassBackground {
@@ -2961,11 +2962,11 @@ function getCurrentThemeStateKey() {
                 }
 
                 width: islandWidth; height: islandHeight
-                Behavior on width  { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
-                Behavior on height { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
+                Behavior on width  { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutQuart } }
+                Behavior on height { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutQuart } }
                 Behavior on radius {
-                    enabled: panelWindow.activeState > 2
-                    NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic }
+                    enabled: !island.isPillState
+                    NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutQuart }
                 }
 
                 // =============================================================
