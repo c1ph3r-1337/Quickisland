@@ -5887,8 +5887,6 @@ function getCurrentThemeStateKey() {
                                                     height: 9.5
                                                     radius: 4.75
                                                     color: modelData
-                                                    border.width: 1
-                                                    border.color: Qt.rgba(0, 0, 0, 0.25)
                                                     Behavior on color { ColorAnimation { duration: 180 } }
                                                 }
                                             }
