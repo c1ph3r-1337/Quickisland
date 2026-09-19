@@ -5374,7 +5374,15 @@ function getCurrentThemeStateKey() {
                                                 width: 10
                                                 height: 10
                                                 radius: 5
-                                                color: shell.accent
+                                                // Show this wallpaper's own extracted accent, not the active theme accent
+                                                color: {
+                                                    var p = modelData;
+                                                    if (!p) return shell.accent;
+                                                    var modeKey = shell.getCurrentThemeStateKey();
+                                                    var key = p + "_" + modeKey;
+                                                    var cached = customPaletteAdapter.palettes && customPaletteAdapter.palettes[key];
+                                                    return (cached && cached.customAccent) ? cached.customAccent : shell.accent;
+                                                }
                                                 border.width: 1.5
                                                 border.color: Qt.rgba(0, 0, 0, 0.6)
                                                 visible: wpCardDelegate.isDesktopWallpaper
