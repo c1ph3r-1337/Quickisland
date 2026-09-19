@@ -1209,7 +1209,23 @@ function getCurrentThemeStateKey() {
         running: false
     }
 
-    function refreshBrightness() { brightnessReadProc.running = true; }
+    Process {
+        id: brightnessMonitorProc
+        command: ["stdbuf", "-oL", "udevadm", "monitor", "--subsystem-match=backlight", "--udev"]
+        running: true
+        stdout: SplitParser {
+            onRead: data => {
+                if (data.indexOf("change") !== -1) {
+                    shell.refreshBrightness();
+                }
+            }
+        }
+    }
+
+    function refreshBrightness() {
+        brightnessReadProc.running = false;
+        brightnessReadProc.running = true;
+    }
     function setBrightness(v) {
         var clamped = Math.max(0.0, Math.min(1.0, v));
         var pct = Math.round(clamped * 100);
@@ -2751,7 +2767,7 @@ function getCurrentThemeStateKey() {
                     switch (panelWindow.activeState) {
                         case 0: return 110;
                         case 1: return 380;
-                        case 2: return 240;
+                        case 2: return 230;
                         case 3: return 400;
                         case 4: return 445;
                         case 5: return 440;
@@ -3000,11 +3016,14 @@ function getCurrentThemeStateKey() {
                     Text {
                         id: osdPercentText
                         anchors.right: parent.right
-                        anchors.rightMargin: 14
+                        anchors.rightMargin: 12
                         anchors.verticalCenter: parent.verticalCenter
-                        text: (shell.sysMuted && !osdView.isBright) ? "0%" : Math.round(osdView.curVal * 100) + "%"
+                        width: 22
+                        horizontalAlignment: Text.AlignHCenter
+                        text: (shell.sysMuted && !osdView.isBright) ? "0" : "" + Math.round(osdView.curVal * 100)
                         font.pixelSize: 11
                         font.weight: Font.DemiBold
+                        font.family: "JetBrainsMono Nerd Font"
                         color: shell.textPrimary
                     }
 
@@ -3014,7 +3033,7 @@ function getCurrentThemeStateKey() {
                         anchors.left: parent.left
                         anchors.leftMargin: Math.round((parent.height - height) / 2)
                         anchors.right: osdPercentText.left
-                        anchors.rightMargin: 10
+                        anchors.rightMargin: 8
                         anchors.verticalCenter: parent.verticalCenter
                         height: 26
                         radius: 13
