@@ -809,8 +809,16 @@ function getCurrentThemeStateKey() {
 
     function saveCustomPalette() {
         if (_loadingTheme) return;
+
+        // Always persist the global themeMode so the toggle survives restarts
+        customPaletteAdapter.themeMode = shell.themeMode;
+
         var path = shell.lastExtractedWallpaperPath;
-        if (!path) return;
+        if (!path) {
+            // No wallpaper extracted yet — still write the themeMode to disk
+            customPaletteFileView.writeAdapter();
+            return;
+        }
 
         var modeKey = getCurrentThemeStateKey();
         var fullKey = path + "_" + modeKey;
