@@ -6442,7 +6442,7 @@ function getCurrentThemeStateKey() {
                     Column {
                         anchors.fill: parent
                         anchors.margins: 14
-                        spacing: 10
+                        spacing: 8
 
                         // ── Top Bar: Search indicator (if user typed) & Counter ──
                         Item {
@@ -6484,7 +6484,7 @@ function getCurrentThemeStateKey() {
                         // ── Horizontal Theme Cards List ──
                         Item {
                             width: parent.width
-                            height: 94
+                            height: 98
 
                             ListView {
                                 id: themeCardsList
@@ -6510,7 +6510,7 @@ function getCurrentThemeStateKey() {
                                 delegate: Item {
                                     id: cardDelegate
                                     width: 154
-                                    height: 94
+                                    height: 98
 
                                     readonly property bool isSelected: ListView.isCurrentItem
 
@@ -6518,9 +6518,9 @@ function getCurrentThemeStateKey() {
                                         id: cardInner
                                         anchors.horizontalCenter: parent.horizontalCenter
                                         anchors.verticalCenter: parent.verticalCenter
-                                        anchors.verticalCenterOffset: cardDelegate.isSelected ? -6 : 0
-                                        width: 148
-                                        height: 88
+                                        anchors.verticalCenterOffset: cardDelegate.isSelected ? -2 : 0
+                                        width: 146
+                                        height: 80
                                         radius: 16
                                         border.width: 0
                                         border.color: "transparent"
@@ -6535,14 +6535,14 @@ function getCurrentThemeStateKey() {
                                             NumberAnimation { 
                                                 duration: 280
                                                 easing.type: Easing.OutBack
-                                                easing.overshoot: 1.6
+                                                easing.overshoot: 1.5
                                             } 
                                         }
                                         Behavior on anchors.verticalCenterOffset { 
                                             NumberAnimation { 
                                                 duration: 280
                                                 easing.type: Easing.OutBack
-                                                easing.overshoot: 1.6
+                                                easing.overshoot: 1.5
                                             } 
                                         }
 
