@@ -2769,7 +2769,7 @@ function getCurrentThemeStateKey() {
                         case 17: return 440;
                         case 18: return 440;
                         case 19: return 440;
-                        case 20: return 540;
+                        case 20: return 510;
                         default: return 110;
                     }
                 }
@@ -2795,7 +2795,7 @@ function getCurrentThemeStateKey() {
                         case 17: return Math.min(680, (typeof settingsCol !== "undefined" ? settingsCol.height + 28 : 380));
                         case 18: return Math.min(680, (typeof settingsContent !== "undefined" ? settingsContent.height + 80 : 380));
                         case 19: return Math.min(680, (typeof barIslandCol !== "undefined" ? barIslandCol.height + 28 : 350));
-                        case 20: return 210;
+                        case 20: return 176;
                         default: return 30;
                     }
                 }
@@ -6366,227 +6366,160 @@ function getCurrentThemeStateKey() {
                         onClicked: shell.setState(0)
                     }
 
+                    // Hidden search input to capture keystrokes without any visual search bar
+                    TextInput {
+                        id: themeSearchInput
+                        x: 0; y: 0; width: 1; height: 1
+                        opacity: 0; visible: true
+                        focus: true
+                        selectByMouse: false
+                        text: themeSwitcherView.filterQuery
+
+                        onTextChanged: {
+                            themeSwitcherView.filterQuery = text;
+                            themeSwitcherView.selectedIdx = 0;
+                        }
+
+                        Keys.onLeftPressed: function(event) {
+                            if (themeSwitcherView.selectedIdx > 0) {
+                                themeSwitcherView.selectedIdx--;
+                                themeCardsList.positionViewAtIndex(themeSwitcherView.selectedIdx, ListView.Contain);
+                                event.accepted = true;
+                            }
+                        }
+
+                        Keys.onRightPressed: function(event) {
+                            if (themeSwitcherView.selectedIdx < themeSwitcherView.filteredThemes.length - 1) {
+                                themeSwitcherView.selectedIdx++;
+                                themeCardsList.positionViewAtIndex(themeSwitcherView.selectedIdx, ListView.Contain);
+                                event.accepted = true;
+                            }
+                        }
+
+                        Keys.onReturnPressed: function(event) {
+                            themeSwitcherView.selectCurrentTheme();
+                            event.accepted = true;
+                        }
+                        Keys.onEnterPressed: function(event) {
+                            themeSwitcherView.selectCurrentTheme();
+                            event.accepted = true;
+                        }
+
+                        Keys.onEscapePressed: function(event) {
+                            if (text.length > 0) {
+                                text = "";
+                            } else {
+                                shell.setState(0);
+                            }
+                            event.accepted = true;
+                        }
+                    }
+
                     Column {
                         anchors.fill: parent
-                        anchors.margins: 16
-                        spacing: 12
+                        anchors.margins: 14
+                        spacing: 10
 
-                        // ── Top Header Bar: Search & Counter ──
+                        // ── Top Bar: Search indicator (if user typed) & Counter ──
                         Item {
                             width: parent.width
-                            height: 34
+                            height: 16
 
-                            // Search Bar Input Container
-                            Rectangle {
-                                id: themeSearchBox
+                            // Active search query feedback when user types
+                            Row {
                                 anchors.left: parent.left
-                                anchors.right: themeCounterBadge.left
-                                anchors.rightMargin: 10
                                 anchors.verticalCenter: parent.verticalCenter
-                                height: 34
-                                radius: 10
-                                color: shell.surfaceAlt
-                                border.width: 1
-                                border.color: themeSearchInput.activeFocus 
-                                    ? shell.accent 
-                                    : Qt.rgba(shell.textSecondary.r, shell.textSecondary.g, shell.textSecondary.b, 0.12)
+                                spacing: 6
+                                visible: themeSwitcherView.filterQuery.length > 0
 
-                                Behavior on border.color { ColorAnimation { duration: 150 } }
-
-                                // Magnifying Glass Search Icon
-                                Image {
-                                    id: searchIcon
-                                    anchors.left: parent.left
-                                    anchors.leftMargin: 10
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    width: 14
-                                    height: 14
-                                    source: "icons/search.png"
-                                    fillMode: Image.PreserveAspectFit
-                                    layer.enabled: true
-                                    layer.effect: MultiEffect {
-                                        colorization: 1.0
-                                        colorizationColor: themeSearchInput.activeFocus ? shell.accent : shell.textSecondary
-                                    }
+                                Text {
+                                    text: "Search:"
+                                    color: shell.textMuted
+                                    font.pixelSize: 10
                                 }
-
-                                // Clear Search Button
-                                Rectangle {
-                                    id: clearSearchBtn
-                                    anchors.right: parent.right
-                                    anchors.rightMargin: 8
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    width: 18
-                                    height: 18
-                                    radius: 9
-                                    color: themeClearMa.containsMouse ? shell.surfaceBright : "transparent"
-                                    visible: themeSearchInput.text.length > 0
-
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: "✕"
-                                        color: shell.textSecondary
-                                        font.pixelSize: 10
-                                        font.weight: Font.Bold
-                                    }
-
-                                    MouseArea {
-                                        id: themeClearMa
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: {
-                                            themeSearchInput.text = "";
-                                            themeSearchInput.forceActiveFocus();
-                                        }
-                                    }
-                                }
-
-                                TextInput {
-                                    id: themeSearchInput
-                                    anchors.left: searchIcon.right
-                                    anchors.leftMargin: 8
-                                    anchors.right: clearSearchBtn.visible ? clearSearchBtn.left : parent.right
-                                    anchors.rightMargin: clearSearchBtn.visible ? 4 : 10
-                                    anchors.top: parent.top
-                                    anchors.bottom: parent.bottom
-                                    verticalAlignment: TextInput.AlignVCenter
-                                    color: shell.textPrimary
-                                    font.pixelSize: 13
-                                    font.family: "Inter, sans-serif"
+                                Text {
                                     text: themeSwitcherView.filterQuery
-                                    selectByMouse: true
-
-                                    Text {
-                                        anchors.fill: parent
-                                        verticalAlignment: Text.AlignVCenter
-                                        text: "Search themes..."
-                                        color: Qt.rgba(shell.textSecondary.r, shell.textSecondary.g, shell.textSecondary.b, 0.45)
-                                        font.pixelSize: 13
-                                        font.family: themeSearchInput.font.family
-                                        visible: themeSearchInput.text.length === 0
-                                    }
-
-                                    onTextChanged: {
-                                        themeSwitcherView.filterQuery = text;
-                                        themeSwitcherView.selectedIdx = 0;
-                                    }
-
-                                    Keys.onLeftPressed: function(event) {
-                                        if (themeSwitcherView.selectedIdx > 0) {
-                                            themeSwitcherView.selectedIdx--;
-                                            themeCardsList.positionViewAtIndex(themeSwitcherView.selectedIdx, ListView.Contain);
-                                            event.accepted = true;
-                                        }
-                                    }
-
-                                    Keys.onRightPressed: function(event) {
-                                        if (themeSwitcherView.selectedIdx < themeSwitcherView.filteredThemes.length - 1) {
-                                            themeSwitcherView.selectedIdx++;
-                                            themeCardsList.positionViewAtIndex(themeSwitcherView.selectedIdx, ListView.Contain);
-                                            event.accepted = true;
-                                        }
-                                    }
-
-                                    Keys.onReturnPressed: function(event) {
-                                        themeSwitcherView.selectCurrentTheme();
-                                        event.accepted = true;
-                                    }
-                                    Keys.onEnterPressed: function(event) {
-                                        themeSwitcherView.selectCurrentTheme();
-                                        event.accepted = true;
-                                    }
-
-                                    Keys.onEscapePressed: function(event) {
-                                        shell.setState(0);
-                                        event.accepted = true;
-                                    }
+                                    color: shell.accent
+                                    font.pixelSize: 10
+                                    font.weight: Font.Bold
                                 }
                             }
 
-                            // Counter Badge: e.g. "21 / 34"
-                            Rectangle {
-                                id: themeCounterBadge
+                            // Counter: e.g. "21 / 34" (no containers, no borders)
+                            Text {
+                                id: themeCounterText
                                 anchors.right: parent.right
                                 anchors.verticalCenter: parent.verticalCenter
-                                height: 34
-                                radius: 10
-                                color: shell.surfaceAlt
-                                border.width: 1
-                                border.color: Qt.rgba(shell.textSecondary.r, shell.textSecondary.g, shell.textSecondary.b, 0.12)
-                                implicitWidth: themeCounterText.implicitWidth + 22
-
-                                Text {
-                                    id: themeCounterText
-                                    anchors.centerIn: parent
-                                    text: (themeSwitcherView.filteredThemes.length > 0 ? (themeSwitcherView.selectedIdx + 1) : 0) + " / " + themeSwitcherView.filteredThemes.length
-                                    color: shell.textSecondary
-                                    font.pixelSize: 12
-                                    font.weight: Font.DemiBold
-                                }
+                                text: (themeSwitcherView.filteredThemes.length > 0 ? (themeSwitcherView.selectedIdx + 1) : 0) + " / " + themeSwitcherView.filteredThemes.length
+                                color: shell.textMuted
+                                font.pixelSize: 10
+                                font.weight: Font.Medium
                             }
                         }
 
                         // ── Horizontal Theme Cards List ──
                         Item {
                             width: parent.width
-                            height: 100
+                            height: 94
 
                             ListView {
                                 id: themeCardsList
                                 anchors.fill: parent
                                 orientation: ListView.Horizontal
-                                spacing: 14
+                                spacing: 10
                                 clip: true
                                 boundsBehavior: Flickable.StopAtBounds
                                 model: themeSwitcherView.filteredThemes
 
                                 delegate: Item {
                                     id: cardDelegate
-                                    width: 160
-                                    height: 100
+                                    width: 154
+                                    height: 94
 
                                     readonly property bool isSelected: themeSwitcherView.selectedIdx === index
 
                                     Rectangle {
                                         id: cardInner
                                         anchors.centerIn: parent
-                                        width: 160
-                                        height: 96
+                                        width: 148
+                                        height: 88
                                         radius: 16
+                                        border.width: 0
+                                        border.color: "transparent"
+
                                         color: cardDelegate.isSelected 
-                                            ? Qt.rgba(modelData.accent.r, modelData.accent.g, modelData.accent.b, 0.14)
+                                            ? Qt.rgba(modelData.accent.r, modelData.accent.g, modelData.accent.b, 0.16)
                                             : (cMa.containsMouse ? shell.surfaceBright : shell.surfaceAlt)
-                                        border.width: cardDelegate.isSelected ? 2 : 1
-                                        border.color: cardDelegate.isSelected 
-                                            ? modelData.accent
-                                            : (cMa.containsMouse ? Qt.rgba(shell.textSecondary.r, shell.textSecondary.g, shell.textSecondary.b, 0.3) : Qt.rgba(shell.textSecondary.r, shell.textSecondary.g, shell.textSecondary.b, 0.1))
 
-                                        Behavior on color { ColorAnimation { duration: 160 } }
-                                        Behavior on border.color { ColorAnimation { duration: 160 } }
+                                        // Bounce animation
+                                        scale: cardDelegate.isSelected ? 1.05 : (cMa.containsMouse ? 1.02 : 0.96)
+                                        y: cardDelegate.isSelected ? -2 : 0
 
-                                        // Selection dot indicator at top-right
-                                        Rectangle {
-                                            anchors.top: parent.top
-                                            anchors.right: parent.right
-                                            anchors.topMargin: 10
-                                            anchors.rightMargin: 12
-                                            width: 7
-                                            height: 7
-                                            radius: 3.5
-                                            color: modelData.accent
-                                            visible: cardDelegate.isSelected
+                                        Behavior on color { ColorAnimation { duration: 180 } }
+                                        Behavior on scale { 
+                                            NumberAnimation { 
+                                                duration: 250
+                                                easing.type: Easing.OutBack
+                                                easing.overshoot: 1.8 
+                                            } 
+                                        }
+                                        Behavior on y { 
+                                            NumberAnimation { 
+                                                duration: 250
+                                                easing.type: Easing.OutBack
+                                                easing.overshoot: 1.8 
+                                            } 
                                         }
 
                                         Column {
                                             anchors.centerIn: parent
-                                            width: parent.width - 20
-                                            spacing: 12
+                                            width: parent.width - 16
+                                            spacing: 10
 
                                             // Row of 6 preview color dots
                                             Row {
                                                 anchors.horizontalCenter: parent.horizontalCenter
-                                                spacing: 7
+                                                spacing: 6
 
                                                 Repeater {
                                                     model: [
@@ -6599,12 +6532,10 @@ function getCurrentThemeStateKey() {
                                                     ]
 
                                                     Rectangle {
-                                                        width: 15
-                                                        height: 15
-                                                        radius: 7.5
+                                                        width: 14
+                                                        height: 14
+                                                        radius: 7
                                                         color: modelData
-                                                        border.width: 1
-                                                        border.color: Qt.rgba(0, 0, 0, 0.25)
                                                     }
                                                 }
                                             }
@@ -6615,7 +6546,7 @@ function getCurrentThemeStateKey() {
                                                 horizontalAlignment: Text.AlignHCenter
                                                 text: themeSwitcherView.formatThemeName(modelData.name)
                                                 color: cardDelegate.isSelected ? modelData.accent : shell.textPrimary
-                                                font.pixelSize: 12
+                                                font.pixelSize: 11
                                                 font.weight: cardDelegate.isSelected ? Font.Bold : Font.Medium
                                                 elide: Text.ElideRight
                                                 maximumLineCount: 1
@@ -6636,146 +6567,29 @@ function getCurrentThemeStateKey() {
                                     }
                                 }
                             }
-
-                            // Empty state when filter yields 0 themes
-                            Item {
-                                anchors.fill: parent
-                                visible: themeSwitcherView.filteredThemes.length === 0
-
-                                Column {
-                                    anchors.centerIn: parent
-                                    spacing: 6
-
-                                    Text {
-                                        anchors.horizontalCenter: parent.horizontalCenter
-                                        text: "No themes found"
-                                        color: shell.textPrimary
-                                        font.pixelSize: 13
-                                        font.weight: Font.DemiBold
-                                    }
-
-                                    Text {
-                                        anchors.horizontalCenter: parent.horizontalCenter
-                                        text: "No preset matches \"" + themeSwitcherView.filterQuery + "\""
-                                        color: shell.textMuted
-                                        font.pixelSize: 11
-                                    }
-                                }
-                            }
                         }
 
-                        // ── Bottom Hint Row ──
+                        // ── Bottom Hint Row (Plain minimal text, no containers) ──
                         Item {
                             width: parent.width
-                            height: 20
+                            height: 16
 
-                            // Left: Navigation hint
-                            Row {
+                            Text {
                                 anchors.left: parent.left
                                 anchors.verticalCenter: parent.verticalCenter
-                                spacing: 6
-
-                                Rectangle {
-                                    width: 30
-                                    height: 18
-                                    radius: 5
-                                    color: shell.surfaceAlt
-                                    border.width: 1
-                                    border.color: Qt.rgba(shell.textSecondary.r, shell.textSecondary.g, shell.textSecondary.b, 0.15)
-                                    anchors.verticalCenter: parent.verticalCenter
-
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: "← →"
-                                        color: shell.accent
-                                        font.pixelSize: 10
-                                        font.weight: Font.Bold
-                                    }
-                                }
-
-                                Text {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    text: "Navigate"
-                                    color: shell.textMuted
-                                    font.pixelSize: 11
-                                    font.weight: Font.Medium
-                                }
+                                text: "← → Navigate"
+                                color: shell.textMuted
+                                font.pixelSize: 10
+                                font.weight: Font.Normal
                             }
 
-                            // Right: Action hints
-                            Row {
+                            Text {
                                 anchors.right: parent.right
                                 anchors.verticalCenter: parent.verticalCenter
-                                spacing: 8
-
-                                Row {
-                                    spacing: 5
-                                    anchors.verticalCenter: parent.verticalCenter
-
-                                    Rectangle {
-                                        width: 38
-                                        height: 18
-                                        radius: 5
-                                        color: shell.surfaceAlt
-                                        border.width: 1
-                                        border.color: Qt.rgba(shell.textSecondary.r, shell.textSecondary.g, shell.textSecondary.b, 0.15)
-                                        anchors.verticalCenter: parent.verticalCenter
-
-                                        Text {
-                                            anchors.centerIn: parent
-                                            text: "Enter"
-                                            color: shell.accent
-                                            font.pixelSize: 10
-                                            font.weight: Font.Bold
-                                        }
-                                    }
-
-                                    Text {
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        text: "Apply"
-                                        color: shell.textMuted
-                                        font.pixelSize: 11
-                                        font.weight: Font.Medium
-                                    }
-                                }
-
-                                Text {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    text: "•"
-                                    color: Qt.rgba(shell.textSecondary.r, shell.textSecondary.g, shell.textSecondary.b, 0.25)
-                                    font.pixelSize: 11
-                                }
-
-                                Row {
-                                    spacing: 5
-                                    anchors.verticalCenter: parent.verticalCenter
-
-                                    Rectangle {
-                                        width: 30
-                                        height: 18
-                                        radius: 5
-                                        color: shell.surfaceAlt
-                                        border.width: 1
-                                        border.color: Qt.rgba(shell.textSecondary.r, shell.textSecondary.g, shell.textSecondary.b, 0.15)
-                                        anchors.verticalCenter: parent.verticalCenter
-
-                                        Text {
-                                            anchors.centerIn: parent
-                                            text: "Esc"
-                                            color: shell.textSecondary
-                                            font.pixelSize: 10
-                                            font.weight: Font.Bold
-                                        }
-                                    }
-
-                                    Text {
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        text: "Close"
-                                        color: shell.textMuted
-                                        font.pixelSize: 11
-                                        font.weight: Font.Medium
-                                    }
-                                }
+                                text: "Enter to apply • Esc to close"
+                                color: shell.textMuted
+                                font.pixelSize: 10
+                                font.weight: Font.Normal
                             }
                         }
                     }
