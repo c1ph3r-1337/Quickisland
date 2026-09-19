@@ -5211,45 +5211,33 @@ function getCurrentThemeStateKey() {
                                         // Shadow source for MultiEffect
                                         Item {
                                             id: wpCardShadowSource
-                                            anchors.fill: wpCardInner
+                                            width: 168
+                                            height: 98
                                             visible: false
                                             Rectangle {
                                                 anchors.fill: parent
-                                                radius: wpCardInner.radius
+                                                radius: 14
                                                 color: "black"
                                             }
                                         }
 
-                                        // Accent Color Shadow Glow (replaces the border)
+                                        // Accent Color Shadow Glow (locked in frame-perfect sync with card)
                                         MultiEffect {
                                             id: wpCardShadow
-                                            anchors.fill: wpCardInner
+                                            anchors.centerIn: wpCardInner
+                                            width: wpCardInner.width
+                                            height: wpCardInner.height
                                             source: wpCardShadowSource
                                             shadowEnabled: true
-                                            shadowColor: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.25)
-                                            shadowBlur: 0.35
+                                            shadowColor: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.35)
+                                            shadowBlur: 0.4
                                             shadowHorizontalOffset: 0
                                             shadowVerticalOffset: 2
                                             opacity: wpCardDelegate.isSelected ? 1.0 : 0.0
                                             scale: wpCardInner.scale
-                                            anchors.verticalCenterOffset: wpCardInner.anchors.verticalCenterOffset
                                             z: 0
 
-                                            Behavior on opacity { NumberAnimation { duration: 250 } }
-                                            Behavior on scale {
-                                                NumberAnimation {
-                                                    duration: 280
-                                                    easing.type: Easing.OutBack
-                                                    easing.overshoot: 1.5
-                                                }
-                                            }
-                                            Behavior on anchors.verticalCenterOffset {
-                                                NumberAnimation {
-                                                    duration: 280
-                                                    easing.type: Easing.OutBack
-                                                    easing.overshoot: 1.5
-                                                }
-                                            }
+                                            Behavior on opacity { NumberAnimation { duration: 180 } }
                                         }
 
                                         Rectangle {
