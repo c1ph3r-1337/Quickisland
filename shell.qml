@@ -380,6 +380,75 @@ ShellRoot {
         },
     ]
 
+    function syncCurrentThemeToSystem(themeName, explicitColors) {
+        var cAccent = (explicitColors && explicitColors.accent) ? explicitColors.accent : shell.accent.toString();
+        var cSurface = (explicitColors && explicitColors.surface) ? explicitColors.surface : shell._baseSurface.toString();
+        var cSurfaceAlt = (explicitColors && explicitColors.surfaceAlt) ? explicitColors.surfaceAlt : shell._baseSurfaceAlt.toString();
+        var cSurfaceBright = (explicitColors && explicitColors.surfaceBright) ? explicitColors.surfaceBright : shell._baseSurfaceBright.toString();
+        var cTextPrimary = (explicitColors && explicitColors.textPrimary) ? explicitColors.textPrimary : shell.textPrimary.toString();
+        var cTextSecondary = (explicitColors && explicitColors.textSecondary) ? explicitColors.textSecondary : shell.textSecondary.toString();
+        var cTextMuted = (explicitColors && explicitColors.textMuted) ? explicitColors.textMuted : shell.textMuted.toString();
+        var cRed = (explicitColors && explicitColors.red) ? explicitColors.red : shell.red.toString();
+        var cGreen = (explicitColors && explicitColors.green) ? explicitColors.green : shell.green.toString();
+        var cPeach = (explicitColors && explicitColors.peach) ? explicitColors.peach : shell.peach.toString();
+        var cBlue = (explicitColors && explicitColors.blue) ? explicitColors.blue : shell.blue.toString();
+
+        var wpTitle = "active";
+        if (shell.lastExtractedWallpaperPath) {
+            var parts = shell.lastExtractedWallpaperPath.split('/');
+            wpTitle = parts[parts.length - 1];
+        }
+
+        var nameStr = themeName || (shell.themeMode === "wallpaper" ? ("Wallpaper (" + wpTitle + ")") : "QuickIsland Custom");
+
+        var themeObj = {
+            name: nameStr,
+            accent: cAccent,
+            surface: cSurface,
+            surfaceAlt: cSurfaceAlt,
+            surfaceBright: cSurfaceBright,
+            textPrimary: cTextPrimary,
+            textSecondary: cTextSecondary,
+            textMuted: cTextMuted,
+            red: cRed,
+            green: cGreen,
+            peach: cPeach,
+            blue: cBlue,
+            dot1: (explicitColors && explicitColors.dot1) ? explicitColors.dot1 : undefined,
+            dot2: (explicitColors && explicitColors.dot2) ? explicitColors.dot2 : undefined,
+            dot3: (explicitColors && explicitColors.dot3) ? explicitColors.dot3 : undefined,
+            dot4: (explicitColors && explicitColors.dot4) ? explicitColors.dot4 : undefined,
+            dot5: (explicitColors && explicitColors.dot5) ? explicitColors.dot5 : undefined,
+            dot6: (explicitColors && explicitColors.dot6) ? explicitColors.dot6 : undefined
+        };
+
+        Quickshell.execDetached([
+            "python3",
+            Quickshell.shellDir + "/scripts/apply_system_theme.py",
+            JSON.stringify(themeObj)
+        ]);
+    }
+
+    Timer {
+        id: debounceSystemThemeTimer
+        interval: 350
+        running: false
+        repeat: false
+        onTriggered: {
+            shell.syncCurrentThemeToSystem();
+        }
+    }
+
+    Timer {
+        id: startupSystemThemeTimer
+        interval: 1400
+        running: true
+        repeat: false
+        onTriggered: {
+            shell.syncCurrentThemeToSystem();
+        }
+    }
+
     function applyPreset(p) {
         customAccent = p.accent;
         customSurface = p.surface;
@@ -395,18 +464,7 @@ ShellRoot {
         activeColorHex = shell[activeColorKey].toString();
         saveCustomPalette();
 
-        // System-wide theme propagation (Kitty, Hyprland borders, GTK/Nautilus, VS Code, Pywal)
-        var themeObj = Object.assign({}, p, {
-            red: customRed.toString(),
-            green: customGreen.toString(),
-            peach: customPeach.toString(),
-            blue: customBlue.toString()
-        });
-        Quickshell.execDetached([
-            "python3",
-            Quickshell.shellDir + "/scripts/apply_system_theme.py",
-            JSON.stringify(themeObj)
-        ]);
+        syncCurrentThemeToSystem(p.name, p);
     }
 
     function rgbToHsl(r, g, b) {
@@ -774,6 +832,7 @@ function getCurrentThemeStateKey() {
         };
         customPaletteAdapter.palettes = dict;
         customPaletteFileView.writeAdapter();
+        debounceSystemThemeTimer.restart();
     }
 
     function isSufficientRed(c) {
@@ -996,6 +1055,9 @@ function getCurrentThemeStateKey() {
                     shell.wpIsLight       = palette.isLight;
                     shell.lastExtractedWallpaperPath = shell._pendingWallpaperPath;
                     shell.loadThemeForWallpaper(shell.lastExtractedWallpaperPath);
+                    if (shell.themeMode === "wallpaper") {
+                        shell.syncCurrentThemeToSystem();
+                    }
                 } catch(e) { console.log("Color parse error:", e, text); }
             }
         }
