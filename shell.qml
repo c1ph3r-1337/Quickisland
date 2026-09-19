@@ -6988,6 +6988,112 @@ function getCurrentThemeStateKey() {
                                         }
                                     }
                                 }
+
+                                // ── "From Wallpaper" + card appended after all presets ──
+                                footer: Item {
+                                    id: wpFooterItem
+                                    width: 164
+                                    height: 98
+
+                                    property bool hovered: false
+                                    property bool extracting: false
+
+                                    Rectangle {
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        width: 146
+                                        height: 80
+                                        radius: 16
+                                        color: wpFooterItem.hovered
+                                            ? Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.18)
+                                            : Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.08)
+                                        scale: wpFooterItem.hovered ? 1.04 : 0.94
+
+                                        Behavior on color { ColorAnimation { duration: 180 } }
+                                        Behavior on scale {
+                                            NumberAnimation {
+                                                duration: 280
+                                                easing.type: Easing.OutBack
+                                                easing.overshoot: 1.5
+                                            }
+                                        }
+
+                                        // Accent border ring
+                                        Rectangle {
+                                            anchors.fill: parent
+                                            radius: parent.radius
+                                            color: "transparent"
+                                            border.width: 1
+                                            border.color: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.45)
+                                        }
+
+                                        Column {
+                                            anchors.centerIn: parent
+                                            spacing: 8
+
+                                            // Big "+" — pulses while extracting
+                                            Text {
+                                                anchors.horizontalCenter: parent.horizontalCenter
+                                                text: "+"
+                                                color: shell.accent
+                                                font.pixelSize: 28
+                                                font.weight: Font.Light
+
+                                                SequentialAnimation on opacity {
+                                                    running: wpFooterItem.extracting
+                                                    loops: Animation.Infinite
+                                                    NumberAnimation { to: 0.3; duration: 500; easing.type: Easing.InOutSine }
+                                                    NumberAnimation { to: 1.0; duration: 500; easing.type: Easing.InOutSine }
+                                                }
+                                            }
+
+                                            Text {
+                                                anchors.horizontalCenter: parent.horizontalCenter
+                                                text: wpFooterItem.extracting ? "Extracting…" : "From Wallpaper"
+                                                color: shell.accent
+                                                font.pixelSize: 11
+                                                font.weight: Font.Medium
+                                            }
+                                        }
+
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+
+                                            onEntered: wpFooterItem.hovered = true
+                                            onExited:  wpFooterItem.hovered = false
+
+                                            onClicked: {
+                                                if (wpFooterItem.extracting) return;
+
+                                                // Get the current wallpaper path
+                                                var wpPath = shell._pendingWallpaperPath || shell.lastExtractedWallpaperPath;
+                                                if (!wpPath || wpPath === "") {
+                                                    var screenName = Quickshell.screens.length > 0 ? Quickshell.screens[0].name : "";
+                                                    wpPath = screenName ? WallpaperService.getWallpaper(screenName) : "";
+                                                }
+                                                if (!wpPath || wpPath === "") return;
+
+                                                wpFooterItem.extracting = true;
+
+                                                // Force re-extract by resetting the cache sentinel
+                                                shell._pendingWallpaperPath = wpPath;
+                                                shell.lastExtractedWallpaperPath = "";
+
+                                                // Switch to wallpaper mode and kick off extraction
+                                                shell.themeMode = "wallpaper";
+                                                shell.extractColorsFromWallpaper(wpPath);
+
+                                                // Close panel; extraction completes async via colorExtractProc
+                                                Qt.callLater(function() {
+                                                    wpFooterItem.extracting = false;
+                                                    shell.setState(0);
+                                                });
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
 
