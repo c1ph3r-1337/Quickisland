@@ -260,6 +260,75 @@ white = '{text_muted}'
         # use Wallbash-Gtk which dynamically adapts to the exact palette colors
         matched_gtk_theme = "Wallbash-Gtk"
 
+    # Helper to calculate high-contrast foreground (light or dark)
+    def get_contrast_fg(hex_code, fallback_dark="#11111b", fallback_light="#ffffff"):
+        try:
+            h_clean = hex_code.lstrip('#')
+            r_val, g_val, b_val = int(h_clean[0:2], 16), int(h_clean[2:4], 16), int(h_clean[4:6], 16)
+            lum = (0.299 * r_val + 0.587 * g_val + 0.114 * b_val) / 255.0
+            return fallback_dark if lum > 0.55 else fallback_light
+        except Exception:
+            return fallback_light
+
+    accent_fg = get_contrast_fg(accent, fallback_dark=surface, fallback_light=text_primary)
+    red_fg = get_contrast_fg(red, fallback_dark=surface, fallback_light="#ffffff")
+    peach_fg = get_contrast_fg(peach, fallback_dark=surface, fallback_light="#ffffff")
+    green_fg = get_contrast_fg(green, fallback_dark=surface, fallback_light="#ffffff")
+
+    # Match best icon theme from installed icons to coordinate with theme
+    installed_icons = []
+    for icon_dir in [home / ".local/share/icons", Path("/usr/share/icons")]:
+        if icon_dir.exists():
+            for p in icon_dir.iterdir():
+                if p.is_dir():
+                    installed_icons.append(p.name)
+
+    matched_icon_theme = "Tela-circle-dracula"
+    if "gruvbox" in name_clean:
+        matched_icon_theme = "Gruvbox-Plus-Dark" if "Gruvbox-Plus-Dark" in installed_icons else "Tela-circle-yellow"
+    elif "nord" in name_clean:
+        matched_icon_theme = "Nordzy" if "Nordzy" in installed_icons else "Tela-circle-blue"
+    elif "dracula" in name_clean:
+        matched_icon_theme = "Tela-circle-dracula"
+    elif any(k in name_clean for k in ["sakura", "pink", "rose"]):
+        matched_icon_theme = "Tela-circle-pink"
+    elif any(k in name_clean for k in ["tokyo", "blue", "ocean"]):
+        matched_icon_theme = "Tela-circle-blue"
+    elif any(k in name_clean for k in ["decay", "green", "mint", "teal"]):
+        matched_icon_theme = "Tela-circle-green"
+    elif any(k in name_clean for k in ["catppuccin", "mocha", "purple"]):
+        matched_icon_theme = "Tela-circle-purple"
+    else:
+        # Match dominant hue of accent color
+        try:
+            h_str = accent.lstrip('#')
+            r_c = int(h_str[0:2], 16) / 255.0
+            g_c = int(h_str[2:4], 16) / 255.0
+            b_c = int(h_str[4:6], 16) / 255.0
+            import colorsys
+            h, s, v = colorsys.rgb_to_hsv(r_c, g_c, b_c)
+            hue_deg = h * 360.0
+            if s < 0.15:
+                matched_icon_theme = "Tela-circle-grey"
+            elif 60 <= hue_deg < 175:
+                matched_icon_theme = "Tela-circle-green"
+            elif 175 <= hue_deg < 255:
+                matched_icon_theme = "Tela-circle-blue"
+            elif 255 <= hue_deg < 320:
+                matched_icon_theme = "Tela-circle-dracula"
+            elif 320 <= hue_deg < 360 or hue_deg < 20:
+                matched_icon_theme = "Tela-circle-pink"
+            else:
+                matched_icon_theme = "Tela-circle-yellow"
+        except Exception:
+            matched_icon_theme = "Tela-circle-dracula"
+
+    if matched_icon_theme not in installed_icons:
+        for fb in ["Tela-circle-dracula", "Tela-circle-blue", "breeze-dark", "Adwaita"]:
+            if fb in installed_icons:
+                matched_icon_theme = fb
+                break
+
     # Set gsettings with live-reload toggle
     try:
         current_gtk = ""
@@ -279,6 +348,7 @@ white = '{text_muted}'
             subprocess.run(["gsettings", "set", "org.gnome.desktop.interface", "gtk-theme", temp_theme], stderr=subprocess.DEVNULL)
         
         subprocess.run(["gsettings", "set", "org.gnome.desktop.interface", "gtk-theme", matched_gtk_theme], stderr=subprocess.DEVNULL)
+        subprocess.run(["gsettings", "set", "org.gnome.desktop.interface", "icon-theme", matched_icon_theme], stderr=subprocess.DEVNULL)
     except Exception as e:
         print(f"Error setting gsettings: {e}")
 
@@ -295,6 +365,12 @@ white = '{text_muted}'
                     content = re.sub(r'gtk-theme-name=.*', f'gtk-theme-name={matched_gtk_theme}', content)
                 else:
                     content = content + f"\ngtk-theme-name={matched_gtk_theme}\n"
+                if "gtk-icon-theme-name=" in content:
+                    content = re.sub(r'gtk-icon-theme-name=.*', f'gtk-icon-theme-name={matched_icon_theme}', content)
+                else:
+                    content = content + f"\ngtk-icon-theme-name={matched_icon_theme}\n"
+                if "gtk-font-name=" in content and "Masaram" in content:
+                    content = re.sub(r'gtk-font-name=.*', 'gtk-font-name=Noto Sans 10', content)
                 ini_path.write_text(content)
             except Exception as e:
                 print(f"Error updating {ini_path}: {e}")
@@ -306,7 +382,9 @@ white = '{text_muted}'
             g2 = gtk2_file.read_text()
             if "gtk-theme-name=" in g2:
                 g2 = re.sub(r'gtk-theme-name\s*=\s*"[^"]*"', f'gtk-theme-name="{matched_gtk_theme}"', g2)
-                gtk2_file.write_text(g2)
+            if "gtk-icon-theme-name=" in g2:
+                g2 = re.sub(r'gtk-icon-theme-name\s*=\s*"[^"]*"', f'gtk-icon-theme-name="{matched_icon_theme}"', g2)
+            gtk2_file.write_text(g2)
         except Exception as e:
             print(f"Error updating gtkrc-2.0: {e}")
 
@@ -317,8 +395,12 @@ white = '{text_muted}'
             xc = xsettingsd_file.read_text()
             if "Net/ThemeName" in xc:
                 xc = re.sub(r'Net/ThemeName\s+"[^"]*"', f'Net/ThemeName "{matched_gtk_theme}"', xc)
-                xsettingsd_file.write_text(xc)
-                subprocess.run(["killall", "-HUP", "xsettingsd"], stderr=subprocess.DEVNULL)
+            if "Net/IconThemeName" in xc:
+                xc = re.sub(r'Net/IconThemeName\s+"[^"]*"', f'Net/IconThemeName "{matched_icon_theme}"', xc)
+            else:
+                xc = xc + f'\nNet/IconThemeName "{matched_icon_theme}"\n'
+            xsettingsd_file.write_text(xc)
+            subprocess.run(["killall", "-HUP", "xsettingsd"], stderr=subprocess.DEVNULL)
         except Exception as e:
             print(f"Error updating xsettingsd: {e}")
 
@@ -334,13 +416,13 @@ white = '{text_muted}'
                     txt = re.sub(r'@define-color theme_bg_color\s+[^;]+;', f'@define-color theme_bg_color {surface};', txt)
                     txt = re.sub(r'@define-color theme_base_color\s+[^;]+;', f'@define-color theme_base_color {surface};', txt)
                     txt = re.sub(r'@define-color theme_selected_bg_color\s+[^;]+;', f'@define-color theme_selected_bg_color {accent};', txt)
-                    txt = re.sub(r'@define-color theme_selected_fg_color\s+[^;]+;', f'@define-color theme_selected_fg_color {surface};', txt)
+                    txt = re.sub(r'@define-color theme_selected_fg_color\s+[^;]+;', f'@define-color theme_selected_fg_color {accent_fg};', txt)
                     txt = re.sub(r'@define-color theme_unfocused_fg_color\s+[^;]+;', f'@define-color theme_unfocused_fg_color {text_secondary};', txt)
                     txt = re.sub(r'@define-color theme_unfocused_text_color\s+[^;]+;', f'@define-color theme_unfocused_text_color {text_secondary};', txt)
                     txt = re.sub(r'@define-color theme_unfocused_bg_color\s+[^;]+;', f'@define-color theme_unfocused_bg_color {surface};', txt)
                     txt = re.sub(r'@define-color theme_unfocused_base_color\s+[^;]+;', f'@define-color theme_unfocused_base_color {surface};', txt)
                     txt = re.sub(r'@define-color theme_unfocused_selected_bg_color\s+[^;]+;', f'@define-color theme_unfocused_selected_bg_color {accent};', txt)
-                    txt = re.sub(r'@define-color theme_unfocused_selected_fg_color\s+[^;]+;', f'@define-color theme_unfocused_selected_fg_color {surface};', txt)
+                    txt = re.sub(r'@define-color theme_unfocused_selected_fg_color\s+[^;]+;', f'@define-color theme_unfocused_selected_fg_color {accent_fg};', txt)
                     txt = re.sub(r'@define-color borders\s+[^;]+;', f'@define-color borders {surface_bright};', txt)
                     txt = re.sub(r'@define-color warning_color\s+[^;]+;', f'@define-color warning_color {peach};', txt)
                     txt = re.sub(r'@define-color error_color\s+[^;]+;', f'@define-color error_color {red};', txt)
@@ -358,13 +440,13 @@ white = '{text_muted}'
 @define-color theme_base_color {surface};
 @define-color theme_text_color {text_primary};
 @define-color theme_selected_bg_color {accent};
-@define-color theme_selected_fg_color {surface};
+@define-color theme_selected_fg_color {accent_fg};
 @define-color theme_unfocused_bg_color {surface};
 @define-color theme_unfocused_fg_color {text_secondary};
 @define-color theme_unfocused_base_color {surface};
 @define-color theme_unfocused_text_color {text_secondary};
 @define-color theme_unfocused_selected_bg_color {accent};
-@define-color theme_unfocused_selected_fg_color {surface};
+@define-color theme_unfocused_selected_fg_color {accent_fg};
 @define-color borders {surface_bright};
 @define-color unfocused_borders {surface_alt};
 @define-color insensitive_bg_color {surface};
@@ -379,7 +461,12 @@ white = '{text_muted}'
 /* --- Libadwaita / GTK 4 Named Colors --- */
 @define-color accent_color {accent};
 @define-color accent_bg_color {accent};
-@define-color accent_fg_color {surface};
+@define-color accent_fg_color {accent_fg};
+
+@define-color destructive_bg_color {red};
+@define-color destructive_fg_color {red_fg};
+@define-color error_bg_color {red};
+@define-color error_fg_color {red_fg};
 
 @define-color window_bg_color {surface};
 @define-color window_fg_color {text_primary};
@@ -387,6 +474,7 @@ white = '{text_muted}'
 @define-color view_fg_color {text_primary};
 @define-color headerbar_bg_color {surface_alt};
 @define-color headerbar_fg_color {text_primary};
+@define-color headerbar_backdrop_color @window_bg_color;
 @define-color card_bg_color {surface_alt};
 @define-color card_fg_color {text_primary};
 @define-color popover_bg_color {surface_alt};
@@ -394,41 +482,66 @@ white = '{text_muted}'
 @define-color dialog_bg_color {surface};
 @define-color dialog_fg_color {text_primary};
 
-@define-color error_bg_color {red};
-@define-color error_fg_color {surface};
+@define-color sidebar_bg_color {surface_alt};
+@define-color sidebar_fg_color {text_primary};
+@define-color sidebar_backdrop_color @window_bg_color;
+@define-color sidebar_border_color @window_bg_color;
+
+@define-color secondary_sidebar_bg_color {surface};
+@define-color secondary_sidebar_fg_color {text_primary};
+
 @define-color warning_bg_color {peach};
-@define-color warning_fg_color {surface};
+@define-color warning_fg_color {peach_fg};
 @define-color success_bg_color {green};
-@define-color success_fg_color {surface};
+@define-color success_fg_color {green_fg};
 
-/* Global Accent Styling for Widgets */
-selection {{
-    background-color: {accent};
-    color: {surface};
-}}
+/* Backdrop / unfocused states */
+@define-color theme_unfocused_fg_color @window_fg_color;
+@define-color theme_unfocused_text_color @view_fg_color;
+@define-color theme_unfocused_bg_color @window_bg_color;
+@define-color theme_unfocused_base_color @window_bg_color;
+@define-color theme_unfocused_selected_bg_color @accent_bg_color;
+@define-color theme_unfocused_selected_fg_color @accent_fg_color;
 
-*:selected {{
-    background-color: {accent};
-    color: {surface};
-}}
+/* --- Libadwaita CSS Variables --- */
+:root {{
+    --accent-color: {accent};
+    --accent-bg-color: {accent};
+    --accent-fg-color: {accent_fg};
 
-button.suggested-action,
-.suggested-action {{
-    background-color: {accent};
-    color: {surface};
-}}
+    --destructive-bg-color: {red};
+    --destructive-fg-color: {red_fg};
+    --error-bg-color: {red};
+    --error-fg-color: {red_fg};
 
-progressbar progress,
-scale highlight {{
-    background-color: {accent};
-}}
+    --window-bg-color: {surface};
+    --window-fg-color: {text_primary};
 
-switch:checked {{
-    background-color: {accent};
-}}
+    --view-bg-color: {surface};
+    --view-fg-color: {text_primary};
 
-entry:focus {{
-    border-color: {accent};
+    --headerbar-bg-color: {surface_alt};
+    --headerbar-fg-color: {text_primary};
+    --headerbar-backdrop-color: @window_bg_color;
+
+    --popover-bg-color: {surface_alt};
+    --popover-fg-color: {text_primary};
+
+    --card-bg-color: {surface_alt};
+    --card-fg-color: {text_primary};
+
+    --dialog-bg-color: {surface};
+    --dialog-fg-color: {text_primary};
+
+    --sidebar-bg-color: {surface_alt};
+    --sidebar-fg-color: {text_primary};
+    --sidebar-backdrop-color: @window_bg_color;
+    --sidebar-border-color: @window_bg_color;
+
+    --warning-bg-color: {peach};
+    --warning-fg-color: {peach_fg};
+    --success-bg-color: {green};
+    --success-fg-color: {green_fg};
 }}
 """
     for css_target in [
