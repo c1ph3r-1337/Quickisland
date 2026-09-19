@@ -552,11 +552,16 @@ theme[process_end]="{red}"
         "dropdown.background":                       vsc_input_bg,
         "quickInput.background":                     vsc_sidebar_bg,
         "quickInputList.focusBackground":            vsc_list_hover,
-        # Borders
-        "sideBar.border":                            vsc_border,
+        # Borders — all transparent to remove separator lines
+        "sideBar.border":                            "#00000000",
         "tab.border":                                "#00000000",
-        "editorGroup.border":                        vsc_border,
-        "panel.border":                              vsc_border,
+        "tab.activeBorder":                          "#00000000",
+        "tab.activeBorderTop":                       "#00000000",
+        "tab.unfocusedActiveBorder":                 "#00000000",
+        "tab.unfocusedActiveBorderTop":              "#00000000",
+        "editorGroupHeader.border":                  "#00000000",
+        "editorGroup.border":                        "#00000000",
+        "panel.border":                              "#00000000",
         # List hover
         "list.hoverBackground":                      vsc_list_hover,
         "list.focusBackground":                      vsc_list_hover,
