@@ -582,30 +582,6 @@ white = '{text_muted}'
     --success-bg-color: {green};
     --success-fg-color: {green_fg};
 }}
-
-/* Ensure container backgrounds strictly follow palette without disrupting layouts */
-window,
-window.background {{
-    background-color: {surface};
-    color: {text_primary};
-}}
-
-.view,
-view {{
-    background-color: {surface};
-    color: {text_primary};
-}}
-
-.navigation-sidebar,
-sidebar {{
-    background-color: {surface_alt};
-    color: {text_primary};
-}}
-
-headerbar {{
-    background-color: {surface_alt};
-    color: {text_primary};
-}}
 """
     for css_target in [
         home / ".config/gtk-4.0/gtk.css",
