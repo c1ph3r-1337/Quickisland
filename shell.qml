@@ -5289,6 +5289,32 @@ function getCurrentThemeStateKey() {
                                                 z: 2
                                             }
 
+                                            // Click to Apply overlay pill on centered unapplied card
+                                            Rectangle {
+                                                anchors.bottom: parent.bottom
+                                                anchors.horizontalCenter: parent.horizontalCenter
+                                                anchors.bottomMargin: 8
+                                                height: 20
+                                                width: applyHintText.implicitWidth + 16
+                                                radius: 10
+                                                color: Qt.rgba(0, 0, 0, 0.78)
+                                                border.width: 1
+                                                border.color: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.45)
+                                                visible: wpCardDelegate.isSelected && !wpCardDelegate.isDesktopWallpaper
+                                                opacity: wpMa.containsMouse ? 1.0 : 0.85
+                                                Behavior on opacity { NumberAnimation { duration: 150 } }
+                                                z: 3
+
+                                                Text {
+                                                    id: applyHintText
+                                                    anchors.centerIn: parent
+                                                    text: "Click to Apply"
+                                                    color: shell.accent
+                                                    font.pixelSize: 9
+                                                    font.weight: Font.Bold
+                                                }
+                                            }
+
                                             MouseArea {
                                                 id: wpMa
                                                 anchors.fill: parent
