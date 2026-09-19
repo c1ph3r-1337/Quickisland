@@ -5297,9 +5297,9 @@ function getCurrentThemeStateKey() {
                                                 height: 20
                                                 width: applyHintText.implicitWidth + 16
                                                 radius: 10
-                                                color: Qt.rgba(0, 0, 0, 0.78)
-                                                border.width: 1
-                                                border.color: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.45)
+                                                color: Qt.rgba(0, 0, 0, 0.75)
+                                                border.width: 0
+                                                border.color: "transparent"
                                                 visible: wpCardDelegate.isSelected && !wpCardDelegate.isDesktopWallpaper
                                                 opacity: wpMa.containsMouse ? 1.0 : 0.85
                                                 Behavior on opacity { NumberAnimation { duration: 150 } }
