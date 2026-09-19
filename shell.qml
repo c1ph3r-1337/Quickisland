@@ -1030,12 +1030,13 @@ function getCurrentThemeStateKey() {
 
     Timer {
         id: debounceExtractTimer
-        interval: 150
+        interval: 30
         running: false
         repeat: false
         onTriggered: {
             if (shell._pendingWallpaperPath && shell._pendingWallpaperPath !== shell.lastExtractedWallpaperPath) {
                 colorExtractProc.running = false;
+                colorExtractProc.command = ["python3", Qt.resolvedUrl("scripts/extract_colors.py").toString().replace("file://", ""), shell._pendingWallpaperPath];
                 colorExtractProc.running = true;
             }
         }
@@ -1063,10 +1064,37 @@ function getCurrentThemeStateKey() {
                     shell.wpBlue          = palette.blue;
                     shell.wpIsLight       = palette.isLight;
                     shell.lastExtractedWallpaperPath = shell._pendingWallpaperPath;
+
+                    // Cache palette for this wallpaper so future switches are instant
+                    var modeKey = shell.getCurrentThemeStateKey();
+                    var fullKey = shell.lastExtractedWallpaperPath + "_" + modeKey;
+                    var dict = customPaletteAdapter.palettes || {};
+                    dict[fullKey] = {
+                        "customAccent": palette.accent,
+                        "customSurface": palette.surface,
+                        "customSurfaceAlt": palette.surfaceAlt,
+                        "customSurfaceBright": palette.surfaceBright,
+                        "customTextPrimary": palette.textPrimary,
+                        "customTextSecondary": palette.textSecondary,
+                        "customTextMuted": palette.textMuted,
+                        "customRed": palette.red,
+                        "customGreen": palette.green,
+                        "customPeach": palette.peach,
+                        "customBlue": palette.blue
+                    };
+                    customPaletteAdapter.palettes = dict;
+                    customPaletteFileView.writeAdapter();
+
                     shell.loadThemeForWallpaper(shell.lastExtractedWallpaperPath);
-                    // Only auto-apply if Wallpaper Mode is ON (toggle in theme switcher controls this)
+
+                    // Sync system with EXPLICIT PALETTE COLORS — avoids relying on lagging animated properties
                     if (shell.themeMode === "wallpaper") {
-                        shell.syncCurrentThemeToSystem();
+                        var wpTitle = "active";
+                        if (shell.lastExtractedWallpaperPath) {
+                            var parts = shell.lastExtractedWallpaperPath.split('/');
+                            wpTitle = parts[parts.length - 1];
+                        }
+                        shell.syncCurrentThemeToSystem("Wallpaper (" + wpTitle + ")", palette);
                     }
                 } catch(e) { console.log("Color parse error:", e, text); }
             }
@@ -1088,21 +1116,44 @@ function getCurrentThemeStateKey() {
         shell._pendingWallpaperPath = resolvedPath;
 
         // Instant sync: if we have a cached palette for this wallpaper, apply it
-        // immediately to all apps — no waiting for ImageMagick to finish.
+        // immediately to all apps with explicit colors — no waiting for ImageMagick to finish.
         var modeKey = getCurrentThemeStateKey();
         var fullKey = resolvedPath + "_" + modeKey;
         var cached = (customPaletteAdapter.palettes && customPaletteAdapter.palettes[fullKey])
                         ? customPaletteAdapter.palettes[fullKey] : null;
         if (cached && shell.themeMode === "wallpaper") {
-            // Load cached colors into wp* props immediately so sync sends correct palette
-            shell.wpAccent        = cached.customAccent        || shell.wpAccent;
-            shell.wpSurface       = cached.customSurface       || shell.wpSurface;
-            shell.wpSurfaceAlt    = cached.customSurfaceAlt    || shell.wpSurfaceAlt;
-            shell.wpSurfaceBright = cached.customSurfaceBright || shell.wpSurfaceBright;
-            shell.wpTextPrimary   = cached.customTextPrimary   || shell.wpTextPrimary;
-            shell.wpTextSecondary = cached.customTextSecondary || shell.wpTextSecondary;
-            shell.wpTextMuted     = cached.customTextMuted     || shell.wpTextMuted;
-            shell.syncCurrentThemeToSystem();
+            var wpTitleCached = "active";
+            var partsCached = resolvedPath.split('/');
+            wpTitleCached = partsCached[partsCached.length - 1];
+
+            var explicit = {
+                name: "Wallpaper (" + wpTitleCached + ")",
+                accent: cached.customAccent,
+                surface: cached.customSurface,
+                surfaceAlt: cached.customSurfaceAlt,
+                surfaceBright: cached.customSurfaceBright,
+                textPrimary: cached.customTextPrimary,
+                textSecondary: cached.customTextSecondary,
+                textMuted: cached.customTextMuted,
+                red: cached.customRed,
+                green: cached.customGreen,
+                peach: cached.customPeach,
+                blue: cached.customBlue
+            };
+
+            shell.wpAccent        = explicit.accent;
+            shell.wpSurface       = explicit.surface;
+            shell.wpSurfaceAlt    = explicit.surfaceAlt;
+            shell.wpSurfaceBright = explicit.surfaceBright;
+            shell.wpTextPrimary   = explicit.textPrimary;
+            shell.wpTextSecondary = explicit.textSecondary;
+            shell.wpTextMuted     = explicit.textMuted;
+            shell.wpRed           = explicit.red;
+            shell.wpGreen         = explicit.green;
+            shell.wpPeach         = explicit.peach;
+            shell.wpBlue          = explicit.blue;
+
+            shell.syncCurrentThemeToSystem(explicit.name, explicit);
         }
 
         // Always run extraction in the background to refresh / build the cache
@@ -4865,6 +4916,7 @@ function getCurrentThemeStateKey() {
 
                     property var wallpapersList: []
                     property int selectedIdx: 0
+                    property string activeWallpaperPath: (panelWindow && panelWindow.modelData) ? WallpaperService.getWallpaper(panelWindow.modelData.name) : ""
 
                     readonly property string currentWallpaperName: {
                         if (wallpapersList && wallpapersList.length > selectedIdx && selectedIdx >= 0) {
@@ -4884,7 +4936,7 @@ function getCurrentThemeStateKey() {
 
                     function syncActiveWallpaperIndex() {
                         if (!panelWindow || !panelWindow.modelData || !wallpapersList) return;
-                        var currentWp = WallpaperService.getWallpaper(panelWindow.modelData.name);
+                        var currentWp = activeWallpaperPath || WallpaperService.getWallpaper(panelWindow.modelData.name);
                         var foundIdx = -1;
                         for (var i = 0; i < wallpapersList.length; i++) {
                             if (wallpapersList[i] === currentWp) {
@@ -4902,7 +4954,9 @@ function getCurrentThemeStateKey() {
 
                     function applySelectedWallpaper() {
                         if (wallpapersList && wallpapersList.length > selectedIdx && selectedIdx >= 0 && panelWindow && panelWindow.modelData) {
-                            WallpaperService.changeWallpaper(wallpapersList[selectedIdx], panelWindow.modelData.name);
+                            var newWp = wallpapersList[selectedIdx];
+                            activeWallpaperPath = newWp;
+                            WallpaperService.changeWallpaper(newWp, panelWindow.modelData.name);
                         }
                     }
 
@@ -4914,6 +4968,9 @@ function getCurrentThemeStateKey() {
 
                     onVisibleChanged: {
                         if (visible) {
+                            if (panelWindow && panelWindow.modelData) {
+                                activeWallpaperPath = WallpaperService.getWallpaper(panelWindow.modelData.name);
+                            }
                             refreshList();
                             syncActiveWallpaperIndex();
                             Qt.callLater(function() {
@@ -4935,6 +4992,7 @@ function getCurrentThemeStateKey() {
                         }
                         function onWallpaperChanged(screenName, path) {
                             if (panelWindow && panelWindow.modelData && screenName === panelWindow.modelData.name) {
+                                wallpaperSelectorView.activeWallpaperPath = path;
                                 wallpaperSelectorView.refreshList();
                             }
                         }
@@ -5206,7 +5264,7 @@ function getCurrentThemeStateKey() {
                                         color: wma.containsMouse ? "#3c3e56" : shell.surfaceBright
                                         Behavior on color { ColorAnimation { duration: 200 } }
 
-                                        property bool isSelected: modelData === WallpaperService.getWallpaper(panelWindow.modelData.name)
+                                        property bool isSelected: modelData === wallpaperSelectorView.activeWallpaperPath
                                         scale: isSelected ? 1.06 : (wma.containsMouse ? 1.02 : 1.0)
                                         z: (isSelected || wma.containsMouse) ? 1 : 0
                                         Behavior on scale { NumberAnimation { duration: 300; easing.type: Easing.OutBack } }
@@ -5298,7 +5356,7 @@ function getCurrentThemeStateKey() {
                                         z: wpCardDelegate.isSelected ? 10 : 1
 
                                         readonly property bool isSelected: ListView.isCurrentItem
-                                        readonly property bool isDesktopWallpaper: modelData === WallpaperService.getWallpaper(panelWindow.modelData.name)
+                                        readonly property bool isDesktopWallpaper: modelData === wallpaperSelectorView.activeWallpaperPath
 
 
                                         Rectangle {
