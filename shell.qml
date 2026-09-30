@@ -6180,6 +6180,7 @@ function getCurrentThemeStateKey() {
                                             var val = !(Settings.data.colorSchemes.hyprglass || Settings.data.colorSchemes.hyprglassIsland);
                                             Settings.data.colorSchemes.hyprglass = val;
                                             Settings.data.colorSchemes.hyprglassIsland = val;
+                                            Quickshell.execDetached(["bash", Quickshell.shellDir + "/kitty-glass-sync.sh", val ? "liquid" : "off"]);
                                         }
                                     }
                                 }
