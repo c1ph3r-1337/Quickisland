@@ -981,8 +981,10 @@ theme[process_end]="{red}"
     vsc_group_bg    = vsc_editor_bg
     # Input / dropdown backgrounds
     vsc_input_bg    = blend(BLACK, accent, 0.12)
-    # List hover  
-    vsc_list_hover  = blend(BLACK, accent, 0.18)
+    # List hover & selection — dark accent shades replacing dark blue defaults
+    vsc_list_hover        = blend(BLACK, accent, 0.16)
+    vsc_list_active_sel   = blend(BLACK, accent, 0.24)
+    vsc_list_inactive_sel = blend(BLACK, accent, 0.18)
     # Scrollbar track
     vsc_scroll      = blend(BLACK, accent, 0.06)
     # Panel (terminal) area
@@ -1015,6 +1017,7 @@ theme[process_end]="{red}"
         "dropdown.background":                       vsc_input_bg,
         "quickInput.background":                     vsc_sidebar_bg,
         "quickInputList.focusBackground":            vsc_list_hover,
+        "quickInputList.focusForeground":            text_primary,
         # Borders — all transparent to remove separator lines
         "sideBar.border":                            "#00000000",
         "tab.border":                                "#00000000",
@@ -1025,9 +1028,37 @@ theme[process_end]="{red}"
         "editorGroupHeader.border":                  "#00000000",
         "editorGroup.border":                        "#00000000",
         "panel.border":                              "#00000000",
-        # List hover
+        # List & Tree Selection and Hover (Dark Accent)
         "list.hoverBackground":                      vsc_list_hover,
+        "list.hoverForeground":                      text_primary,
         "list.focusBackground":                      vsc_list_hover,
+        "list.activeSelectionBackground":            vsc_list_active_sel,
+        "list.activeSelectionForeground":            text_primary,
+        "list.activeSelectionIconForeground":        accent,
+        "list.inactiveSelectionBackground":          vsc_list_inactive_sel,
+        "list.inactiveSelectionForeground":          text_primary,
+        "list.inactiveSelectionIconForeground":      accent,
+        "list.highlightForeground":                  accent,
+        "list.focusHighlightForeground":             accent,
+        "list.focusOutline":                         "#00000000",
+        "list.focusAndSelectionOutline":             "#00000000",
+        "list.inactiveFocusOutline":                 "#00000000",
+        "list.dropBackground":                       accent + "33",
+        "tree.indentGuidesStroke":                   "#00000000",
+        # Editor Text & Search Selection (Accent-tinted)
+        "editor.selectionBackground":                accent + "38",
+        "editor.selectionHighlightBackground":       accent + "20",
+        "editor.inactiveSelectionBackground":        accent + "22",
+        "editor.findMatchBackground":                accent + "55",
+        "editor.findMatchHighlightBackground":       accent + "33",
+        # Menus & Quick Pick
+        "menu.selectionBackground":                  vsc_list_active_sel,
+        "menu.selectionForeground":                  text_primary,
+        # Badges
+        "badge.background":                          vsc_list_active_sel,
+        "badge.foreground":                          accent,
+        "activityBarBadge.background":               accent,
+        "activityBarBadge.foreground":               vsc_editor_bg,
         # Scrollbars
         "scrollbarSlider.background":                vsc_scroll + "44",
         "scrollbarSlider.hoverBackground":           vsc_scroll + "66",
