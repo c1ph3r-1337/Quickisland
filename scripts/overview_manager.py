@@ -1,24 +1,24 @@
 #!/usr/bin/env python3
 """
-Material Shell-style spatial overview manager for QuickIsland.
+Coordinate-aware Material Shell spatial overview manager for QuickIsland.
 
-In Material Shell:
-- Every workspace is a horizontal row
-- In overview, workspace rows are stacked vertically in the center
-- Inside each row, windows are displayed at their relative positions
-- Keyboard Up/Down navigates workspaces (rows), Left/Right navigates windows
-- Enter or click switches directly to that workspace/window
+Manages the Infinite Canvas (Virtual Spatial Workspaces) on Hyprland:
+- Every virtual workspace cell is defined by (vx, vy) coordinates.
+- Workspaces are structured in a 2D coordinate grid (rows = vy, columns = vx).
+- Windows are positioned in their exact coordinate cells with live screenshots.
+- Selecting any cell or window navigates the canvas to that exact (vx, vy) coordinate.
 """
 
 import json
 import subprocess
 import os
 import sys
-import shutil
+import math
 import time
 
 STATE_DIR = os.path.expanduser("~/.cache/quickisland")
 LAYOUT_FILE = os.path.join(STATE_DIR, "overview_layout.json")
+COORD_FILE = os.path.join(STATE_DIR, "infinite_canvas_coords")
 CAPTURES_DIR = os.path.join(STATE_DIR, "overview_captures")
 
 
@@ -48,6 +48,18 @@ def run_json(cmd, env=None):
         return None
 
 
+def get_virtual_coords():
+    try:
+        if os.path.exists(COORD_FILE):
+            with open(COORD_FILE) as f:
+                parts = f.read().strip().split()
+                if len(parts) >= 2:
+                    return int(parts[0]), int(parts[1])
+    except Exception:
+        pass
+    return 0, 0
+
+
 def enter_overview():
     t0 = time.time()
     env = get_hypr_env()
@@ -57,7 +69,6 @@ def enter_overview():
         log("No monitors found")
         return
 
-    # Focused monitor
     mon = next((m for m in monitors if m.get("focused")), monitors[0])
     scale = mon.get("scale", 1.0)
     mon_x = mon["x"]
@@ -65,91 +76,107 @@ def enter_overview():
     mon_w = int(mon["width"] / scale)
     mon_h = int(mon["height"] / scale)
 
+    cur_vx, cur_vy = get_virtual_coords()
+
     active_ws_info = run_json("hyprctl activeworkspace -j", env=env) or {}
     active_ws_id = active_ws_info.get("id", 1)
 
-    workspaces = run_json("hyprctl workspaces -j", env=env) or []
     clients = run_json("hyprctl clients -j", env=env) or []
+    # Filter clients: mapped and on the current active Hyprland workspace
+    ws_clients = [c for c in clients if c.get("mapped") and c.get("workspace", {}).get("id") == active_ws_id]
 
-    # Filter clients: mapped and not special
-    valid_clients = [c for c in clients if c.get("mapped") and c.get("workspace", {}).get("id", 0) > 0]
-
-    # Collect all workspace IDs (always include 1, 2, 3 as minimum, plus existing)
-    ws_ids = set([1, 2, 3, active_ws_id])
-    for w in workspaces:
-        if w.get("id", 0) > 0:
-            ws_ids.add(w["id"])
-    for c in valid_clients:
-        ws_ids.add(c["workspace"]["id"])
-
-    sorted_ws_ids = sorted(list(ws_ids))
-
-    # Optional capture directory for active window screenshots
     os.makedirs(CAPTURES_DIR, exist_ok=True)
 
-    # Build workspace rows
+    # Map windows to their virtual coordinate cells (vwx, vwy) and row offsets
+    all_windows = []
+    occupied_vys = set([cur_vy])
+    for c in ws_clients:
+        cx, cy = c["at"]
+        cw, ch = c["size"]
+        center_x = cx + cw / 2
+        center_y = cy + ch / 2
+
+        vwx = cur_vx + int(math.floor((center_x - mon_x) / mon_w))
+        vwy = cur_vy - int(math.floor((center_y - mon_y) / mon_h))
+        occupied_vys.add(vwy)
+
+        # Offset relative to center monitor viewport (0..1 = inside card, <0 = left, >1 = right)
+        offset_x = (cx - mon_x) / mon_w
+        # Offset relative to row vertical boundaries
+        row_origin_y = mon_y - (vwy - cur_vy) * mon_h
+        offset_y = max(0.0, min(1.0, (cy - row_origin_y) / mon_h))
+        rel_w = max(0.08, min(1.0, cw / mon_w))
+        rel_h = max(0.08, min(1.0, ch / mon_h))
+
+        clean_addr = c["address"].replace("0x", "")
+        shot_file = os.path.join(CAPTURES_DIR, f"win_{clean_addr}.png")
+        screenshot_path = None
+
+        is_visible_on_screen = (
+            cx >= mon_x and (cx + cw) <= (mon_x + mon_w) and
+            cy >= mon_y and (cy + ch) <= (mon_y + mon_h) and
+            not c.get("hidden", False)
+        )
+
+        if is_visible_on_screen:
+            try:
+                subprocess.run(
+                    ["grim", "-g", f"{cx},{cy} {cw}x{ch}", "-t", "png", "-l", "1", shot_file],
+                    timeout=1.5,
+                    check=True,
+                    capture_output=True,
+                    env=env,
+                )
+                screenshot_path = shot_file
+            except Exception:
+                screenshot_path = None
+        elif os.path.exists(shot_file):
+            screenshot_path = shot_file
+
+        win_obj = {
+            "address": c["address"],
+            "class": c.get("class", ""),
+            "title": c.get("title", ""),
+            "focused": (c.get("focusHistoryID") == 0),
+            "vwx": vwx,
+            "vwy": vwy,
+            "offset_x": round(offset_x, 4),
+            "offset_y": round(offset_y, 4),
+            "rel_w": round(rel_w, 4),
+            "rel_h": round(rel_h, 4),
+            "screenshot": screenshot_path,
+        }
+        all_windows.append(win_obj)
+
+    # Exactly 3 vertical rows: cur_vy + 1 (top), cur_vy (current), cur_vy - 1 (bottom)
+    display_vys = [cur_vy + 1, cur_vy, cur_vy - 1]
+
+    # Build rows (descending vy: top-to-bottom, matching Material Shell)
     rows = []
-    for idx, ws_id in enumerate(sorted_ws_ids):
-        ws_clients = [c for c in valid_clients if c["workspace"]["id"] == ws_id]
-        
-        # Sort clients from left to right (by X position)
-        ws_clients.sort(key=lambda c: c["at"][0])
+    selected_row_idx = 0
 
-        windows = []
-        for c in ws_clients:
-            # Calculate normalized relative coordinates (0.0 to 1.0) inside workspace
-            cx, cy = c["at"]
-            cw, ch = c["size"]
+    for r_idx, vy in enumerate(display_vys):
+        is_active_row = (vy == cur_vy)
+        if is_active_row:
+            selected_row_idx = r_idx
 
-            # Normalize relative to monitor
-            rel_x = max(0.0, min(1.0, (cx - mon_x) / mon_w))
-            rel_y = max(0.0, min(1.0, (cy - mon_y) / mon_h))
-            rel_w = max(0.05, min(1.0, cw / mon_w))
-            rel_h = max(0.05, min(1.0, ch / mon_h))
-
-            # Attempt fast grim screenshot if window is on active workspace and visible
-            screenshot_path = None
-            if ws_id == active_ws_id and not c.get("hidden"):
-                shot_file = os.path.join(CAPTURES_DIR, f"win_{c['address'].replace('0x', '')}.png")
-                try:
-                    # Capture exact window geometry at fast compression
-                    subprocess.run(
-                        ["grim", "-g", f"{cx},{cy} {cw}x{ch}", "-t", "png", "-l", "1", shot_file],
-                        timeout=1.5,
-                        check=True,
-                        capture_output=True,
-                        env=env,
-                    )
-                    screenshot_path = shot_file
-                except Exception:
-                    screenshot_path = None
-
-            windows.append({
-                "address": c["address"],
-                "class": c.get("class", ""),
-                "title": c.get("title", ""),
-                "focused": (c.get("focusHistoryID") == 0),
-                "rel_x": round(rel_x, 4),
-                "rel_y": round(rel_y, 4),
-                "rel_w": round(rel_w, 4),
-                "rel_h": round(rel_h, 4),
-                "screenshot": screenshot_path,
-            })
+        row_wins = [w for w in all_windows if w["vwy"] == vy]
+        row_wins.sort(key=lambda w: w["offset_x"])
 
         rows.append({
-            "id": ws_id,
-            "row": idx,
-            "is_active": (ws_id == active_ws_id),
-            "window_count": len(windows),
-            "windows": windows,
+            "vy": vy,
+            "row_index": r_idx,
+            "is_active": is_active_row,
+            "window_count": len(row_wins),
+            "windows": row_wins,
         })
 
+    wallpaper_path = os.path.expanduser("~/.cache/wal/current-wallpaper")
     layout = {
-        "active_id": active_ws_id,
-        "monitor": {
-            "w": mon_w,
-            "h": mon_h,
-        },
+        "cur_vx": cur_vx,
+        "cur_vy": cur_vy,
+        "selected_row": selected_row_idx,
+        "wallpaper": wallpaper_path if os.path.exists(wallpaper_path) else "",
         "rows": rows,
     }
 
@@ -158,30 +185,78 @@ def enter_overview():
         json.dump(layout, f)
 
     elapsed = (time.time() - t0) * 1000
-    log(f"enter took {elapsed:.0f}ms — {len(rows)} workspace rows, {len(valid_clients)} windows")
+    log(f"enter took {elapsed:.0f}ms — {len(rows)} rows, current ({cur_vx}, {cur_vy})")
 
 
 def exit_overview():
-    try:
-        os.remove(LAYOUT_FILE)
-    except FileNotFoundError:
-        pass
-    if os.path.exists(CAPTURES_DIR):
-        shutil.rmtree(CAPTURES_DIR, ignore_errors=True)
-    log("exit — cleaned up")
+    log("exit overview")
 
 
-def jump_to(ws_id):
-    env = get_hypr_env()
-    try:
-        subprocess.run(["hyprctl", "dispatch", "workspace", str(ws_id)], env=env, timeout=2)
-    except Exception as e:
-        log(f"jump failed: {e}")
+def jump_to(target_arg):
+    """Jump to target virtual workspace coordinate (format: 'vx_vy' or 'vx vy')."""
+    canvas_script = os.path.expanduser("~/.config/quickshell/quickisland/scripts/infinite_canvas.sh")
+    if not os.path.exists(canvas_script):
+        log(f"Canvas script not found: {canvas_script}")
+        return
+
+    cur_vx, cur_vy = get_virtual_coords()
+    target_vx = cur_vx
+    target_vy = cur_vy
+
+    str_arg = str(target_arg).strip()
+    if "_" in str_arg:
+        parts = str_arg.split("_")
+        try:
+            target_vx = int(parts[0])
+            target_vy = int(parts[1])
+        except Exception:
+            pass
+    elif " " in str_arg:
+        parts = str_arg.split()
+        try:
+            target_vx = int(parts[0])
+            target_vy = int(parts[1])
+        except Exception:
+            pass
+    else:
+        try:
+            target_vy = int(str_arg)
+        except Exception:
+            pass
+
+    log(f"jumping to virtual workspace ({target_vx}, {target_vy})")
+    subprocess.run([canvas_script, "jump", str(target_vx), str(target_vy)], timeout=2)
     exit_overview()
 
 
 def focus_window(addr):
+    """Focus a window, jumping the canvas to its virtual cell first if needed."""
     env = get_hypr_env()
+    canvas_script = os.path.expanduser("~/.config/quickshell/quickisland/scripts/infinite_canvas.sh")
+
+    monitors = run_json("hyprctl monitors -j", env=env) or [{}]
+    mon = next((m for m in monitors if m.get("focused")), monitors[0])
+    scale = mon.get("scale", 1.0)
+    mon_x = mon.get("x", 0)
+    mon_y = mon.get("y", 0)
+    mon_w = int(mon.get("width", 1600) / scale)
+    mon_h = int(mon.get("height", 900) / scale)
+
+    cur_vx, cur_vy = get_virtual_coords()
+
+    clients = run_json("hyprctl clients -j", env=env) or []
+    target_win = next((c for c in clients if c.get("address") == addr), None)
+
+    if target_win and os.path.exists(canvas_script):
+        cx, cy = target_win["at"]
+        cw, ch = target_win["size"]
+        vwx = cur_vx + int(math.floor(((cx + cw / 2) - mon_x) / mon_w))
+        vwy = cur_vy - int(math.floor(((cy + ch / 2) - mon_y) / mon_h))
+
+        if vwx != cur_vx or vwy != cur_vy:
+            log(f"window at virtual ({vwx}, {vwy}) -> jumping canvas")
+            subprocess.run([canvas_script, "jump", str(vwx), str(vwy)], timeout=2)
+
     try:
         subprocess.run(["hyprctl", "dispatch", "focuswindow", f"address:{addr}"], env=env, timeout=2)
     except Exception as e:
@@ -197,11 +272,11 @@ if __name__ == "__main__":
     elif action == "exit":
         exit_overview()
     elif action == "jump":
-        ws = int(sys.argv[2]) if len(sys.argv) > 2 else 1
-        jump_to(ws)
+        target = sys.argv[2] if len(sys.argv) > 2 else "0_0"
+        jump_to(target)
     elif action == "focus":
         addr = sys.argv[2] if len(sys.argv) > 2 else ""
         focus_window(addr)
     else:
-        print(f"Usage: {sys.argv[0]} enter|exit|jump <ws_id>|focus <address>", file=sys.stderr)
+        print(f"Usage: {sys.argv[0]} enter|exit|jump <target>|focus <address>", file=sys.stderr)
         sys.exit(1)

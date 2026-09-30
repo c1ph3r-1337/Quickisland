@@ -2554,7 +2554,7 @@ function getCurrentThemeStateKey() {
             Behavior on wsCircleSpacing { NumberAnimation { duration: 180; easing.type: Easing.OutQuart } }
 
             WlrLayershell.namespace: "morphing-island"
-            WlrLayershell.layer: WlrLayer.Top
+            WlrLayershell.layer: WlrLayer.Overlay
             WlrLayershell.exclusionMode: ExclusionMode.Ignore
             WlrLayershell.keyboardFocus: (panelWindow.activeState === 13) ? WlrKeyboardFocus.Exclusive : ((panelWindow.activeState !== 0 && panelWindow.activeState !== 1 && panelWindow.activeState !== 2 && panelWindow.activeState !== 3) ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None)
             BackgroundEffect.blurRegion: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass && Settings.data.colorSchemes.hyprglassStyle === "frosted") ? animatedBlurRegion : null
@@ -9106,7 +9106,7 @@ function getCurrentThemeStateKey() {
             mask: shell.overviewActive ? null : overviewMaskRegion
 
             WlrLayershell.namespace: "quickisland-overview"
-            WlrLayershell.layer: WlrLayer.Overlay
+            WlrLayershell.layer: WlrLayer.Top
             WlrLayershell.exclusionMode: ExclusionMode.Ignore
             WlrLayershell.keyboardFocus: shell.overviewActive ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
@@ -9126,13 +9126,9 @@ function getCurrentThemeStateKey() {
                         try {
                             var data = JSON.parse(text);
                             overviewOverlayWindow.layoutData = data;
-                            if (data && data.active_id) {
-                                for (var i = 0; i < (data.rows ? data.rows.length : 0); i++) {
-                                    if (data.rows[i].id === data.active_id) {
-                                        overviewOverlayWindow.selectedRow = i;
-                                        break;
-                                    }
-                                }
+                            if (data) {
+                                if (data.selected_row !== undefined) overviewOverlayWindow.selectedRow = data.selected_row;
+                                if (data.selected_col !== undefined) overviewOverlayWindow.selectedCol = data.selected_col;
                             }
                         } catch(e) {
                             overviewOverlayWindow.layoutData = null;
@@ -9158,7 +9154,7 @@ function getCurrentThemeStateKey() {
 
             Process {
                 id: overviewJumpProc
-                property int targetWs: 1
+                property string targetWs: "0_0"
                 command: ["python3", Qt.resolvedUrl("scripts/overview_manager.py").toString().replace("file://", ""), "jump", "" + targetWs]
             }
 
@@ -9207,7 +9203,7 @@ function getCurrentThemeStateKey() {
                 Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutQuad } }
                 Behavior on scale { NumberAnimation { duration: 220; easing.bezierCurve: [0.22, 1.0, 0.36, 1.0] } }
 
-                // ── Keyboard Navigation ────────────────────────────────
+                // ── Keyboard Navigation (Material Shell Spatial Rows) ──────────
                 Keys.onPressed: (event) => {
                     var d = overviewOverlayWindow.layoutData;
                     if (!d || !d.rows) return;
@@ -9225,29 +9221,29 @@ function getCurrentThemeStateKey() {
                         overviewOverlayWindow.selectedCol = 0;
                         event.accepted = true;
                     } else if (event.key === Qt.Key_Left || event.key === Qt.Key_H) {
-                        var currWs = d.rows[overviewOverlayWindow.selectedRow];
-                        var winCount = currWs && currWs.windows ? currWs.windows.length : 0;
+                        var currRow = d.rows[overviewOverlayWindow.selectedRow];
+                        var winCount = currRow && currRow.windows ? currRow.windows.length : 0;
                         if (winCount > 0) {
                             overviewOverlayWindow.selectedCol = Math.max(0, overviewOverlayWindow.selectedCol - 1);
                         }
                         event.accepted = true;
                     } else if (event.key === Qt.Key_Right || event.key === Qt.Key_L) {
-                        var currWs = d.rows[overviewOverlayWindow.selectedRow];
-                        var winCount = currWs && currWs.windows ? currWs.windows.length : 0;
+                        var currRow = d.rows[overviewOverlayWindow.selectedRow];
+                        var winCount = currRow && currRow.windows ? currRow.windows.length : 0;
                         if (winCount > 0) {
                             overviewOverlayWindow.selectedCol = Math.min(winCount - 1, overviewOverlayWindow.selectedCol + 1);
                         }
                         event.accepted = true;
                     } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-                        var selectedWs = d.rows[overviewOverlayWindow.selectedRow];
-                        if (selectedWs) {
+                        var currRow = d.rows[overviewOverlayWindow.selectedRow];
+                        if (currRow) {
                             overviewOverlayWindow.jumpPending = true;
                             shell.overviewActive = false;
-                            if (selectedWs.windows && selectedWs.windows.length > overviewOverlayWindow.selectedCol) {
-                                overviewFocusProc.targetAddress = selectedWs.windows[overviewOverlayWindow.selectedCol].address;
+                            if (currRow.windows && currRow.windows.length > overviewOverlayWindow.selectedCol) {
+                                overviewFocusProc.targetAddress = currRow.windows[overviewOverlayWindow.selectedCol].address;
                                 overviewFocusProc.running = true;
                             } else {
-                                overviewJumpProc.targetWs = selectedWs.id;
+                                overviewJumpProc.targetWs = d.cur_vx + " " + currRow.vy;
                                 overviewJumpProc.running = true;
                             }
                         }
@@ -9255,294 +9251,199 @@ function getCurrentThemeStateKey() {
                     }
                 }
 
-                // ── Dimmed Background (Desktop Wallpaper shows through) ──────────────────
-                Rectangle {
-                    id: overviewDimBg
+                // ── Dimmed Wallpaper Backdrop (Matches Material Shell Overview) ─────────
+                Image {
+                    id: overviewWallpaperBg
                     anchors.fill: parent
-                    color: "#50000000"
+                    source: "file://" + (overviewOverlayWindow.layoutData && overviewOverlayWindow.layoutData.wallpaper ? overviewOverlayWindow.layoutData.wallpaper : "/home/c1ph3r/.cache/wal/current-wallpaper")
+                    fillMode: Image.PreserveAspectCrop
+                    smooth: true
+                    asynchronous: true
                     opacity: shell.overviewActive ? 1.0 : 0.0
                     Behavior on opacity { NumberAnimation { duration: 180 } }
 
-                    MouseArea {
+                    // Dark scrim overlay giving the deep blurred wallpaper appearance
+                    Rectangle {
                         anchors.fill: parent
-                        onClicked: shell.overviewActive = false
+                        color: "#B8080B10"
                     }
                 }
 
-                // ── Material Shell Stacked Rows Container ──────────────────
+                // ── Dismiss MouseArea ───────────────────────────────────────────────
+                MouseArea {
+                    id: overviewDimBg
+                    anchors.fill: parent
+                    onClicked: shell.overviewActive = false
+                }
+
+                // ── Material Shell Stacked Rows (Infinite Canvas) ──────────────────────
                 Column {
                     id: overviewRowsColumn
                     anchors.centerIn: parent
-                    spacing: 16
+                    spacing: 18
                     visible: overviewOverlayWindow.layoutData !== null
 
-                    // Material Shell Row Repeater
+                    readonly property real cardHeight: 220
+                    readonly property real cardWidth: Math.round(cardHeight * 16.0 / 9.0)
+
                     Repeater {
                         model: overviewOverlayWindow.layoutData ? overviewOverlayWindow.layoutData.rows : []
 
                         Item {
-                            id: rowCardItem
+                            id: rowItem
                             property var rowData: modelData
+                            property int rowIndex: index
                             property bool isRowSelected: index === overviewOverlayWindow.selectedRow
                             property bool isRowActive: rowData.is_active
 
-                            // Card dimensions (72% width, 16:9 proportional feel)
-                            width: Math.min(overviewRoot.width * 0.72, 1080)
-                            height: Math.floor(width * 0.22)
+                            width: overviewRoot.width
+                            height: overviewRowsColumn.cardHeight
 
-                            // Workspace Row Background Card
+                            // ── Central Desktop Wallpaper Viewport Card ──────────────
                             Rectangle {
-                                anchors.fill: parent
-                                radius: 14
-                                color: rowCardMouse.containsMouse ? "#2A1E222B" : "#D014161C"
-                                border.width: rowCardItem.isRowSelected ? 2.5 : (rowCardItem.isRowActive ? 2 : 1)
-                                border.color: rowCardItem.isRowSelected ? shell.accent
-                                            : (rowCardItem.isRowActive ? Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.7)
-                                            : (rowCardMouse.containsMouse ? "#55FFFFFF" : "#22FFFFFF"))
+                                id: rowMonitorCard
+                                x: Math.round((parent.width - width) / 2)
+                                y: Math.round((parent.height - height) / 2)
+                                width: overviewRowsColumn.cardWidth
+                                height: overviewRowsColumn.cardHeight
+                                radius: 12
+                                clip: true
+                                color: "#1A000000"
 
-                                Behavior on border.color { ColorAnimation { duration: 150 } }
-                                Behavior on color { ColorAnimation { duration: 150 } }
-                            }
-
-                            // Workspace Badge / Pill (Top-Left)
-                            Rectangle {
-                                anchors.top: parent.top
-                                anchors.left: parent.left
-                                anchors.margins: 10
-                                z: 10
-                                height: 24
-                                width: wsLabelText.implicitWidth + 18
-                                radius: 6
-                                color: rowCardItem.isRowActive ? shell.accent
-                                     : (rowCardItem.isRowSelected ? Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.85) : "#80111111")
-
-                                Behavior on color { ColorAnimation { duration: 150 } }
-
-                                Text {
-                                    id: wsLabelText
-                                    anchors.centerIn: parent
-                                    text: "Workspace " + rowData.id
-                                    font.pixelSize: 11
-                                    font.bold: rowCardItem.isRowActive || rowCardItem.isRowSelected
-                                    color: "#FFFFFF"
+                                // Desktop Wallpaper Image (matches user reference desktop view)
+                                Image {
+                                    anchors.fill: parent
+                                    source: "file://" + (overviewOverlayWindow.layoutData && overviewOverlayWindow.layoutData.wallpaper ? overviewOverlayWindow.layoutData.wallpaper : "/home/c1ph3r/.cache/wal/current-wallpaper")
+                                    fillMode: Image.PreserveAspectCrop
+                                    smooth: true
+                                    asynchronous: true
                                 }
-                            }
 
-                            // Window Count / Status (Top-Right)
-                            Text {
-                                anchors.top: parent.top
-                                anchors.right: parent.right
-                                anchors.margins: 12
-                                z: 10
-                                text: rowData.window_count > 0 ? (rowData.window_count + (rowData.window_count > 1 ? " windows" : " window")) : "Empty"
-                                font.pixelSize: 11
-                                color: "#88FFFFFF"
-                            }
+                                // Glass overlay + selection border
+                                Rectangle {
+                                    anchors.fill: parent
+                                    radius: 12
+                                    color: rowCardMouse.containsMouse ? "#18FFFFFF" : "transparent"
+                                    border.width: rowItem.isRowSelected ? 2.5 : (rowItem.isRowActive ? 1.5 : 1)
+                                    border.color: rowItem.isRowSelected ? shell.accent
+                                                : (rowItem.isRowActive ? Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.7) : "#20FFFFFF")
 
-                            // Row Click Area (click empty space on row to jump)
-                            MouseArea {
-                                id: rowCardMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    overviewOverlayWindow.jumpPending = true;
-                                    shell.overviewActive = false;
-                                    overviewJumpProc.targetWs = rowData.id;
-                                    overviewJumpProc.running = true;
+                                    Behavior on border.color { ColorAnimation { duration: 150 } }
+                                    Behavior on color { ColorAnimation { duration: 150 } }
                                 }
-                                onEntered: {
-                                    overviewOverlayWindow.selectedRow = index;
-                                }
-                            }
 
-                            // Windows Container inside Workspace Row
-                            Item {
-                                anchors.fill: parent
-                                anchors.margins: 10
-                                anchors.topMargin: 36
-
-                                // Empty workspace indicator
-                                Row {
-                                    anchors.centerIn: parent
-                                    spacing: 8
-                                    visible: rowData.window_count === 0
-
-                                    Text {
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        text: "󰝦"
-                                        font.family: "Material Design Icons"
-                                        font.pixelSize: 22
-                                        color: "#44FFFFFF"
-                                    }
-                                    Text {
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        text: "Empty Workspace"
-                                        font.pixelSize: 12
-                                        color: "#55FFFFFF"
+                                // Click card to jump to this workspace row
+                                MouseArea {
+                                    id: rowCardMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onEntered: overviewOverlayWindow.selectedRow = rowItem.rowIndex
+                                    onClicked: {
+                                        overviewOverlayWindow.jumpPending = true;
+                                        shell.overviewActive = false;
+                                        overviewJumpProc.targetWs = (overviewOverlayWindow.layoutData ? overviewOverlayWindow.layoutData.cur_vx : 0) + " " + rowData.vy;
+                                        overviewJumpProc.running = true;
                                     }
                                 }
+                            }
 
-                                // Windows in Workspace Row
-                                Repeater {
-                                    model: rowData.windows || []
+                            // ── Windows on this Workspace Row ────────────────────────
+                            Repeater {
+                                model: rowData.windows || []
 
-                                    Item {
-                                        id: winItem
-                                        property var winData: modelData
-                                        property bool isWinSelected: rowCardItem.isRowSelected && index === overviewOverlayWindow.selectedCol
+                                Item {
+                                    id: winTileItem
+                                    property var winData: modelData
+                                    property bool isWinSelected: rowItem.isRowSelected && index === overviewOverlayWindow.selectedCol
 
-                                        // Position inside workspace card
-                                        x: Math.round(winData.rel_x * parent.width)
-                                        y: Math.round(winData.rel_y * parent.height)
-                                        width: Math.max(90, Math.round(winData.rel_w * parent.width))
-                                        height: Math.max(60, Math.round(winData.rel_h * parent.height))
+                                    // Exact spatial coordinate placement along the continuous horizontal canvas
+                                    x: Math.round(rowMonitorCard.x + winData.offset_x * overviewRowsColumn.cardWidth)
+                                    y: Math.round(rowMonitorCard.y + winData.offset_y * overviewRowsColumn.cardHeight)
+                                    width: Math.max(50, Math.round(winData.rel_w * overviewRowsColumn.cardWidth))
+                                    height: Math.max(35, Math.round(winData.rel_h * overviewRowsColumn.cardHeight))
+                                    z: 10
 
-                                        // Window Card Frame
-                                        Rectangle {
-                                            id: winCardBg
+                                    // Window Frame with drop shadow effect
+                                    Rectangle {
+                                        anchors.fill: parent
+                                        radius: 8
+                                        clip: true
+                                        color: "#E0181A22"
+                                        border.width: winTileMouse.containsMouse || winTileItem.isWinSelected ? 2 : (winData.focused ? 1.5 : 1)
+                                        border.color: winTileMouse.containsMouse || winTileItem.isWinSelected ? shell.accent
+                                                    : (winData.focused ? Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.8) : "#35FFFFFF")
+
+                                        Behavior on border.color { ColorAnimation { duration: 140 } }
+
+                                        // Live GPU Screenshot Preview
+                                        Image {
                                             anchors.fill: parent
-                                            radius: 8
-                                            color: winItem.isWinSelected ? "#3A21252B" : (winMouse.containsMouse ? "#321E222A" : "#D01C2028")
-                                            border.width: winItem.isWinSelected ? 2 : (winData.focused ? 1.5 : 1)
-                                            border.color: winItem.isWinSelected ? shell.accent
-                                                        : (winData.focused ? Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.7)
-                                                        : (winMouse.containsMouse ? "#66FFFFFF" : "#30FFFFFF"))
-
-                                            clip: true
-
-                                            // Screenshot Preview (if captured)
-                                            Image {
-                                                anchors.fill: parent
-                                                anchors.margins: 1
-                                                source: winData.screenshot ? "file://" + winData.screenshot : ""
-                                                visible: winData.screenshot !== null && winData.screenshot !== ""
-                                                fillMode: Image.PreserveAspectCrop
-                                                smooth: true
-                                                asynchronous: true
-                                            }
-
-                                            // Fallback App Icon + Title (when no screenshot)
-                                            Column {
-                                                anchors.centerIn: parent
-                                                spacing: 4
-                                                visible: !winData.screenshot
-                                                width: parent.width - 16
-
-                                                Text {
-                                                    anchors.horizontalCenter: parent.horizontalCenter
-                                                    text: {
-                                                        var cls = (winData.class || "").toLowerCase();
-                                                        if (cls.indexOf("brave") >= 0 || cls.indexOf("firefox") >= 0 || cls.indexOf("chrome") >= 0) return "󰖟";
-                                                        if (cls.indexOf("kitty") >= 0 || cls.indexOf("alacritty") >= 0 || cls.indexOf("terminal") >= 0) return "󰆍";
-                                                        if (cls.indexOf("nautilus") >= 0 || cls.indexOf("thunar") >= 0 || cls.indexOf("file") >= 0) return "󰉋";
-                                                        if (cls.indexOf("code") >= 0) return "󰨞";
-                                                        if (cls.indexOf("discord") >= 0) return "󰙯";
-                                                        if (cls.indexOf("spotify") >= 0) return "󰓇";
-                                                        if (cls.indexOf("obs") >= 0) return "󰑋";
-                                                        return "󰣇";
-                                                    }
-                                                    font.family: "Material Design Icons"
-                                                    font.pixelSize: 24
-                                                    color: winItem.isWinSelected ? shell.accent : "#DDFFFFFF"
-                                                }
-
-                                                Text {
-                                                    anchors.horizontalCenter: parent.horizontalCenter
-                                                    text: winData.title || winData.class || "App"
-                                                    font.pixelSize: 10
-                                                    color: "#BBFFFFFF"
-                                                    elide: Text.ElideRight
-                                                    width: parent.width
-                                                    horizontalAlignment: Text.AlignHCenter
-                                                }
-                                            }
-
-                                            // Top subtle title bar with icon
-                                            Rectangle {
-                                                anchors.top: parent.top
-                                                anchors.left: parent.left
-                                                anchors.right: parent.right
-                                                height: 18
-                                                color: "#90111114"
-                                                visible: winData.screenshot !== null && winData.screenshot !== ""
-
-                                                Row {
-                                                    anchors.fill: parent
-                                                    anchors.leftMargin: 6
-                                                    anchors.rightMargin: 6
-                                                    spacing: 4
-
-                                                    Text {
-                                                        anchors.verticalCenter: parent.verticalCenter
-                                                        text: {
-                                                            var cls = (winData.class || "").toLowerCase();
-                                                            if (cls.indexOf("brave") >= 0 || cls.indexOf("firefox") >= 0 || cls.indexOf("chrome") >= 0) return "󰖟";
-                                                            if (cls.indexOf("kitty") >= 0 || cls.indexOf("alacritty") >= 0) return "󰆍";
-                                                            if (cls.indexOf("nautilus") >= 0) return "󰉋";
-                                                            if (cls.indexOf("code") >= 0) return "󰨞";
-                                                            return "󰣇";
-                                                        }
-                                                        font.family: "Material Design Icons"
-                                                        font.pixelSize: 10
-                                                        color: "#AAFFFFFF"
-                                                    }
-
-                                                    Text {
-                                                        anchors.verticalCenter: parent.verticalCenter
-                                                        text: winData.title || winData.class || ""
-                                                        font.pixelSize: 9
-                                                        color: "#DDFFFFFF"
-                                                        elide: Text.ElideRight
-                                                        width: parent.width - 20
-                                                    }
-                                                }
-                                            }
+                                            source: winData.screenshot ? "file://" + winData.screenshot : ""
+                                            visible: winData.screenshot !== null && winData.screenshot !== ""
+                                            fillMode: Image.PreserveAspectCrop
+                                            smooth: true
+                                            asynchronous: true
                                         }
 
-                                        // Click directly on this window to focus it!
-                                        MouseArea {
-                                            id: winMouse
-                                            anchors.fill: parent
-                                            hoverEnabled: true
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: {
-                                                overviewOverlayWindow.jumpPending = true;
-                                                shell.overviewActive = false;
-                                                overviewFocusProc.targetAddress = winData.address;
-                                                overviewFocusProc.running = true;
+                                        // Fallback when no screenshot
+                                        Column {
+                                            anchors.centerIn: parent
+                                            spacing: 3
+                                            visible: !winData.screenshot || winData.screenshot === ""
+                                            width: parent.width - 10
+
+                                            Text {
+                                                anchors.horizontalCenter: parent.horizontalCenter
+                                                text: {
+                                                    var cls = (winData.class || "").toLowerCase();
+                                                    if (cls.indexOf("brave") >= 0 || cls.indexOf("firefox") >= 0 || cls.indexOf("chrome") >= 0) return "󰖟";
+                                                    if (cls.indexOf("kitty") >= 0 || cls.indexOf("alacritty") >= 0 || cls.indexOf("terminal") >= 0) return "󰆍";
+                                                    if (cls.indexOf("nautilus") >= 0 || cls.indexOf("thunar") >= 0 || cls.indexOf("file") >= 0) return "󰉋";
+                                                    if (cls.indexOf("code") >= 0) return "󰨞";
+                                                    if (cls.indexOf("discord") >= 0) return "󰙯";
+                                                    if (cls.indexOf("spotify") >= 0) return "󰓇";
+                                                    if (cls.indexOf("obs") >= 0) return "󰑋";
+                                                    return "󰣇";
+                                                }
+                                                font.family: "Material Design Icons"
+                                                font.pixelSize: 22
+                                                color: winData.focused ? shell.accent : "#DDFFFFFF"
                                             }
-                                            onEntered: {
-                                                overviewOverlayWindow.selectedRow = rowCardItem.index;
-                                                overviewOverlayWindow.selectedCol = winItem.index;
+
+                                            Text {
+                                                anchors.horizontalCenter: parent.horizontalCenter
+                                                text: winData.title || winData.class || "App"
+                                                font.pixelSize: 10
+                                                color: "#BBFFFFFF"
+                                                elide: Text.ElideRight
+                                                width: parent.width
+                                                horizontalAlignment: Text.AlignHCenter
                                             }
+                                        }
+                                    }
+
+                                    // Click directly on this window to focus it and jump canvas
+                                    MouseArea {
+                                        id: winTileMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onEntered: {
+                                            overviewOverlayWindow.selectedRow = rowItem.rowIndex;
+                                            overviewOverlayWindow.selectedCol = index;
+                                        }
+                                        onClicked: {
+                                            overviewOverlayWindow.jumpPending = true;
+                                            shell.overviewActive = false;
+                                            overviewFocusProc.targetAddress = winData.address;
+                                            overviewFocusProc.running = true;
                                         }
                                     }
                                 }
                             }
                         }
                     }
-                }
-
-                // ── Top Bar ──────────────────────────────────────────
-                Text {
-                    anchors.top: parent.top
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.topMargin: 20
-                    text: "Material Spatial Overview"
-                    font.pixelSize: 15
-                    font.bold: true
-                    color: "#DDFFFFFF"
-                }
-
-                // ── Bottom Navigation Hint ───────────────────────────
-                Text {
-                    anchors.bottom: parent.bottom
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.bottomMargin: 16
-                    text: "↑ / ↓ workspaces  ·  ← / → windows  ·  Enter / Click to switch  ·  Esc to close"
-                    font.pixelSize: 11
-                    color: "#77FFFFFF"
                 }
             }
         }
