@@ -596,22 +596,6 @@ gtk-application-prefer-dark-theme=1
     --success-bg-color: {green};
     --success-fg-color: {green_fg};
 }}
-
-/* Safe container background rules for GTK 4 / Libadwaita */
-window.background {{
-    background-color: {gtk_bg};
-    color: {text_primary};
-}}
-
-.navigation-sidebar {{
-    background-color: {gtk_sidebar};
-    color: {text_primary};
-}}
-
-headerbar {{
-    background-color: {gtk_sidebar};
-    color: {text_primary};
-}}
 """
     for css_target in [
         home / ".config/gtk-4.0/gtk.css",
@@ -699,22 +683,6 @@ headerbar {{
     --sidebar-fg-color: #<wallbash_4xa9>;
     --sidebar-backdrop-color: #<wallbash_pry1>;
     --sidebar-border-color: #<wallbash_pry1>;
-}
-
-/* Safe container background rules */
-window.background {
-    background-color: #<wallbash_pry1>;
-    color: #<wallbash_4xa9>;
-}
-
-.navigation-sidebar {
-    background-color: #<wallbash_1xa1>;
-    color: #<wallbash_4xa9>;
-}
-
-headerbar {
-    background-color: #<wallbash_1xa1>;
-    color: #<wallbash_4xa9>;
 }
 """)
         except Exception:
