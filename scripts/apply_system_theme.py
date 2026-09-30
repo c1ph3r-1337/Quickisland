@@ -730,16 +730,48 @@ window.background {
     except Exception as e:
         print(f"Error setting gsettings: {e}")
 
-    # Clean up stale background Nautilus daemon ONLY if NO windows are open
-    # (Never close or interrupt an active, visible user window)
+    # Synchronize Nautilus (GTK 4 / Libadwaita) live
     try:
-        clients_json = subprocess.check_output(["hyprctl", "clients", "-j"], text=True, stderr=subprocess.DEVNULL)
-        clients = json.loads(clients_json)
-        has_visible_nautilus = any("nautilus" in c.get("class", "").lower() for c in clients)
-        if not has_visible_nautilus:
+        nautilus_pids = subprocess.check_output(["pgrep", "nautilus"], text=True, stderr=subprocess.DEVNULL).strip().split()
+        if nautilus_pids:
+            has_visible_window = False
+            launch_path = ""
+            try:
+                clients_json = subprocess.check_output(["hyprctl", "clients", "-j"], text=True, stderr=subprocess.DEVNULL)
+                clients = json.loads(clients_json)
+                nautilus_clients = [c for c in clients if "nautilus" in c.get("class", "").lower()]
+                if nautilus_clients:
+                    has_visible_window = True
+                    title = nautilus_clients[0].get("title", "")
+                    if title and title not in ["Home", "Files"]:
+                        main_pid = nautilus_pids[0]
+                        try:
+                            for fd in os.listdir(f"/proc/{main_pid}/fd"):
+                                try:
+                                    target = os.readlink(f"/proc/{main_pid}/fd/{fd}")
+                                    if os.path.isdir(target) and os.path.basename(target) == title:
+                                        launch_path = target
+                                        break
+                                except Exception:
+                                    pass
+                        except Exception:
+                            pass
+            except Exception:
+                pass
+
+            # Quit stale in-memory Nautilus instance so old CSS cache is discarded
             subprocess.run(["nautilus", "-q"], stderr=subprocess.DEVNULL)
-    except Exception:
-        pass
+
+            # If user had a visible window open, cleanly wait and respawn immediately with new theme CSS!
+            if has_visible_window:
+                for _ in range(20):
+                    if subprocess.run(["pgrep", "nautilus"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode != 0:
+                        break
+                    time.sleep(0.01)
+                cmd = f"env -u GTK_THEME nautilus {launch_path}" if launch_path else "env -u GTK_THEME nautilus --new-window"
+                subprocess.run(["hyprctl", "dispatch", "exec", cmd], stderr=subprocess.DEVNULL)
+    except Exception as e:
+        print(f"Error syncing Nautilus: {e}")
 
     # ---------------------------------------------------------
     # 5. Rofi Application Launcher
