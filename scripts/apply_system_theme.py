@@ -359,14 +359,32 @@ white = '{text_muted}'
     except Exception as e:
         print(f"Error setting gsettings: {e}")
 
+    # Ensure ~/.config/gtk-4.0 is a real directory, not a symlink to Wallbash-Gtk
+    gtk4_config_dir = home / ".config/gtk-4.0"
+    if gtk4_config_dir.is_symlink():
+        try:
+            gtk4_config_dir.unlink()
+            gtk4_config_dir.mkdir(parents=True, exist_ok=True)
+        except Exception as e:
+            print(f"Error converting gtk-4.0 symlink: {e}")
+
+    # Remove any stray settings.ini inside theme directories (prevents infinite recursive notify loop in GTK 4)
+    wb_theme_ini = home / ".local/share/themes/Wallbash-Gtk/gtk-4.0/settings.ini"
+    if wb_theme_ini.exists():
+        try:
+            wb_theme_ini.unlink()
+        except Exception:
+            pass
+
     # Write GTK 3 & 4 settings.ini
     for ini_path in [
         home / ".config/gtk-3.0/settings.ini",
         home / ".config/gtk-4.0/settings.ini",
         home / ".config/profiles/noctalia/gtk-3.0/settings.ini"
     ]:
-        if ini_path.exists():
-            try:
+        try:
+            ini_path.parent.mkdir(parents=True, exist_ok=True)
+            if ini_path.exists():
                 content = ini_path.read_text()
                 if "gtk-theme-name=" in content:
                     content = re.sub(r'gtk-theme-name=.*', f'gtk-theme-name={matched_gtk_theme}', content)
@@ -379,8 +397,18 @@ white = '{text_muted}'
                 if "gtk-font-name=" in content and "Masaram" in content:
                     content = re.sub(r'gtk-font-name=.*', 'gtk-font-name=Noto Sans 10', content)
                 ini_path.write_text(content)
-            except Exception as e:
-                print(f"Error updating {ini_path}: {e}")
+            else:
+                ini_content = f"""[Settings]
+gtk-theme-name={matched_gtk_theme}
+gtk-icon-theme-name={matched_icon_theme}
+gtk-font-name=Noto Sans 10
+gtk-cursor-theme-name=Bibata-Modern-Ice
+gtk-cursor-theme-size=24
+gtk-application-prefer-dark-theme=1
+"""
+                ini_path.write_text(ini_content)
+        except Exception as e:
+            print(f"Error updating {ini_path}: {e}")
 
     # Update GTK 2 (~/.gtkrc-2.0)
     gtk2_file = home / ".gtkrc-2.0"
@@ -547,7 +575,7 @@ white = '{text_muted}'
 
     --headerbar-bg-color: {gtk_sidebar};
     --headerbar-fg-color: {text_primary};
-    --headerbar-backdrop-color: @window_bg_color;
+    --headerbar-backdrop-color: {gtk_bg};
 
     --popover-bg-color: {gtk_sidebar};
     --popover-fg-color: {text_primary};
@@ -560,8 +588,8 @@ white = '{text_muted}'
 
     --sidebar-bg-color: {gtk_sidebar};
     --sidebar-fg-color: {text_primary};
-    --sidebar-backdrop-color: @window_bg_color;
-    --sidebar-border-color: @window_bg_color;
+    --sidebar-backdrop-color: {gtk_bg};
+    --sidebar-border-color: {gtk_bg};
 
     --warning-bg-color: {peach};
     --warning-fg-color: {peach_fg};
@@ -596,6 +624,101 @@ headerbar {{
             css_target.write_text(gtk4_css_content)
         except Exception as e:
             print(f"Error writing GTK 4 CSS to {css_target}: {e}")
+
+    # Maintain clean wallbash GTK 4 template so wallbash never reverts to broken 7013-line stylesheet
+    dcol_file = home / ".local/share/wallbash/theme/gtk/gtk4.dcol"
+    if dcol_file.exists():
+        try:
+            dcol_txt = dcol_file.read_text()
+            if "-gtk-icontheme" in dcol_txt or len(dcol_txt.splitlines()) > 500:
+                dcol_file.write_text("""${themesDir}/Wallbash-Gtk/gtk-4.0/gtk.css|cp ${themesDir}/Wallbash-Gtk/gtk-4.0/gtk.css ${themesDir}/Wallbash-Gtk/gtk-4.0/gtk-dark.css
+/* QuickIsland & Wallbash GTK 4 / Libadwaita Theme */
+
+@define-color accent_color #<wallbash_4xa8>;
+@define-color accent_bg_color #<wallbash_4xa8>;
+@define-color accent_fg_color <wallbash_txt4_rgba(0.9)>;
+
+@define-color destructive_bg_color #F28B82;
+@define-color destructive_fg_color #ffffff;
+@define-color error_bg_color #F28B82;
+@define-color error_fg_color #ffffff;
+
+@define-color window_bg_color #<wallbash_pry1>;
+@define-color window_fg_color #<wallbash_4xa9>;
+@define-color view_bg_color #<wallbash_pry1>;
+@define-color view_fg_color #<wallbash_4xa9>;
+@define-color headerbar_bg_color #<wallbash_1xa1>;
+@define-color headerbar_fg_color #<wallbash_4xa9>;
+@define-color headerbar_backdrop_color @window_bg_color;
+@define-color card_bg_color #<wallbash_1xa1>;
+@define-color card_fg_color #<wallbash_4xa9>;
+@define-color popover_bg_color #<wallbash_1xa1>;
+@define-color popover_fg_color #<wallbash_4xa9>;
+@define-color dialog_bg_color #<wallbash_pry1>;
+@define-color dialog_fg_color #<wallbash_4xa9>;
+
+@define-color sidebar_bg_color #<wallbash_1xa1>;
+@define-color sidebar_fg_color #<wallbash_4xa9>;
+@define-color sidebar_backdrop_color @window_bg_color;
+@define-color sidebar_border_color @window_bg_color;
+
+@define-color secondary_sidebar_bg_color #<wallbash_pry1>;
+@define-color secondary_sidebar_fg_color #<wallbash_4xa9>;
+
+@define-color warning_bg_color #FDD633;
+@define-color warning_fg_color #11111b;
+@define-color success_bg_color #81C995;
+@define-color success_fg_color #11111b;
+
+/* Libadwaita CSS Variables */
+:root {
+    --accent-color: #<wallbash_4xa8>;
+    --accent-bg-color: #<wallbash_4xa8>;
+    --accent-fg-color: <wallbash_txt4_rgba(0.9)>;
+
+    --window-bg-color: #<wallbash_pry1>;
+    --window-fg-color: #<wallbash_4xa9>;
+
+    --view-bg-color: #<wallbash_pry1>;
+    --view-fg-color: #<wallbash_4xa9>;
+
+    --headerbar-bg-color: #<wallbash_1xa1>;
+    --headerbar-fg-color: #<wallbash_4xa9>;
+    --headerbar-backdrop-color: #<wallbash_pry1>;
+
+    --popover-bg-color: #<wallbash_1xa1>;
+    --popover-fg-color: #<wallbash_4xa9>;
+
+    --card-bg-color: #<wallbash_1xa1>;
+    --card-fg-color: #<wallbash_4xa9>;
+
+    --dialog-bg-color: #<wallbash_pry1>;
+    --dialog-fg-color: #<wallbash_4xa9>;
+
+    --sidebar-bg-color: #<wallbash_1xa1>;
+    --sidebar-fg-color: #<wallbash_4xa9>;
+    --sidebar-backdrop-color: #<wallbash_pry1>;
+    --sidebar-border-color: #<wallbash_pry1>;
+}
+
+/* Safe container background rules */
+window.background {
+    background-color: #<wallbash_pry1>;
+    color: #<wallbash_4xa9>;
+}
+
+.navigation-sidebar {
+    background-color: #<wallbash_1xa1>;
+    color: #<wallbash_4xa9>;
+}
+
+headerbar {
+    background-color: #<wallbash_1xa1>;
+    color: #<wallbash_4xa9>;
+}
+""")
+        except Exception:
+            pass
 
     # ---------------------------------------------------------
     # 5. Rofi Application Launcher
