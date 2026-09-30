@@ -381,17 +381,17 @@ ShellRoot {
     ]
 
     function syncCurrentThemeToSystem(themeName, explicitColors) {
-        var cAccent = (explicitColors && explicitColors.accent) ? explicitColors.accent : shell.accent.toString();
-        var cSurface = (explicitColors && explicitColors.surface) ? explicitColors.surface : shell._baseSurface.toString();
-        var cSurfaceAlt = (explicitColors && explicitColors.surfaceAlt) ? explicitColors.surfaceAlt : shell._baseSurfaceAlt.toString();
-        var cSurfaceBright = (explicitColors && explicitColors.surfaceBright) ? explicitColors.surfaceBright : shell._baseSurfaceBright.toString();
-        var cTextPrimary = (explicitColors && explicitColors.textPrimary) ? explicitColors.textPrimary : shell.textPrimary.toString();
-        var cTextSecondary = (explicitColors && explicitColors.textSecondary) ? explicitColors.textSecondary : shell.textSecondary.toString();
-        var cTextMuted = (explicitColors && explicitColors.textMuted) ? explicitColors.textMuted : shell.textMuted.toString();
-        var cRed = (explicitColors && explicitColors.red) ? explicitColors.red : shell.red.toString();
-        var cGreen = (explicitColors && explicitColors.green) ? explicitColors.green : shell.green.toString();
-        var cPeach = (explicitColors && explicitColors.peach) ? explicitColors.peach : shell.peach.toString();
-        var cBlue = (explicitColors && explicitColors.blue) ? explicitColors.blue : shell.blue.toString();
+        var cAccent = (explicitColors && explicitColors.accent) ? explicitColors.accent : (shell.themeMode === "wallpaper" ? shell.wpAccent.toString() : shell.customAccent.toString());
+        var cSurface = (explicitColors && explicitColors.surface) ? explicitColors.surface : (shell.themeMode === "wallpaper" ? shell.wpSurface.toString() : shell.customSurface.toString());
+        var cSurfaceAlt = (explicitColors && explicitColors.surfaceAlt) ? explicitColors.surfaceAlt : (shell.themeMode === "wallpaper" ? shell.wpSurfaceAlt.toString() : shell.customSurfaceAlt.toString());
+        var cSurfaceBright = (explicitColors && explicitColors.surfaceBright) ? explicitColors.surfaceBright : (shell.themeMode === "wallpaper" ? shell.wpSurfaceBright.toString() : shell.customSurfaceBright.toString());
+        var cTextPrimary = (explicitColors && explicitColors.textPrimary) ? explicitColors.textPrimary : (shell.themeMode === "wallpaper" ? shell.wpTextPrimary.toString() : shell.customTextPrimary.toString());
+        var cTextSecondary = (explicitColors && explicitColors.textSecondary) ? explicitColors.textSecondary : (shell.themeMode === "wallpaper" ? shell.wpTextSecondary.toString() : shell.customTextSecondary.toString());
+        var cTextMuted = (explicitColors && explicitColors.textMuted) ? explicitColors.textMuted : (shell.themeMode === "wallpaper" ? shell.wpTextMuted.toString() : shell.customTextMuted.toString());
+        var cRed = (explicitColors && explicitColors.red) ? explicitColors.red : (shell.themeMode === "wallpaper" ? shell.wpRed.toString() : shell.customRed.toString());
+        var cGreen = (explicitColors && explicitColors.green) ? explicitColors.green : (shell.themeMode === "wallpaper" ? shell.wpGreen.toString() : shell.customGreen.toString());
+        var cPeach = (explicitColors && explicitColors.peach) ? explicitColors.peach : (shell.themeMode === "wallpaper" ? shell.wpPeach.toString() : shell.customPeach.toString());
+        var cBlue = (explicitColors && explicitColors.blue) ? explicitColors.blue : (shell.themeMode === "wallpaper" ? shell.wpBlue.toString() : shell.customBlue.toString());
 
         var wpTitle = "active";
         if (shell.lastExtractedWallpaperPath) {
@@ -463,6 +463,7 @@ ShellRoot {
         customBlue = p.blue || p.dot4 || p.accent;
         activeColorHex = shell[activeColorKey].toString();
         saveCustomPalette();
+        debounceSystemThemeTimer.stop();
 
         syncCurrentThemeToSystem(p.name, p);
     }

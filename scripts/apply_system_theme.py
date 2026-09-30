@@ -29,6 +29,31 @@ def get_luminance(hex_str):
     r, g, b = hex_to_rgb(hex_str)
     return (0.299 * r + 0.587 * g + 0.114 * b) / 255.0
 
+def get_closest_gnome_accent(hex_color):
+    gnome_accents = {
+        'blue': (53, 132, 228),
+        'teal': (33, 144, 164),
+        'green': (58, 148, 74),
+        'yellow': (200, 136, 0),
+        'orange': (237, 91, 0),
+        'red': (224, 27, 36),
+        'pink': (213, 97, 153),
+        'purple': (145, 65, 172),
+        'slate': (108, 120, 134)
+    }
+    try:
+        r, g, b = hex_to_rgb(hex_color)
+        best_name = 'blue'
+        min_dist = float('inf')
+        for name, (gr, gg, gb) in gnome_accents.items():
+            dist = (r - gr) ** 2 + (g - gg) ** 2 + (b - gb) ** 2
+            if dist < min_dist:
+                min_dist = dist
+                best_name = name
+        return best_name
+    except Exception:
+        return 'blue'
+
 def main():
     if len(sys.argv) < 2:
         print("Usage: apply_system_theme.py '<theme_json>'")
@@ -328,35 +353,6 @@ white = '{text_muted}'
             if fb in installed_icons:
                 matched_icon_theme = fb
                 break
-
-    # Set gsettings with live-reload toggle
-    try:
-        current_gtk = ""
-        try:
-            current_gtk = subprocess.check_output(
-                ["gsettings", "get", "org.gnome.desktop.interface", "gtk-theme"],
-                text=True, stderr=subprocess.DEVNULL
-            ).strip().strip("'")
-        except Exception:
-            pass
-
-        subprocess.run(["gsettings", "set", "org.gnome.desktop.interface", "color-scheme", "prefer-dark"], stderr=subprocess.DEVNULL)
-        
-        # If theme name is identical, toggle briefly to trigger GSettings change signal for running apps
-        if current_gtk == matched_gtk_theme:
-            temp_theme = "Adwaita" if matched_gtk_theme != "Adwaita" else "Default"
-            subprocess.run(["gsettings", "set", "org.gnome.desktop.interface", "gtk-theme", temp_theme], stderr=subprocess.DEVNULL)
-        
-        subprocess.run(["gsettings", "set", "org.gnome.desktop.interface", "gtk-theme", matched_gtk_theme], stderr=subprocess.DEVNULL)
-        subprocess.run(["gsettings", "set", "org.gnome.desktop.interface", "icon-theme", matched_icon_theme], stderr=subprocess.DEVNULL)
-
-        # Clear any hardcoded GTK_THEME environment variables from active systemd session
-        try:
-            subprocess.run(["systemctl", "--user", "unset-environment", "GTK_THEME"], stderr=subprocess.DEVNULL)
-        except Exception:
-            pass
-    except Exception as e:
-        print(f"Error setting gsettings: {e}")
 
     # Ensure ~/.config/gtk-4.0 is a real directory, not a symlink to Wallbash-Gtk
     gtk4_config_dir = home / ".config/gtk-4.0"
@@ -694,6 +690,41 @@ window.background {
 """)
         except Exception:
             pass
+
+    # ---------------------------------------------------------
+    # Apply GSettings & trigger instantaneous live-reload for GTK / Libadwaita apps
+    # (Must run AFTER writing all stylesheets and settings so apps see new colors immediately)
+    # ---------------------------------------------------------
+    try:
+        current_gtk = ""
+        try:
+            current_gtk = subprocess.check_output(
+                ["gsettings", "get", "org.gnome.desktop.interface", "gtk-theme"],
+                text=True, stderr=subprocess.DEVNULL
+            ).strip().strip("'")
+        except Exception:
+            pass
+
+        closest_accent = get_closest_gnome_accent(accent)
+        subprocess.run(["gsettings", "set", "org.gnome.desktop.interface", "color-scheme", "prefer-dark"], stderr=subprocess.DEVNULL)
+        subprocess.run(["gsettings", "set", "org.gnome.desktop.interface", "accent-color", closest_accent], stderr=subprocess.DEVNULL)
+
+        # Toggle gtk-theme to immediately trigger GSettings change signal for running GTK 3 & 4 apps
+        temp_theme = "Adwaita" if matched_gtk_theme != "Adwaita" else "Default"
+        subprocess.run(["gsettings", "set", "org.gnome.desktop.interface", "gtk-theme", temp_theme], stderr=subprocess.DEVNULL)
+        subprocess.run(["gsettings", "set", "org.gnome.desktop.interface", "gtk-theme", matched_gtk_theme], stderr=subprocess.DEVNULL)
+        subprocess.run(["gsettings", "set", "org.gnome.desktop.interface", "icon-theme", matched_icon_theme], stderr=subprocess.DEVNULL)
+
+        # Reload xsettingsd so GTK 2/3 apps update instantly without polling
+        subprocess.run(["killall", "-HUP", "xsettingsd"], stderr=subprocess.DEVNULL)
+
+        # Clear any hardcoded GTK_THEME environment variables from active systemd session
+        try:
+            subprocess.run(["systemctl", "--user", "unset-environment", "GTK_THEME"], stderr=subprocess.DEVNULL)
+        except Exception:
+            pass
+    except Exception as e:
+        print(f"Error setting gsettings: {e}")
 
     # ---------------------------------------------------------
     # 5. Rofi Application Launcher
