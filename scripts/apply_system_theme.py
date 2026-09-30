@@ -968,16 +968,14 @@ theme[process_end]="{red}"
     #     NEVER touched — VS Code's own theme handles those.
     # ---------------------------------------------------------
     BLACK = "#0d0d0d"
-    # Main editor area — 8% accent in deep black
+    # Main editor area & workspace — 8% accent in deep black
     vsc_editor_bg   = blend(BLACK, accent, 0.08)
     # Sidebar slightly lighter — 10% accent
     vsc_sidebar_bg  = blend(BLACK, accent, 0.10)
-    # Tab bar / title area — between the two
-    vsc_tabs_bg     = blend(BLACK, accent, 0.09)
-    # Active tab slightly brighter
-    vsc_tab_active  = blend(BLACK, accent, 0.13)
-    # Inactive tab, indistinguishable from tabs bar
-    vsc_tab_inactive = vsc_tabs_bg
+    # Tab bar / title area — exact same color as workspace
+    vsc_tabs_bg     = vsc_editor_bg
+    vsc_tab_active  = vsc_editor_bg
+    vsc_tab_inactive = vsc_editor_bg
     # Editor group empty state
     vsc_group_bg    = vsc_editor_bg
     # Input / dropdown backgrounds
@@ -1004,11 +1002,15 @@ theme[process_end]="{red}"
         "sideBar.background":                        vsc_sidebar_bg,
         "sideBarSectionHeader.background":           vsc_sidebar_bg,
         "activityBar.background":                    vsc_sidebar_bg,
-        "editorGroupHeader.tabsBackground":          vsc_tabs_bg,
-        "editorGroupHeader.noTabsBackground":        vsc_tabs_bg,
-        "tab.activeBackground":                      vsc_tab_active,
-        "tab.inactiveBackground":                    vsc_tab_inactive,
-        "tab.unfocusedActiveBackground":             vsc_tab_active,
+        # Tab bar & tabs match workspace exactly
+        "editorGroupHeader.tabsBackground":          vsc_editor_bg,
+        "editorGroupHeader.noTabsBackground":        vsc_editor_bg,
+        "tab.activeBackground":                      vsc_editor_bg,
+        "tab.inactiveBackground":                    vsc_editor_bg,
+        "tab.unfocusedActiveBackground":             vsc_editor_bg,
+        "tab.unfocusedInactiveBackground":           vsc_editor_bg,
+        "tab.hoverBackground":                       vsc_editor_bg,
+        "tab.unfocusedHoverBackground":              vsc_editor_bg,
         # Filename accent — active tab text uses the accent color
         "tab.activeForeground":                      accent,
         "tab.unfocusedActiveForeground":             blend(accent, text_secondary, 0.4),
