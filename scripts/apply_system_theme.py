@@ -732,7 +732,8 @@ window.background {
 
     # Synchronize Nautilus (GTK 4 / Libadwaita) live
     try:
-        nautilus_pids = subprocess.check_output(["pgrep", "nautilus"], text=True, stderr=subprocess.DEVNULL).strip().split()
+        proc = subprocess.run(["pgrep", "nautilus"], capture_output=True, text=True)
+        nautilus_pids = proc.stdout.strip().split() if proc.returncode == 0 else []
         if nautilus_pids:
             has_visible_window = False
             launch_path = ""
@@ -981,6 +982,9 @@ theme[process_end]="{red}"
     vsc_group_bg    = vsc_editor_bg
     # Input / dropdown backgrounds
     vsc_input_bg    = blend(BLACK, accent, 0.12)
+    # Popups, tooltips, hover blocks, suggestion boxes, and floating widgets
+    vsc_popup_bg    = blend(BLACK, accent, 0.11)
+    vsc_popup_border = blend(BLACK, accent, 0.22)
     # List hover & selection — dark accent shades replacing dark blue defaults
     vsc_list_hover        = blend(BLACK, accent, 0.16)
     vsc_list_active_sel   = blend(BLACK, accent, 0.24)
@@ -1013,11 +1017,134 @@ theme[process_end]="{red}"
         "panelSectionHeader.background":             vsc_panel_bg,
         "terminal.background":                       vsc_panel_bg,
         "breadcrumb.background":                     vsc_editor_bg,
+        "breadcrumb.foreground":                     text_secondary,
+        "breadcrumb.focusForeground":                accent,
+        "breadcrumb.activeSelectionForeground":       accent,
+        "breadcrumbPicker.background":               vsc_popup_bg,
         "input.background":                          vsc_input_bg,
+        "input.foreground":                          text_primary,
+        "input.border":                              vsc_popup_border,
         "dropdown.background":                       vsc_input_bg,
-        "quickInput.background":                     vsc_sidebar_bg,
+        "dropdown.foreground":                       text_primary,
+        "dropdown.border":                           vsc_popup_border,
+        "dropdown.listBackground":                   vsc_popup_bg,
+        "quickInput.background":                     vsc_popup_bg,
+        "quickInput.foreground":                     text_primary,
+        "quickInputTitle.background":                vsc_popup_bg,
         "quickInputList.focusBackground":            vsc_list_hover,
         "quickInputList.focusForeground":            text_primary,
+        "pickerGroup.border":                        vsc_popup_border,
+        "pickerGroup.foreground":                    accent,
+        "keybindingLabel.background":                vsc_input_bg,
+        "keybindingLabel.foreground":                text_primary,
+        "keybindingLabel.border":                    vsc_popup_border,
+
+        # Popups & Hover Blocks (Replaces dark blue #0F111A defaults)
+        "editorHoverWidget.background":              vsc_popup_bg,
+        "editorHoverWidget.border":                  vsc_popup_border,
+        "editorHoverWidget.foreground":              text_primary,
+        "editorHoverWidget.statusBarBackground":     vsc_popup_bg,
+        "hover.background":                          vsc_popup_bg,
+        "hover.border":                              vsc_popup_border,
+        "hover.foreground":                          text_primary,
+        "tooltip.background":                        vsc_popup_bg,
+        "tooltip.border":                            vsc_popup_border,
+
+        # Suggestion & Autocomplete Widget Popups
+        "editorSuggestWidget.background":            vsc_popup_bg,
+        "editorSuggestWidget.border":                vsc_popup_border,
+        "editorSuggestWidget.foreground":            text_primary,
+        "editorSuggestWidget.highlightForeground":   accent,
+        "editorSuggestWidget.focusHighlightForeground": accent,
+        "editorSuggestWidget.selectedBackground":    vsc_list_active_sel,
+        "editorSuggestWidget.selectedForeground":    text_primary,
+        "editorSuggestWidget.selectedIconForeground": accent,
+
+        # Editor Floating Widgets & Popups (Find/Replace, Markers, Debug)
+        "editorWidget.background":                   vsc_popup_bg,
+        "editorWidget.border":                       vsc_popup_border,
+        "editorWidget.resizeBorder":                 accent,
+        "editorMarkerNavigation.background":         vsc_popup_bg,
+        "debugToolBar.background":                   vsc_popup_bg,
+        "debugToolBar.border":                       vsc_popup_border,
+
+        # Notification Popups & Toasts
+        "notifications.background":                  vsc_popup_bg,
+        "notifications.border":                      vsc_popup_border,
+        "notifications.foreground":                  text_primary,
+        "notificationCenter.border":                 vsc_popup_border,
+        "notificationCenterHeader.background":       vsc_sidebar_bg,
+        "notificationCenterHeader.foreground":       text_primary,
+        "notificationToast.border":                  vsc_popup_border,
+        "notificationLink.foreground":               accent,
+
+        # Context Menus & Popups
+        "menu.background":                           vsc_popup_bg,
+        "menu.border":                               vsc_popup_border,
+        "menu.foreground":                           text_primary,
+        "menu.selectionBackground":                  vsc_list_active_sel,
+        "menu.selectionForeground":                  text_primary,
+        "menu.separatorBackground":                  vsc_popup_border,
+        "menubar.selectionBackground":               vsc_list_active_sel,
+        "menubar.selectionForeground":               text_primary,
+
+        # Peek View Popups (Definition / References)
+        "peekView.border":                           accent,
+        "peekViewEditor.background":                 vsc_editor_bg,
+        "peekViewEditorGutter.background":           vsc_editor_bg,
+        "peekViewTitle.background":                  vsc_sidebar_bg,
+        "peekViewTitleDescription.foreground":       text_secondary,
+        "peekViewTitleLabel.foreground":             text_primary,
+        "peekViewResult.background":                 vsc_sidebar_bg,
+        "peekViewResult.selectionBackground":        vsc_list_active_sel,
+        "peekViewResult.selectionForeground":        text_primary,
+        "peekViewResult.matchHighlightBackground":   accent + "40",
+        "peekViewEditor.matchHighlightBackground":   accent + "40",
+
+        # Buttons (Accent-styled instead of dark blue #717CB450)
+        "button.background":                         accent,
+        "button.foreground":                         vsc_editor_bg,
+        "button.hoverBackground":                    blend(accent, "#ffffff", 0.15),
+        "button.secondaryBackground":                vsc_input_bg,
+        "button.secondaryForeground":                text_primary,
+        "button.secondaryHoverBackground":           vsc_list_hover,
+
+        # Settings Inputs & Controls
+        "settings.dropdownBackground":               vsc_input_bg,
+        "settings.dropdownForeground":               text_primary,
+        "settings.dropdownBorder":                   vsc_popup_border,
+        "settings.numberInputBackground":            vsc_input_bg,
+        "settings.numberInputForeground":            text_primary,
+        "settings.numberInputBorder":                vsc_popup_border,
+        "settings.textInputBackground":              vsc_input_bg,
+        "settings.textInputForeground":              text_primary,
+        "settings.textInputBorder":                  vsc_popup_border,
+        "settings.checkboxBackground":               vsc_input_bg,
+        "settings.checkboxForeground":               accent,
+        "settings.checkboxBorder":                   vsc_popup_border,
+
+        # TitleBar & StatusBar
+        "titleBar.activeBackground":                 vsc_tabs_bg,
+        "titleBar.activeForeground":                 text_primary,
+        "titleBar.inactiveBackground":               vsc_tabs_bg,
+        "titleBar.inactiveForeground":               text_secondary,
+        "titleBar.border":                           "#00000000",
+        "statusBar.background":                      vsc_sidebar_bg,
+        "statusBar.foreground":                      text_secondary,
+        "statusBar.noFolderBackground":              vsc_sidebar_bg,
+        "statusBar.border":                          "#00000000",
+        "statusBarItem.hoverBackground":             vsc_list_hover,
+        "statusBarItem.remoteBackground":            accent,
+        "statusBarItem.remoteForeground":            vsc_editor_bg,
+
+        # Editor Line Numbers & Guides (Neutral & Accent instead of slate blue)
+        "editorLineNumber.foreground":               blend(BLACK, text_secondary, 0.45),
+        "editorLineNumber.activeForeground":         accent,
+        "editorBracketMatch.background":             accent + "25",
+        "editorBracketMatch.border":                 accent + "50",
+        "editorIndentGuide.background":              blend(BLACK, accent, 0.10),
+        "editorIndentGuide.activeBackground":        accent + "45",
+
         # Borders — all transparent to remove separator lines
         "sideBar.border":                            "#00000000",
         "tab.border":                                "#00000000",
@@ -1051,9 +1178,6 @@ theme[process_end]="{red}"
         "editor.inactiveSelectionBackground":        accent + "22",
         "editor.findMatchBackground":                accent + "55",
         "editor.findMatchHighlightBackground":       accent + "33",
-        # Menus & Quick Pick
-        "menu.selectionBackground":                  vsc_list_active_sel,
-        "menu.selectionForeground":                  text_primary,
         # Badges
         "badge.background":                          vsc_list_active_sel,
         "badge.foreground":                          accent,
