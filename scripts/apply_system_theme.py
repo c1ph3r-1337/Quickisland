@@ -706,6 +706,8 @@ window.background {
             pass
 
         closest_accent = get_closest_gnome_accent(accent)
+        # Briefly toggle color-scheme: forces Libadwaita to reload user stylesheets in-memory without closing windows
+        subprocess.run(["gsettings", "set", "org.gnome.desktop.interface", "color-scheme", "default"], stderr=subprocess.DEVNULL)
         subprocess.run(["gsettings", "set", "org.gnome.desktop.interface", "color-scheme", "prefer-dark"], stderr=subprocess.DEVNULL)
         subprocess.run(["gsettings", "set", "org.gnome.desktop.interface", "accent-color", closest_accent], stderr=subprocess.DEVNULL)
 
