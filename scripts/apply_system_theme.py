@@ -350,9 +350,8 @@ white = '{text_muted}'
         subprocess.run(["gsettings", "set", "org.gnome.desktop.interface", "gtk-theme", matched_gtk_theme], stderr=subprocess.DEVNULL)
         subprocess.run(["gsettings", "set", "org.gnome.desktop.interface", "icon-theme", matched_icon_theme], stderr=subprocess.DEVNULL)
 
-        # Clear any hardcoded GTK_THEME environment variables from active Hyprland & systemd sessions
+        # Clear any hardcoded GTK_THEME environment variables from active systemd session
         try:
-            subprocess.run(["hyprctl", "keyword", "env", "GTK_THEME,"], stderr=subprocess.DEVNULL)
             subprocess.run(["systemctl", "--user", "unset-environment", "GTK_THEME"], stderr=subprocess.DEVNULL)
         except Exception:
             pass
@@ -596,6 +595,10 @@ gtk-application-prefer-dark-theme=1
     --success-bg-color: {green};
     --success-fg-color: {green_fg};
 }}
+
+window.background {{
+    background-color: @window_bg_color;
+}}
 """
     for css_target in [
         home / ".config/gtk-4.0/gtk.css",
@@ -683,6 +686,10 @@ gtk-application-prefer-dark-theme=1
     --sidebar-fg-color: #<wallbash_4xa9>;
     --sidebar-backdrop-color: #<wallbash_pry1>;
     --sidebar-border-color: #<wallbash_pry1>;
+}
+
+window.background {
+    background-color: @window_bg_color;
 }
 """)
         except Exception:
