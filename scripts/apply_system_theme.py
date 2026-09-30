@@ -4,6 +4,7 @@ import json
 import os
 import re
 import subprocess
+import time
 from pathlib import Path
 
 def hex_to_rgb(hex_str):
@@ -708,6 +709,7 @@ window.background {
         closest_accent = get_closest_gnome_accent(accent)
         # Briefly toggle color-scheme: forces Libadwaita to reload user stylesheets in-memory without closing windows
         subprocess.run(["gsettings", "set", "org.gnome.desktop.interface", "color-scheme", "default"], stderr=subprocess.DEVNULL)
+        time.sleep(0.05)
         subprocess.run(["gsettings", "set", "org.gnome.desktop.interface", "color-scheme", "prefer-dark"], stderr=subprocess.DEVNULL)
         subprocess.run(["gsettings", "set", "org.gnome.desktop.interface", "accent-color", closest_accent], stderr=subprocess.DEVNULL)
 
