@@ -9114,7 +9114,6 @@ function getCurrentThemeStateKey() {
 
             property var layoutData: null
             property bool jumpPending: false
-            property int selectedCol: 0
             property int selectedRow: 0
 
             // ── Processes ──────────────────────────────────────────────
@@ -9126,10 +9125,8 @@ function getCurrentThemeStateKey() {
                         try {
                             var data = JSON.parse(text);
                             overviewOverlayWindow.layoutData = data;
-                            // Set selected to current cell
-                            if (data && data.grid) {
-                                overviewOverlayWindow.selectedCol = data.grid.current_vx - data.grid.min_vx;
-                                overviewOverlayWindow.selectedRow = data.grid.max_vy - data.grid.current_vy;
+                            if (data && data.active_id) {
+                                overviewOverlayWindow.selectedRow = Math.max(0, data.active_id - 1);
                             }
                         } catch(e) {
                             overviewOverlayWindow.layoutData = null;
@@ -9140,7 +9137,7 @@ function getCurrentThemeStateKey() {
 
             Process {
                 id: overviewEnterProc
-                command: ["python3", Qt.resolvedUrl("scripts/overview_manager.py").toString().replace("file://", ""), "enter"]
+                command: ["hyprctl", "dispatch", "spatialoverview", "enter"]
                 stdout: StdioCollector {
                     onStreamFinished: {
                         overviewLayoutProc.running = true;
@@ -9150,14 +9147,13 @@ function getCurrentThemeStateKey() {
 
             Process {
                 id: overviewExitProc
-                command: ["python3", Qt.resolvedUrl("scripts/overview_manager.py").toString().replace("file://", ""), "exit"]
+                command: ["hyprctl", "dispatch", "spatialoverview", "exit"]
             }
 
             Process {
                 id: overviewJumpProc
-                property int targetVx: 0
-                property int targetVy: 0
-                command: ["python3", Qt.resolvedUrl("scripts/overview_manager.py").toString().replace("file://", ""), "jump", "" + targetVx, "" + targetVy]
+                property int targetRow: 0
+                command: ["hyprctl", "dispatch", "canvas:jump", "0", "" + targetRow]
             }
 
             // ── Lifecycle ──────────────────────────────────────────────
@@ -9172,7 +9168,6 @@ function getCurrentThemeStateKey() {
                             overviewExitProc.running = true;
                         }
                         overviewOverlayWindow.jumpPending = false;
-                        // Defer clearing layout so exit animation plays
                         overviewClearTimer.restart();
                     }
                 }
@@ -9180,7 +9175,7 @@ function getCurrentThemeStateKey() {
 
             Timer {
                 id: overviewClearTimer
-                interval: 300
+                interval: 250
                 onTriggered: {
                     if (!shell.overviewActive) {
                         overviewOverlayWindow.layoutData = null;
@@ -9195,41 +9190,30 @@ function getCurrentThemeStateKey() {
                 focus: shell.overviewActive
                 visible: shell.overviewActive || overviewDimBg.opacity > 0
 
-                // Smooth fade/scale
                 opacity: shell.overviewActive ? 1.0 : 0.0
-                scale: shell.overviewActive ? 1.0 : 0.95
-                Behavior on opacity { NumberAnimation { duration: 220; easing.type: Easing.OutQuad } }
-                Behavior on scale { NumberAnimation { duration: 260; easing.bezierCurve: [0.22, 1.0, 0.36, 1.0] } }
+                scale: shell.overviewActive ? 1.0 : 0.96
+                Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutQuad } }
+                Behavior on scale { NumberAnimation { duration: 220; easing.bezierCurve: [0.22, 1.0, 0.36, 1.0] } }
 
                 // ── Keyboard Navigation ────────────────────────────────
                 Keys.onPressed: (event) => {
                     var d = overviewOverlayWindow.layoutData;
-                    if (!d || !d.grid) return;
-                    var cols = d.grid.cols;
-                    var rows = d.grid.rows;
+                    if (!d || !d.cards) return;
+                    var rowCount = d.cards.length;
 
                     if (event.key === Qt.Key_Escape || event.key === Qt.Key_Space) {
                         shell.overviewActive = false;
-                        event.accepted = true;
-                    } else if (event.key === Qt.Key_Left || event.key === Qt.Key_H) {
-                        overviewOverlayWindow.selectedCol = Math.max(0, overviewOverlayWindow.selectedCol - 1);
-                        event.accepted = true;
-                    } else if (event.key === Qt.Key_Right || event.key === Qt.Key_L) {
-                        overviewOverlayWindow.selectedCol = Math.min(cols - 1, overviewOverlayWindow.selectedCol + 1);
                         event.accepted = true;
                     } else if (event.key === Qt.Key_Up || event.key === Qt.Key_K) {
                         overviewOverlayWindow.selectedRow = Math.max(0, overviewOverlayWindow.selectedRow - 1);
                         event.accepted = true;
                     } else if (event.key === Qt.Key_Down || event.key === Qt.Key_J) {
-                        overviewOverlayWindow.selectedRow = Math.min(rows - 1, overviewOverlayWindow.selectedRow + 1);
+                        overviewOverlayWindow.selectedRow = Math.min(rowCount - 1, overviewOverlayWindow.selectedRow + 1);
                         event.accepted = true;
                     } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-                        var jumpVx = d.grid.min_vx + overviewOverlayWindow.selectedCol;
-                        var jumpVy = d.grid.max_vy - overviewOverlayWindow.selectedRow;
                         overviewOverlayWindow.jumpPending = true;
                         shell.overviewActive = false;
-                        overviewJumpProc.targetVx = jumpVx;
-                        overviewJumpProc.targetVy = jumpVy;
+                        overviewJumpProc.targetRow = overviewOverlayWindow.selectedRow;
                         overviewJumpProc.running = true;
                         event.accepted = true;
                     }
@@ -9239,9 +9223,9 @@ function getCurrentThemeStateKey() {
                 Rectangle {
                     id: overviewDimBg
                     anchors.fill: parent
-                    color: "#CC111111"
+                    color: "#30000000"
                     opacity: shell.overviewActive ? 1.0 : 0.0
-                    Behavior on opacity { NumberAnimation { duration: 200 } }
+                    Behavior on opacity { NumberAnimation { duration: 180 } }
 
                     MouseArea {
                         anchors.fill: parent
@@ -9249,247 +9233,71 @@ function getCurrentThemeStateKey() {
                     }
                 }
 
-                // ── Grid Container ─────────────────────────────────────
+                // ── Cards Overlay ──────────────────────────────────────
                 Item {
-                    id: overviewGridContainer
+                    id: overviewCardsContainer
                     anchors.fill: parent
                     visible: overviewOverlayWindow.layoutData !== null
 
-                    property var gridData: overviewOverlayWindow.layoutData ? overviewOverlayWindow.layoutData.grid : null
-                    property var monData: overviewOverlayWindow.layoutData ? overviewOverlayWindow.layoutData.monitor : null
-                    property var cellsData: overviewOverlayWindow.layoutData ? overviewOverlayWindow.layoutData.cells : []
-
-                    // Layout constants
-                    property int gridPadding: 60
-                    property int gridTopPadding: 80
-                    property int cellGap: 16
-                    property int cellRadius: 12
-
-                    // Computed cell dimensions
-                    property int cellW: gridData ? Math.floor((parent.width - 2 * gridPadding - (gridData.cols - 1) * cellGap) / gridData.cols) : 300
-                    property int cellH: gridData ? Math.floor((parent.height - gridTopPadding - gridPadding - (gridData.rows - 1) * cellGap) / gridData.rows) : 200
-
-                    // ── Cell Repeater ──────────────────────────────────
                     Repeater {
-                        model: overviewGridContainer.cellsData.length || 0
+                        model: overviewOverlayWindow.layoutData ? overviewOverlayWindow.layoutData.cards : []
 
                         Item {
-                            id: cellItem
-                            property var cellInfo: overviewGridContainer.cellsData[index] || {}
-                            property int col: cellInfo.vx !== undefined && overviewGridContainer.gridData
-                                              ? cellInfo.vx - overviewGridContainer.gridData.min_vx : 0
-                            property int row: cellInfo.vy !== undefined && overviewGridContainer.gridData
-                                              ? overviewGridContainer.gridData.max_vy - cellInfo.vy : 0
-                            property bool isCurrent: cellInfo.is_current || false
-                            property bool isSelected: col === overviewOverlayWindow.selectedCol && row === overviewOverlayWindow.selectedRow
-                            property bool hasScreenshot: cellInfo.screenshot !== null && cellInfo.screenshot !== undefined
-                            property int windowCount: cellInfo.window_count || 0
+                            id: cardItem
+                            property var card: modelData
+                            property bool isSelected: card.row === overviewOverlayWindow.selectedRow
+                            property bool isActive: card.is_active
 
-                            x: overviewGridContainer.gridPadding + col * (overviewGridContainer.cellW + overviewGridContainer.cellGap)
-                            y: overviewGridContainer.gridTopPadding + row * (overviewGridContainer.cellH + overviewGridContainer.cellGap)
-                            width: overviewGridContainer.cellW
-                            height: overviewGridContainer.cellH
+                            x: card.x
+                            y: card.y
+                            width: card.w
+                            height: card.h
 
-                            // Smooth entrance animation
-                            opacity: shell.overviewActive ? 1.0 : 0.0
-                            scale: shell.overviewActive ? 1.0 : 0.9
-                            Behavior on opacity { NumberAnimation { duration: 250; easing.type: Easing.OutQuad } }
-                            Behavior on scale { NumberAnimation { duration: 300; easing.bezierCurve: [0.22, 1.0, 0.36, 1.0] } }
-
-                            // ── Cell Background ────────────────────────
+                            // Card frame highlighting the live workspace
                             Rectangle {
-                                id: cellBg
                                 anchors.fill: parent
-                                radius: overviewGridContainer.cellRadius
-                                color: "#1A1A1A"
-                                border.color: cellItem.isSelected ? shell.accent
-                                            : cellItem.isCurrent ? Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.5)
-                                            : cellMouse.containsMouse ? "#44FFFFFF"
-                                            : "#22FFFFFF"
-                                border.width: cellItem.isSelected ? 3 : (cellItem.isCurrent ? 2 : 1)
+                                color: cardMouse.containsMouse ? "#18FFFFFF" : "transparent"
+                                radius: 14
+                                border.width: cardItem.isSelected ? 3 : (cardItem.isActive ? 2 : 1)
+                                border.color: cardItem.isSelected ? shell.accent : (cardItem.isActive ? Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.6) : (cardMouse.containsMouse ? "#66FFFFFF" : "#33FFFFFF"))
 
                                 Behavior on border.color { ColorAnimation { duration: 150 } }
-                                Behavior on border.width { NumberAnimation { duration: 100 } }
-
-                                // Scale up slightly when selected
-                                transform: Scale {
-                                    origin.x: cellBg.width / 2
-                                    origin.y: cellBg.height / 2
-                                    xScale: cellItem.isSelected ? 1.03 : 1.0
-                                    yScale: cellItem.isSelected ? 1.03 : 1.0
-                                    Behavior on xScale { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } }
-                                    Behavior on yScale { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } }
-                                }
+                                Behavior on color { ColorAnimation { duration: 150 } }
                             }
 
-                            // ── Screenshot Thumbnail ───────────────────
-                            Image {
-                                id: cellScreenshot
-                                anchors.fill: parent
-                                anchors.margins: 2
-                                source: cellItem.hasScreenshot ? "file://" + cellInfo.screenshot : ""
-                                visible: cellItem.hasScreenshot
-                                fillMode: Image.PreserveAspectCrop
-                                smooth: true
-                                asynchronous: true
-                                cache: false  // Don't cache since paths get reused
-
-                                // Rounded corners via layer
-                                layer.enabled: true
-                                layer.effect: Item {
-                                    // OpacityMask with rounded rectangle
-                                }
-
-                                // Clip to rounded rect
-                                Rectangle {
-                                    id: screenshotMask
-                                    anchors.fill: parent
-                                    radius: overviewGridContainer.cellRadius - 2
-                                    visible: false
-                                }
-                            }
-
-                            // Rounded clip rectangle
-                            Rectangle {
-                                anchors.fill: parent
-                                anchors.margins: 2
-                                radius: overviewGridContainer.cellRadius - 2
-                                color: "transparent"
-                                clip: true
-
-                                Image {
-                                    anchors.fill: parent
-                                    source: cellItem.hasScreenshot ? "file://" + cellInfo.screenshot : ""
-                                    visible: cellItem.hasScreenshot
-                                    fillMode: Image.PreserveAspectCrop
-                                    smooth: true
-                                    asynchronous: true
-                                    cache: false
-                                }
-
-                                // Empty cell fallback
-                                Column {
-                                    anchors.centerIn: parent
-                                    visible: !cellItem.hasScreenshot
-                                    spacing: 8
-
-                                    Text {
-                                        anchors.horizontalCenter: parent.horizontalCenter
-                                        text: cellItem.windowCount > 0 ? "󰣇" : "󰝦"
-                                        font.family: "Material Design Icons"
-                                        font.pixelSize: 32
-                                        color: "#55FFFFFF"
-                                    }
-                                    Text {
-                                        anchors.horizontalCenter: parent.horizontalCenter
-                                        text: cellItem.windowCount > 0 ? cellItem.windowCount + " window" + (cellItem.windowCount > 1 ? "s" : "") : "Empty"
-                                        font.pixelSize: 11
-                                        color: "#44FFFFFF"
-                                    }
-                                }
-                            }
-
-                            // Hide the first (layer-clipped) Image - use the one inside the clip rect
-                            Component.onCompleted: { cellScreenshot.visible = false; }
-
-                            // ── Coordinate Label ───────────────────────
-                            Rectangle {
-                                anchors.bottom: parent.bottom
-                                anchors.left: parent.left
-                                anchors.margins: 6
-                                width: coordLabel.implicitWidth + 12
-                                height: coordLabel.implicitHeight + 6
-                                radius: 6
-                                color: cellItem.isCurrent ? shell.accent : "#66000000"
-
-                                Text {
-                                    id: coordLabel
-                                    anchors.centerIn: parent
-                                    text: cellInfo.vx + "," + cellInfo.vy
-                                    font.pixelSize: 10
-                                    font.bold: cellItem.isCurrent
-                                    color: cellItem.isCurrent ? "#FFFFFF" : "#AAFFFFFF"
-                                }
-                            }
-
-                            // ── Window Count Badge ─────────────────────
+                            // Workspace tag badge at top-left
                             Rectangle {
                                 anchors.top: parent.top
-                                anchors.right: parent.right
-                                anchors.margins: 6
-                                width: countLabel.implicitWidth + 12
-                                height: countLabel.implicitHeight + 6
+                                anchors.left: parent.left
+                                anchors.margins: 10
+                                height: 24
+                                width: wsTagText.implicitWidth + 18
                                 radius: 6
-                                color: "#66000000"
-                                visible: cellItem.windowCount > 0
+                                color: cardItem.isActive ? shell.accent : (cardItem.isSelected ? Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.85) : "#80111111")
+
+                                Behavior on color { ColorAnimation { duration: 150 } }
 
                                 Text {
-                                    id: countLabel
+                                    id: wsTagText
                                     anchors.centerIn: parent
-                                    text: cellItem.windowCount + " 󰖲"
-                                    font.pixelSize: 10
-                                    font.family: "Material Design Icons"
-                                    color: "#CCFFFFFF"
+                                    text: "Workspace " + card.id
+                                    font.pixelSize: 11
+                                    font.bold: cardItem.isActive || cardItem.isSelected
+                                    color: "#FFFFFF"
                                 }
                             }
 
-                            // ── Window Icons Row ───────────────────────
-                            Row {
-                                anchors.bottom: parent.bottom
-                                anchors.right: parent.right
-                                anchors.margins: 8
-                                spacing: 4
-                                visible: cellItem.windowCount > 0
-
-                                Repeater {
-                                    model: Math.min(cellInfo.windows ? cellInfo.windows.length : 0, 5)
-
-                                    Rectangle {
-                                        width: 20
-                                        height: 20
-                                        radius: 4
-                                        color: "#44FFFFFF"
-
-                                        Text {
-                                            anchors.centerIn: parent
-                                            text: {
-                                                var cls = cellInfo.windows[index].class || "";
-                                                if (cls.indexOf("brave") >= 0 || cls.indexOf("firefox") >= 0 || cls.indexOf("chrome") >= 0) return "󰖟";
-                                                if (cls.indexOf("kitty") >= 0 || cls.indexOf("alacritty") >= 0) return "󰆍";
-                                                if (cls.indexOf("nautilus") >= 0 || cls.indexOf("thunar") >= 0) return "󰉋";
-                                                if (cls.indexOf("code") >= 0 || cls.indexOf("Code") >= 0) return "󰨞";
-                                                if (cls.indexOf("discord") >= 0) return "󰙯";
-                                                if (cls.indexOf("spotify") >= 0) return "󰓇";
-                                                if (cls.indexOf("steam") >= 0) return "󰓓";
-                                                if (cls.indexOf("obs") >= 0) return "󰑋";
-                                                return "󰣇";
-                                            }
-                                            font.family: "Material Design Icons"
-                                            font.pixelSize: 12
-                                            color: "#DDFFFFFF"
-                                        }
-                                    }
-                                }
-                            }
-
-                            // ── Click Handler ──────────────────────────
                             MouseArea {
-                                id: cellMouse
+                                id: cardMouse
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
-
+                                onEntered: overviewOverlayWindow.selectedRow = card.row
                                 onClicked: {
                                     overviewOverlayWindow.jumpPending = true;
                                     shell.overviewActive = false;
-                                    overviewJumpProc.targetVx = cellInfo.vx;
-                                    overviewJumpProc.targetVy = cellInfo.vy;
+                                    overviewJumpProc.targetRow = card.row;
                                     overviewJumpProc.running = true;
-                                }
-
-                                onEntered: {
-                                    overviewOverlayWindow.selectedCol = cellItem.col;
-                                    overviewOverlayWindow.selectedRow = cellItem.row;
                                 }
                             }
                         }
@@ -9499,33 +9307,22 @@ function getCurrentThemeStateKey() {
                     Text {
                         anchors.top: parent.top
                         anchors.horizontalCenter: parent.horizontalCenter
-                        anchors.topMargin: 28
-                        text: "Spatial Overview"
-                        font.pixelSize: 16
+                        anchors.topMargin: 22
+                        text: "Spatial Workspaces"
+                        font.pixelSize: 15
                         font.bold: true
-                        color: "#BBFFFFFF"
-                        visible: overviewOverlayWindow.layoutData !== null
+                        color: "#DDFFFFFF"
                     }
 
                     // ── Hint Text ──────────────────────────────────────
                     Text {
                         anchors.bottom: parent.bottom
                         anchors.horizontalCenter: parent.horizontalCenter
-                        anchors.bottomMargin: 20
-                        text: "Arrow keys to navigate  ·  Enter to jump  ·  Esc to close"
+                        anchors.bottomMargin: 18
+                        text: "↑ / ↓ to navigate rows  ·  Enter / Click to jump  ·  Esc to close"
                         font.pixelSize: 11
-                        color: "#55FFFFFF"
-                        visible: overviewOverlayWindow.layoutData !== null
+                        color: "#66FFFFFF"
                     }
-                }
-
-                // ── Loading Indicator ──────────────────────────────────
-                Text {
-                    anchors.centerIn: parent
-                    text: "Loading overview..."
-                    font.pixelSize: 14
-                    color: "#66FFFFFF"
-                    visible: shell.overviewActive && overviewOverlayWindow.layoutData === null
                 }
             }
         }
