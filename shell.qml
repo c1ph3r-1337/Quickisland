@@ -9089,8 +9089,10 @@ function getCurrentThemeStateKey() {
         }
     }
 
-    // Virtual Workspace Overview - dim overlay + click targets
-    // Uses same always-alive pattern as nightlight to avoid Qt Wayland transparency bug
+    // =========================================================================
+    // MATERIAL SHELL SPATIAL OVERVIEW
+    // Screenshot-based grid of virtual workspaces with accent borders
+    // =========================================================================
     Variants {
         model: Quickshell.screens
 
@@ -9099,178 +9101,431 @@ function getCurrentThemeStateKey() {
             required property ShellScreen modelData
             screen: modelData
             color: "transparent"
-            
-            // Interactive when ON
+
             Region { id: overviewMaskRegion }
             mask: shell.overviewActive ? null : overviewMaskRegion
-            
+
             WlrLayershell.namespace: "quickisland-overview"
             WlrLayershell.layer: WlrLayer.Overlay
             WlrLayershell.exclusionMode: ExclusionMode.Ignore
             WlrLayershell.keyboardFocus: shell.overviewActive ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
-            
+
             anchors { top: true; bottom: true; left: true; right: true }
-            
+
             property var layoutData: null
             property bool jumpPending: false
-            
-            // Read layout JSON
+            property int selectedCol: 0
+            property int selectedRow: 0
+
+            // ── Processes ──────────────────────────────────────────────
             Process {
                 id: overviewLayoutProc
                 command: ["bash", "-c", "cat ~/.cache/quickisland/overview_layout.json 2>/dev/null"]
                 stdout: StdioCollector {
                     onStreamFinished: {
                         try {
-                            overviewOverlayWindow.layoutData = JSON.parse(text);
+                            var data = JSON.parse(text);
+                            overviewOverlayWindow.layoutData = data;
+                            // Set selected to current cell
+                            if (data && data.grid) {
+                                overviewOverlayWindow.selectedCol = data.grid.current_vx - data.grid.min_vx;
+                                overviewOverlayWindow.selectedRow = data.grid.max_vy - data.grid.current_vy;
+                            }
                         } catch(e) {
                             overviewOverlayWindow.layoutData = null;
                         }
                     }
                 }
             }
-            
-            // Enter
+
             Process {
                 id: overviewEnterProc
-                command: ["bash", "-c", "~/.config/quickshell/quickisland/scripts/overview_zoom.sh enter && hyprctl dispatch spatialoverview toggle"]
+                command: ["python3", Qt.resolvedUrl("scripts/overview_manager.py").toString().replace("file://", ""), "enter"]
                 stdout: StdioCollector {
                     onStreamFinished: {
                         overviewLayoutProc.running = true;
                     }
                 }
             }
-            
-            // Exit
+
             Process {
                 id: overviewExitProc
-                command: ["bash", "-c", "~/.config/quickshell/quickisland/scripts/overview_zoom.sh exit && hyprctl dispatch spatialoverview toggle"]
+                command: ["python3", Qt.resolvedUrl("scripts/overview_manager.py").toString().replace("file://", ""), "exit"]
             }
-            
-            // Jump
+
             Process {
                 id: overviewJumpProc
                 property int targetVx: 0
                 property int targetVy: 0
-                command: ["bash", "-c", "~/.config/quickshell/quickisland/scripts/overview_zoom.sh jump " + targetVx + " " + targetVy + " && hyprctl dispatch spatialoverview toggle"]
+                command: ["python3", Qt.resolvedUrl("scripts/overview_manager.py").toString().replace("file://", ""), "jump", "" + targetVx, "" + targetVy]
             }
-            
-            // Pan dispatcher
-            Process {
-                id: overviewPanProc
-                property real panX: 0
-                property real panY: 0
-                command: ["bash", "-c", "hyprctl dispatch spatialoverview_pan " + panX + " " + panY]
-            }
-            
+
+            // ── Lifecycle ──────────────────────────────────────────────
             Connections {
                 target: shell
                 function onOverviewActiveChanged() {
                     if (shell.overviewActive) {
-                        overviewRootItem.panX = 0;
-                        overviewRootItem.panY = 0;
                         overviewEnterProc.running = true;
-                        overviewRootItem.forceActiveFocus();
+                        overviewRoot.forceActiveFocus();
                     } else {
-                        overviewOverlayWindow.layoutData = null;
                         if (!overviewOverlayWindow.jumpPending) {
                             overviewExitProc.running = true;
                         }
                         overviewOverlayWindow.jumpPending = false;
+                        // Defer clearing layout so exit animation plays
+                        overviewClearTimer.restart();
                     }
                 }
             }
-            
+
+            Timer {
+                id: overviewClearTimer
+                interval: 300
+                onTriggered: {
+                    if (!shell.overviewActive) {
+                        overviewOverlayWindow.layoutData = null;
+                    }
+                }
+            }
+
+            // ── Visual Root ────────────────────────────────────────────
             Item {
-                id: overviewRootItem
+                id: overviewRoot
                 anchors.fill: parent
                 focus: shell.overviewActive
-                visible: shell.overviewActive
-                
-                property real panX: 0
-                property real panY: 0
-                
-                Keys.onEscapePressed: shell.overviewActive = false
+                visible: shell.overviewActive || overviewDimBg.opacity > 0
+
+                // Smooth fade/scale
+                opacity: shell.overviewActive ? 1.0 : 0.0
+                scale: shell.overviewActive ? 1.0 : 0.95
+                Behavior on opacity { NumberAnimation { duration: 220; easing.type: Easing.OutQuad } }
+                Behavior on scale { NumberAnimation { duration: 260; easing.bezierCurve: [0.22, 1.0, 0.36, 1.0] } }
+
+                // ── Keyboard Navigation ────────────────────────────────
                 Keys.onPressed: (event) => {
+                    var d = overviewOverlayWindow.layoutData;
+                    if (!d || !d.grid) return;
+                    var cols = d.grid.cols;
+                    var rows = d.grid.rows;
+
                     if (event.key === Qt.Key_Escape || event.key === Qt.Key_Space) {
                         shell.overviewActive = false;
+                        event.accepted = true;
+                    } else if (event.key === Qt.Key_Left || event.key === Qt.Key_H) {
+                        overviewOverlayWindow.selectedCol = Math.max(0, overviewOverlayWindow.selectedCol - 1);
+                        event.accepted = true;
+                    } else if (event.key === Qt.Key_Right || event.key === Qt.Key_L) {
+                        overviewOverlayWindow.selectedCol = Math.min(cols - 1, overviewOverlayWindow.selectedCol + 1);
+                        event.accepted = true;
+                    } else if (event.key === Qt.Key_Up || event.key === Qt.Key_K) {
+                        overviewOverlayWindow.selectedRow = Math.max(0, overviewOverlayWindow.selectedRow - 1);
+                        event.accepted = true;
+                    } else if (event.key === Qt.Key_Down || event.key === Qt.Key_J) {
+                        overviewOverlayWindow.selectedRow = Math.min(rows - 1, overviewOverlayWindow.selectedRow + 1);
+                        event.accepted = true;
+                    } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                        var jumpVx = d.grid.min_vx + overviewOverlayWindow.selectedCol;
+                        var jumpVy = d.grid.max_vy - overviewOverlayWindow.selectedRow;
+                        overviewOverlayWindow.jumpPending = true;
+                        shell.overviewActive = false;
+                        overviewJumpProc.targetVx = jumpVx;
+                        overviewJumpProc.targetVy = jumpVy;
+                        overviewJumpProc.running = true;
+                        event.accepted = true;
                     }
                 }
-                
-                // Pan/Drag Area
-                MouseArea {
+
+                // ── Dimmed Background ──────────────────────────────────
+                Rectangle {
+                    id: overviewDimBg
                     anchors.fill: parent
-                    property real startX: 0
-                    property real startY: 0
-                    property real startPanX: 0
-                    property real startPanY: 0
-                    property bool dragging: false
-                    
-                    onPressed: (mouse) => {
-                        startX = mouse.x;
-                        startY = mouse.y;
-                        startPanX = overviewRootItem.panX;
-                        startPanY = overviewRootItem.panY;
-                        dragging = true;
-                    }
-                    onPositionChanged: (mouse) => {
-                        if (dragging) {
-                            overviewRootItem.panX = startPanX + (mouse.x - startX);
-                            overviewRootItem.panY = startPanY + (mouse.y - startY);
-                            // Only update native plugin occasionally to avoid spamming Process, or just let it rip
-                            if (!overviewPanProc.running) {
-                                overviewPanProc.panX = overviewRootItem.panX;
-                                overviewPanProc.panY = overviewRootItem.panY;
-                                overviewPanProc.running = true;
-                            }
-                        }
-                    }
-                    onReleased: {
-                        dragging = false;
-                        overviewPanProc.panX = overviewRootItem.panX;
-                        overviewPanProc.panY = overviewRootItem.panY;
-                        overviewPanProc.running = true;
-                    }
-                    onClicked: {
-                        if (Math.abs(mouse.x - startX) < 10 && Math.abs(mouse.y - startY) < 10) {
-                            shell.overviewActive = false;
-                        }
+                    color: "#CC111111"
+                    opacity: shell.overviewActive ? 1.0 : 0.0
+                    Behavior on opacity { NumberAnimation { duration: 200 } }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: shell.overviewActive = false
                     }
                 }
-                
-                // Invisible jump targets (offset by pan!)
-                Repeater {
-                    model: {
-                        var d = overviewOverlayWindow.layoutData;
-                        if (!d) return 0;
-                        var cols = d.max_vx - d.min_vx + 1;
-                        var rows = d.max_vy - d.min_vy + 1;
-                        return cols * rows;
-                    }
-                    Item {
-                        property var d: overviewOverlayWindow.layoutData
-                        property int cols: d.max_vx - d.min_vx + 1
-                        property int col: index % cols
-                        property int row: Math.floor(index / cols)
-                        property int cellVx: d.min_vx + col
-                        property int cellVy: d.max_vy - row
-                        
-                        x: d.center_x + (cellVx - d.vx) * d.dist_x + overviewRootItem.panX
-                        y: d.center_y + (cellVy - d.vy) * d.dist_y + overviewRootItem.panY
-                        width: d.mon_w * d.zoom
-                        height: d.mon_h * d.zoom
-                        
-                        MouseArea {
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            onClicked: {
-                                overviewOverlayWindow.jumpPending = true;
-                                shell.overviewActive = false;
-                                overviewJumpProc.targetVx = cellVx;
-                                overviewJumpProc.targetVy = cellVy;
-                                overviewJumpProc.running = true;
+
+                // ── Grid Container ─────────────────────────────────────
+                Item {
+                    id: overviewGridContainer
+                    anchors.fill: parent
+                    visible: overviewOverlayWindow.layoutData !== null
+
+                    property var gridData: overviewOverlayWindow.layoutData ? overviewOverlayWindow.layoutData.grid : null
+                    property var monData: overviewOverlayWindow.layoutData ? overviewOverlayWindow.layoutData.monitor : null
+                    property var cellsData: overviewOverlayWindow.layoutData ? overviewOverlayWindow.layoutData.cells : []
+
+                    // Layout constants
+                    property int gridPadding: 60
+                    property int gridTopPadding: 80
+                    property int cellGap: 16
+                    property int cellRadius: 12
+
+                    // Computed cell dimensions
+                    property int cellW: gridData ? Math.floor((parent.width - 2 * gridPadding - (gridData.cols - 1) * cellGap) / gridData.cols) : 300
+                    property int cellH: gridData ? Math.floor((parent.height - gridTopPadding - gridPadding - (gridData.rows - 1) * cellGap) / gridData.rows) : 200
+
+                    // ── Cell Repeater ──────────────────────────────────
+                    Repeater {
+                        model: overviewGridContainer.cellsData.length || 0
+
+                        Item {
+                            id: cellItem
+                            property var cellInfo: overviewGridContainer.cellsData[index] || {}
+                            property int col: cellInfo.vx !== undefined && overviewGridContainer.gridData
+                                              ? cellInfo.vx - overviewGridContainer.gridData.min_vx : 0
+                            property int row: cellInfo.vy !== undefined && overviewGridContainer.gridData
+                                              ? overviewGridContainer.gridData.max_vy - cellInfo.vy : 0
+                            property bool isCurrent: cellInfo.is_current || false
+                            property bool isSelected: col === overviewOverlayWindow.selectedCol && row === overviewOverlayWindow.selectedRow
+                            property bool hasScreenshot: cellInfo.screenshot !== null && cellInfo.screenshot !== undefined
+                            property int windowCount: cellInfo.window_count || 0
+
+                            x: overviewGridContainer.gridPadding + col * (overviewGridContainer.cellW + overviewGridContainer.cellGap)
+                            y: overviewGridContainer.gridTopPadding + row * (overviewGridContainer.cellH + overviewGridContainer.cellGap)
+                            width: overviewGridContainer.cellW
+                            height: overviewGridContainer.cellH
+
+                            // Smooth entrance animation
+                            opacity: shell.overviewActive ? 1.0 : 0.0
+                            scale: shell.overviewActive ? 1.0 : 0.9
+                            Behavior on opacity { NumberAnimation { duration: 250; easing.type: Easing.OutQuad } }
+                            Behavior on scale { NumberAnimation { duration: 300; easing.bezierCurve: [0.22, 1.0, 0.36, 1.0] } }
+
+                            // ── Cell Background ────────────────────────
+                            Rectangle {
+                                id: cellBg
+                                anchors.fill: parent
+                                radius: overviewGridContainer.cellRadius
+                                color: "#1A1A1A"
+                                border.color: cellItem.isSelected ? shell.accent
+                                            : cellItem.isCurrent ? Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.5)
+                                            : cellMouse.containsMouse ? "#44FFFFFF"
+                                            : "#22FFFFFF"
+                                border.width: cellItem.isSelected ? 3 : (cellItem.isCurrent ? 2 : 1)
+
+                                Behavior on border.color { ColorAnimation { duration: 150 } }
+                                Behavior on border.width { NumberAnimation { duration: 100 } }
+
+                                // Scale up slightly when selected
+                                transform: Scale {
+                                    origin.x: cellBg.width / 2
+                                    origin.y: cellBg.height / 2
+                                    xScale: cellItem.isSelected ? 1.03 : 1.0
+                                    yScale: cellItem.isSelected ? 1.03 : 1.0
+                                    Behavior on xScale { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } }
+                                    Behavior on yScale { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } }
+                                }
+                            }
+
+                            // ── Screenshot Thumbnail ───────────────────
+                            Image {
+                                id: cellScreenshot
+                                anchors.fill: parent
+                                anchors.margins: 2
+                                source: cellItem.hasScreenshot ? "file://" + cellInfo.screenshot : ""
+                                visible: cellItem.hasScreenshot
+                                fillMode: Image.PreserveAspectCrop
+                                smooth: true
+                                asynchronous: true
+                                cache: false  // Don't cache since paths get reused
+
+                                // Rounded corners via layer
+                                layer.enabled: true
+                                layer.effect: Item {
+                                    // OpacityMask with rounded rectangle
+                                }
+
+                                // Clip to rounded rect
+                                Rectangle {
+                                    id: screenshotMask
+                                    anchors.fill: parent
+                                    radius: overviewGridContainer.cellRadius - 2
+                                    visible: false
+                                }
+                            }
+
+                            // Rounded clip rectangle
+                            Rectangle {
+                                anchors.fill: parent
+                                anchors.margins: 2
+                                radius: overviewGridContainer.cellRadius - 2
+                                color: "transparent"
+                                clip: true
+
+                                Image {
+                                    anchors.fill: parent
+                                    source: cellItem.hasScreenshot ? "file://" + cellInfo.screenshot : ""
+                                    visible: cellItem.hasScreenshot
+                                    fillMode: Image.PreserveAspectCrop
+                                    smooth: true
+                                    asynchronous: true
+                                    cache: false
+                                }
+
+                                // Empty cell fallback
+                                Column {
+                                    anchors.centerIn: parent
+                                    visible: !cellItem.hasScreenshot
+                                    spacing: 8
+
+                                    Text {
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        text: cellItem.windowCount > 0 ? "󰣇" : "󰝦"
+                                        font.family: "Material Design Icons"
+                                        font.pixelSize: 32
+                                        color: "#55FFFFFF"
+                                    }
+                                    Text {
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        text: cellItem.windowCount > 0 ? cellItem.windowCount + " window" + (cellItem.windowCount > 1 ? "s" : "") : "Empty"
+                                        font.pixelSize: 11
+                                        color: "#44FFFFFF"
+                                    }
+                                }
+                            }
+
+                            // Hide the first (layer-clipped) Image - use the one inside the clip rect
+                            Component.onCompleted: { cellScreenshot.visible = false; }
+
+                            // ── Coordinate Label ───────────────────────
+                            Rectangle {
+                                anchors.bottom: parent.bottom
+                                anchors.left: parent.left
+                                anchors.margins: 6
+                                width: coordLabel.implicitWidth + 12
+                                height: coordLabel.implicitHeight + 6
+                                radius: 6
+                                color: cellItem.isCurrent ? shell.accent : "#66000000"
+
+                                Text {
+                                    id: coordLabel
+                                    anchors.centerIn: parent
+                                    text: cellInfo.vx + "," + cellInfo.vy
+                                    font.pixelSize: 10
+                                    font.bold: cellItem.isCurrent
+                                    color: cellItem.isCurrent ? "#FFFFFF" : "#AAFFFFFF"
+                                }
+                            }
+
+                            // ── Window Count Badge ─────────────────────
+                            Rectangle {
+                                anchors.top: parent.top
+                                anchors.right: parent.right
+                                anchors.margins: 6
+                                width: countLabel.implicitWidth + 12
+                                height: countLabel.implicitHeight + 6
+                                radius: 6
+                                color: "#66000000"
+                                visible: cellItem.windowCount > 0
+
+                                Text {
+                                    id: countLabel
+                                    anchors.centerIn: parent
+                                    text: cellItem.windowCount + " 󰖲"
+                                    font.pixelSize: 10
+                                    font.family: "Material Design Icons"
+                                    color: "#CCFFFFFF"
+                                }
+                            }
+
+                            // ── Window Icons Row ───────────────────────
+                            Row {
+                                anchors.bottom: parent.bottom
+                                anchors.right: parent.right
+                                anchors.margins: 8
+                                spacing: 4
+                                visible: cellItem.windowCount > 0
+
+                                Repeater {
+                                    model: Math.min(cellInfo.windows ? cellInfo.windows.length : 0, 5)
+
+                                    Rectangle {
+                                        width: 20
+                                        height: 20
+                                        radius: 4
+                                        color: "#44FFFFFF"
+
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: {
+                                                var cls = cellInfo.windows[index].class || "";
+                                                if (cls.indexOf("brave") >= 0 || cls.indexOf("firefox") >= 0 || cls.indexOf("chrome") >= 0) return "󰖟";
+                                                if (cls.indexOf("kitty") >= 0 || cls.indexOf("alacritty") >= 0) return "󰆍";
+                                                if (cls.indexOf("nautilus") >= 0 || cls.indexOf("thunar") >= 0) return "󰉋";
+                                                if (cls.indexOf("code") >= 0 || cls.indexOf("Code") >= 0) return "󰨞";
+                                                if (cls.indexOf("discord") >= 0) return "󰙯";
+                                                if (cls.indexOf("spotify") >= 0) return "󰓇";
+                                                if (cls.indexOf("steam") >= 0) return "󰓓";
+                                                if (cls.indexOf("obs") >= 0) return "󰑋";
+                                                return "󰣇";
+                                            }
+                                            font.family: "Material Design Icons"
+                                            font.pixelSize: 12
+                                            color: "#DDFFFFFF"
+                                        }
+                                    }
+                                }
+                            }
+
+                            // ── Click Handler ──────────────────────────
+                            MouseArea {
+                                id: cellMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+
+                                onClicked: {
+                                    overviewOverlayWindow.jumpPending = true;
+                                    shell.overviewActive = false;
+                                    overviewJumpProc.targetVx = cellInfo.vx;
+                                    overviewJumpProc.targetVy = cellInfo.vy;
+                                    overviewJumpProc.running = true;
+                                }
+
+                                onEntered: {
+                                    overviewOverlayWindow.selectedCol = cellItem.col;
+                                    overviewOverlayWindow.selectedRow = cellItem.row;
+                                }
                             }
                         }
                     }
+
+                    // ── Title Bar ──────────────────────────────────────
+                    Text {
+                        anchors.top: parent.top
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.topMargin: 28
+                        text: "Spatial Overview"
+                        font.pixelSize: 16
+                        font.bold: true
+                        color: "#BBFFFFFF"
+                        visible: overviewOverlayWindow.layoutData !== null
+                    }
+
+                    // ── Hint Text ──────────────────────────────────────
+                    Text {
+                        anchors.bottom: parent.bottom
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.bottomMargin: 20
+                        text: "Arrow keys to navigate  ·  Enter to jump  ·  Esc to close"
+                        font.pixelSize: 11
+                        color: "#55FFFFFF"
+                        visible: overviewOverlayWindow.layoutData !== null
+                    }
+                }
+
+                // ── Loading Indicator ──────────────────────────────────
+                Text {
+                    anchors.centerIn: parent
+                    text: "Loading overview..."
+                    font.pixelSize: 14
+                    color: "#66FFFFFF"
+                    visible: shell.overviewActive && overviewOverlayWindow.layoutData === null
                 }
             }
         }
