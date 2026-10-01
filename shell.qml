@@ -9178,10 +9178,14 @@ function getCurrentThemeStateKey() {
                 command: ["python3", Qt.resolvedUrl("scripts/overview_manager.py").toString().replace("file://", ""), "focus", targetAddress]
             }
 
+            Component.onCompleted: {
+                overviewLayoutProc.running = true;
+            }
+
             function triggerJump(targetVx, targetVy) {
-                if (typeof overviewCanvas !== "undefined" && overviewCanvas) {
-                    overviewCanvas.exitPanX = -targetVx * overviewCanvas.stepX;
-                    overviewCanvas.exitPanY = targetVy * overviewCanvas.stepY;
+                if (typeof overviewRowsColumn !== "undefined" && overviewRowsColumn) {
+                    var curVx = overviewOverlayWindow.layoutData ? overviewOverlayWindow.layoutData.cur_vx : 0;
+                    overviewRowsColumn.exitPanX = -(targetVx - curVx) * (overviewRowsColumn.cardWidth + overviewRowsColumn.cardGap);
                 }
                 overviewOverlayWindow.jumpPending = true;
                 shell.overviewActive = false;
@@ -9190,9 +9194,9 @@ function getCurrentThemeStateKey() {
             }
 
             function triggerFocus(address, targetVx, targetVy) {
-                if (typeof overviewCanvas !== "undefined" && overviewCanvas) {
-                    overviewCanvas.exitPanX = -targetVx * overviewCanvas.stepX;
-                    overviewCanvas.exitPanY = targetVy * overviewCanvas.stepY;
+                if (typeof overviewRowsColumn !== "undefined" && overviewRowsColumn) {
+                    var curVx = overviewOverlayWindow.layoutData ? overviewOverlayWindow.layoutData.cur_vx : 0;
+                    overviewRowsColumn.exitPanX = -(targetVx - curVx) * (overviewRowsColumn.cardWidth + overviewRowsColumn.cardGap);
                 }
                 overviewOverlayWindow.jumpPending = true;
                 shell.overviewActive = false;
@@ -9201,11 +9205,8 @@ function getCurrentThemeStateKey() {
             }
 
             function triggerDismiss() {
-                if (typeof overviewCanvas !== "undefined" && overviewCanvas) {
-                    var curVx = overviewOverlayWindow.layoutData ? overviewOverlayWindow.layoutData.cur_vx : 0;
-                    var curVy = overviewOverlayWindow.layoutData ? overviewOverlayWindow.layoutData.cur_vy : 0;
-                    overviewCanvas.exitPanX = -curVx * overviewCanvas.stepX;
-                    overviewCanvas.exitPanY = curVy * overviewCanvas.stepY;
+                if (typeof overviewRowsColumn !== "undefined" && overviewRowsColumn) {
+                    overviewRowsColumn.exitPanX = 0;
                 }
                 shell.overviewActive = false;
             }
@@ -9215,11 +9216,16 @@ function getCurrentThemeStateKey() {
                 target: shell
                 function onOverviewActiveChanged() {
                     if (shell.overviewActive) {
-                        var curVx = overviewOverlayWindow.layoutData ? overviewOverlayWindow.layoutData.cur_vx : 0;
-                        var curVy = overviewOverlayWindow.layoutData ? overviewOverlayWindow.layoutData.cur_vy : 0;
-                        if (typeof overviewCanvas !== "undefined" && overviewCanvas) {
-                            overviewCanvas.exitPanX = -curVx * overviewCanvas.stepX;
-                            overviewCanvas.exitPanY = curVy * overviewCanvas.stepY;
+                        if (typeof overviewRowsColumn !== "undefined" && overviewRowsColumn) {
+                            overviewRowsColumn.exitPanX = 0;
+                        }
+                        if (overviewOverlayWindow.layoutData) {
+                            if (overviewOverlayWindow.layoutData.selected_row !== undefined) {
+                                overviewOverlayWindow.selectedRow = overviewOverlayWindow.layoutData.selected_row;
+                            }
+                            if (overviewOverlayWindow.layoutData.selected_col !== undefined) {
+                                overviewOverlayWindow.selectedCol = overviewOverlayWindow.layoutData.selected_col;
+                            }
                         }
                         try { Hyprland.refreshToplevels(); } catch(e) {}
                         overviewEnterProc.running = true;
@@ -9229,17 +9235,6 @@ function getCurrentThemeStateKey() {
                             overviewExitProc.running = true;
                         }
                         overviewOverlayWindow.jumpPending = false;
-                        overviewClearTimer.restart();
-                    }
-                }
-            }
-
-            Timer {
-                id: overviewClearTimer
-                interval: 250
-                onTriggered: {
-                    if (!shell.overviewActive) {
-                        overviewOverlayWindow.layoutData = null;
                     }
                 }
             }
@@ -9431,91 +9426,41 @@ function getCurrentThemeStateKey() {
                     onClicked: overviewOverlayWindow.triggerDismiss()
                 }
 
-                // ── Material Shell Centered Spatial Canvas (0,0 Locked at Center) ───────
-                Item {
-                    id: overviewCanvas
-                    anchors.fill: parent
+                // ── Material Shell Stacked Rows (Infinite Canvas) ──────────────────────
+                Column {
+                    id: overviewRowsColumn
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    y: Math.round((parent.height - cardHeight) / 2 - overviewOverlayWindow.selectedRow * (cardHeight + spacing))
+                    Behavior on y {
+                        NumberAnimation {
+                            duration: 220
+                            easing.bezierCurve: [0.22, 1.0, 0.36, 1.0]
+                        }
+                    }
+                    spacing: 16
                     visible: overviewOverlayWindow.layoutData !== null
 
                     readonly property real cardHeight: 236
                     readonly property real cardWidth: Math.round(cardHeight * 16.0 / 9.0)
                     readonly property real cardGap: 24
-                    readonly property real rowSpacing: 16
 
-                    readonly property real stepX: cardWidth + cardGap
-                    readonly property real stepY: cardHeight + rowSpacing
-
-                    // Center (0, 0) strictly in the center of the screen
-                    readonly property real centerBaseX: Math.round((width - cardWidth) / 2)
-                    readonly property real centerBaseY: Math.round((height - cardHeight) / 2)
-
-                    // Exit pan targets (set when triggering focus/jump/dismiss)
                     property real exitPanX: 0
-                    property real exitPanY: 0
-
-                    // Navigation pan: if selected workspace is outside comfortable viewport, shift gently
-                    // Otherwise stays at 0 so (0,0) is strictly centered!
-                    property real selectedVx: {
-                        var d = overviewOverlayWindow.layoutData;
-                        if (!d || !d.rows || overviewOverlayWindow.selectedRow >= d.rows.length) return 0;
-                        var r = d.rows[overviewOverlayWindow.selectedRow];
-                        if (!r.windows || r.windows.length === 0) return 0;
-                        var col = Math.min(overviewOverlayWindow.selectedCol, r.windows.length - 1);
-                        return r.windows[col] ? r.windows[col].vwx : 0;
-                    }
-                    property real selectedVy: {
-                        var d = overviewOverlayWindow.layoutData;
-                        if (!d || !d.rows || overviewOverlayWindow.selectedRow >= d.rows.length) return 0;
-                        return d.rows[overviewOverlayWindow.selectedRow].vy;
+                    Behavior on exitPanX {
+                        NumberAnimation {
+                            duration: shell.overviewActive ? 220 : 200
+                            easing.bezierCurve: [0.22, 1.0, 0.36, 1.0]
+                        }
                     }
 
-                    // For workspaces within [-1, 1], navPan is 0 -> (0,0) is dead-center.
-                    // For workspaces beyond [-1, 1], smoothly pan only as much as needed so they are visible.
-                    property real navPanX: {
-                        var margin = (width - cardWidth) / 2 - 40;
-                        var targetOffset = -selectedVx * stepX;
-                        if (Math.abs(targetOffset) <= margin) return 0;
-                        return targetOffset > 0 ? (targetOffset - margin) : (targetOffset + margin);
-                    }
-                    Behavior on navPanX { NumberAnimation { duration: 220; easing.bezierCurve: [0.22, 1.0, 0.36, 1.0] } }
+                    transform: Translate { x: overviewRowsColumn.exitPanX }
 
-                    property real navPanY: {
-                        var marginY = (height - cardHeight) / 2 - 30;
-                        var targetOffsetY = selectedVy * stepY;
-                        if (Math.abs(targetOffsetY) <= marginY) return 0;
-                        return targetOffsetY > 0 ? (targetOffsetY - marginY) : (targetOffsetY + marginY);
-                    }
-                    Behavior on navPanY { NumberAnimation { duration: 220; easing.bezierCurve: [0.22, 1.0, 0.36, 1.0] } }
-
-                    property real animScale: shell.overviewActive ? 1.0 : 1.45
-                    Behavior on animScale {
+                    transformOrigin: Item.Center
+                    scale: shell.overviewActive ? 1.0 : 1.45
+                    Behavior on scale {
                         NumberAnimation {
                             duration: shell.overviewActive ? 280 : 200
                             easing.bezierCurve: shell.overviewActive ? [0.16, 1.0, 0.3, 1.0] : [0.4, 0.0, 0.7, 0.2]
                         }
-                    }
-
-                    property real animPanX: shell.overviewActive ? navPanX : exitPanX
-                    Behavior on animPanX {
-                        NumberAnimation {
-                            duration: shell.overviewActive ? 260 : 200
-                            easing.bezierCurve: shell.overviewActive ? [0.16, 1.0, 0.3, 1.0] : [0.4, 0.0, 0.7, 0.2]
-                        }
-                    }
-
-                    property real animPanY: shell.overviewActive ? navPanY : exitPanY
-                    Behavior on animPanY {
-                        NumberAnimation {
-                            duration: shell.overviewActive ? 260 : 200
-                            easing.bezierCurve: shell.overviewActive ? [0.16, 1.0, 0.3, 1.0] : [0.4, 0.0, 0.7, 0.2]
-                        }
-                    }
-
-                    transformOrigin: Item.Center
-                    scale: animScale
-                    transform: Translate {
-                        x: overviewCanvas.animPanX
-                        y: overviewCanvas.animPanY
                     }
 
                     Repeater {
@@ -9528,9 +9473,28 @@ function getCurrentThemeStateKey() {
                             property bool isRowSelected: index === overviewOverlayWindow.selectedRow
                             property bool isRowActive: rowData.is_active
 
-                            width: overviewCanvas.width
-                            height: overviewCanvas.cardHeight
-                            y: Math.round(overviewCanvas.centerBaseY - rowData.vy * overviewCanvas.stepY)
+                            width: overviewRoot.width
+                            height: overviewRowsColumn.cardHeight
+
+                            property real trackPanX: {
+                                if (!isRowSelected || !rowData.windows || rowData.windows.length === 0) return 0;
+                                var selIdx = Math.min(overviewOverlayWindow.selectedCol, rowData.windows.length - 1);
+                                var selWin = rowData.windows[selIdx];
+                                if (!selWin) return 0;
+                                var curVx = overviewOverlayWindow.layoutData ? overviewOverlayWindow.layoutData.cur_vx : 0;
+                                var targetCellX = (selWin.vwx - curVx) * (overviewRowsColumn.cardWidth + overviewRowsColumn.cardGap);
+                                if (Math.abs(targetCellX) <= (rowItem.width - overviewRowsColumn.cardWidth) / 2 - 40) {
+                                    return 0;
+                                }
+                                return targetCellX > 0 ? -(targetCellX - ((rowItem.width - overviewRowsColumn.cardWidth) / 2 - 60))
+                                                       : -(targetCellX + ((rowItem.width - overviewRowsColumn.cardWidth) / 2 - 60));
+                            }
+                            Behavior on trackPanX {
+                                NumberAnimation {
+                                    duration: 220
+                                    easing.bezierCurve: [0.22, 1.0, 0.36, 1.0]
+                                }
+                            }
 
                             // ── Desktop Wallpaper Viewport Cards (One per Horizontal Coordinate Cell) ──────────────
                             Repeater {
@@ -9540,10 +9504,13 @@ function getCurrentThemeStateKey() {
                                     id: cellItem
                                     property var cellData: modelData
                                     visible: cellData.has_windows
-                                    x: Math.round(overviewCanvas.centerBaseX + cellData.vx * overviewCanvas.stepX)
-                                    y: 0
-                                    width: overviewCanvas.cardWidth
-                                    height: overviewCanvas.cardHeight
+                                    property real cellX: Math.round((rowItem.width - overviewRowsColumn.cardWidth) / 2 + (cellData.vx - (overviewOverlayWindow.layoutData ? overviewOverlayWindow.layoutData.cur_vx : 0)) * (overviewRowsColumn.cardWidth + overviewRowsColumn.cardGap) + rowItem.trackPanX)
+                                    property real cellY: Math.round((rowItem.height - overviewRowsColumn.cardHeight) / 2)
+
+                                    x: cellX
+                                    y: cellY
+                                    width: overviewRowsColumn.cardWidth
+                                    height: overviewRowsColumn.cardHeight
                                     z: 1
 
                                     Rectangle {
@@ -9633,14 +9600,14 @@ function getCurrentThemeStateKey() {
                                         }
                                     }
 
-                                    // Cell base X for this window's horizontal coordinate (vwx) relative to (0,0)
-                                    property real cellBaseX: Math.round(overviewCanvas.centerBaseX + winData.vwx * overviewCanvas.stepX)
+                                    // Cell base X for this window's horizontal coordinate (vwx)
+                                    property real cellBaseX: Math.round((rowItem.width - overviewRowsColumn.cardWidth) / 2 + (winData.vwx - (overviewOverlayWindow.layoutData ? overviewOverlayWindow.layoutData.cur_vx : 0)) * (overviewRowsColumn.cardWidth + overviewRowsColumn.cardGap) + rowItem.trackPanX)
 
                                     // Exact spatial coordinate placement inside this cell
-                                    x: Math.round(cellBaseX + winData.rel_x * overviewCanvas.cardWidth)
-                                    y: Math.round(winData.rel_y * overviewCanvas.cardHeight)
-                                    width: Math.max(50, Math.round(winData.rel_w * overviewCanvas.cardWidth))
-                                    height: Math.max(35, Math.round(winData.rel_h * overviewCanvas.cardHeight))
+                                    x: Math.round(cellBaseX + (winData.rel_x !== undefined ? winData.rel_x : 0) * overviewRowsColumn.cardWidth)
+                                    y: Math.round((rowItem.height - overviewRowsColumn.cardHeight) / 2 + (winData.rel_y !== undefined ? winData.rel_y : 0) * overviewRowsColumn.cardHeight)
+                                    width: Math.max(50, Math.round(winData.rel_w * overviewRowsColumn.cardWidth))
+                                    height: Math.max(35, Math.round(winData.rel_h * overviewRowsColumn.cardHeight))
                                     z: winTileItem.isWinSelected ? 30 : 10
                                     scale: winTileItem.isWinSelected ? 1.04 : 1.0
                                     Behavior on scale { NumberAnimation { duration: 160; easing.bezierCurve: [0.2, 0.9, 0.3, 1.0] } }
