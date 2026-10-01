@@ -1346,10 +1346,14 @@ body.theme-dark {{
     --status-bar-text: {text_secondary};
 
     /* Tabs & Dividers */
-    --tab-background-active: {surface};
+    --tab-background-active: rgba(255, 255, 255, 0.06);
+    --tab-curve: 0px;
+    --tab-radius: 8px;
+    --tab-radius-active: 8px;
     --tab-text-color-focused-active: {text_primary};
     --tab-text-color-focused: {text_secondary};
     --tab-outline-color: transparent;
+    --tab-outline-width: 0px;
     --divider-color: rgba(255, 255, 255, 0.05);
 
     /* Liquid Glass Effect Variables */
@@ -1385,7 +1389,7 @@ body.theme-dark .workspace-sidedock-vault-profile {{
     -webkit-backdrop-filter: blur(10px) saturate(1.05);
 }}
 
-/* Tab Headers (No colored borders) */
+/* Tab Headers (No colored borders & remove flare artifacts) */
 body.theme-dark .workspace-tab-header {{
     background: transparent !important;
     border: none !important;
@@ -1394,7 +1398,19 @@ body.theme-dark .workspace-tab-header {{
 body.theme-dark .workspace-tab-header.is-active {{
     background: rgba(255, 255, 255, 0.06) !important;
     border: none !important;
+    border-radius: 8px !important;
     box-shadow: none !important;
+}}
+/* Eliminate Obsidian tab flare pseudo-elements that create black box artifacts */
+body.theme-dark .workspace-tab-header::before,
+body.theme-dark .workspace-tab-header::after,
+body.theme-dark .workspace-tab-header-container .workspace-tab-header::before,
+body.theme-dark .workspace-tab-header-container .workspace-tab-header::after {{
+    display: none !important;
+    content: none !important;
+    box-shadow: none !important;
+    width: 0 !important;
+    height: 0 !important;
 }}
 
 /* Active Ribbon Buttons (Clean hover/active, no highlight borders) */
