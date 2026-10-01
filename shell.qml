@@ -2392,13 +2392,15 @@ function getCurrentThemeStateKey() {
             color: "transparent"
             mask: Region {}
 
-            visible: !(typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode)
+            visible: true
             WlrLayershell.namespace: "morphing-island-exclusion"
             WlrLayershell.layer: WlrLayer.Top
             WlrLayershell.exclusionMode: ExclusionMode.Auto
             
             anchors { top: true; left: true; right: true }
-            implicitHeight: 33
+            implicitHeight: (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode)
+                            ? (Settings.data.islandConfig.barHeight || 30)
+                            : 33
         }
     }
 
