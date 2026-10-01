@@ -3081,7 +3081,7 @@ function getCurrentThemeStateKey() {
                     }
                 }
 
-                // State 0 Notch Mode: Resting Notch Clock
+                // State 0 Notch Mode: Resting Notch Clock & Now Playing EQ
                 Item {
                     anchors.fill: parent
                     opacity: (panelWindow.activeState === 0 && (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode)) ? 1 : 0
@@ -3090,14 +3090,63 @@ function getCurrentThemeStateKey() {
                     Behavior on opacity { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
                     Behavior on scale   { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
 
-                    Text {
+                    Row {
                         anchors.centerIn: parent
-                        text: shell.currentTime12h
-                        color: shell.textPrimary
-                        font.pixelSize: 13
-                        font.weight: Font.Bold
-                        font.letterSpacing: 0.5
-                        font.family: "Varela Round"
+                        spacing: 0
+
+                        // EQ Visualizer Container that slides out / collapses
+                        Item {
+                            id: notchEqVisualizerContainer
+                            height: 12
+                            anchors.verticalCenter: parent.verticalCenter
+                            clip: true
+                            width: shell.mediaPlaying ? 18.5 : 0
+                            opacity: shell.mediaPlaying ? 1 : 0
+
+                            Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.InOutQuad } }
+                            Behavior on opacity { NumberAnimation { duration: 250; easing.type: Easing.InOutQuad } }
+
+                            Row {
+                                id: notchEqVisualizer
+                                spacing: 1.5
+                                anchors.right: parent.right
+                                anchors.rightMargin: 6
+                                anchors.verticalCenter: parent.verticalCenter
+
+                                Repeater {
+                                    model: [
+                                        { h1: 10, h2: 3, d1: 340, d2: 400 },
+                                        { h1: 6,  h2: 8,  d1: 420, d2: 320 },
+                                        { h1: 12, h2: 2,  d1: 280, d2: 440 },
+                                        { h1: 8,  h2: 5,  d1: 380, d2: 360 }
+                                    ]
+                                    Item {
+                                        width: 2; height: 12
+                                        Rectangle {
+                                            width: 2; radius: 1; color: shell.accent
+                                            anchors.bottom: parent.bottom; anchors.horizontalCenter: parent.horizontalCenter
+                                            height: shell.mediaPlaying ? 5 : 2
+                                            SequentialAnimation on height {
+                                                loops: Animation.Infinite; running: shell.mediaPlaying
+                                                NumberAnimation { to: modelData.h1; duration: modelData.d1; easing.type: Easing.InOutSine }
+                                                NumberAnimation { to: modelData.h2; duration: modelData.d2; easing.type: Easing.InOutSine }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        Text {
+                            id: notchIdleClock
+                            text: shell.currentTime12h
+                            color: shell.textPrimary
+                            font.pixelSize: 13
+                            font.weight: Font.Bold
+                            font.letterSpacing: 0.5
+                            font.family: "Varela Round"
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
                     }
                 }
 

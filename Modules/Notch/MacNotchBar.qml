@@ -174,17 +174,64 @@ Item {
             anchors.fill: parent
             clip: true // Prevent spillover during animation
             
-            // Collapsed Clock (Small Notch)
-            Text {
+            // Collapsed Clock & Now Playing EQ (Small Notch)
+            Row {
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.top
                 anchors.topMargin: (28 - height) / 2
-                text: sr.currentTime12h // or just 12h depending on pref
-                color: textColor
-                font.pixelSize: 13
-                font.weight: Font.Bold
+                spacing: 0
                 opacity: Math.max(0, 1.0 - (notchContainer.width - 160) / 100)
                 visible: opacity > 0
+
+                // EQ Visualizer Container that slides out / collapses
+                Item {
+                    id: collapsedEqVisualizerContainer
+                    height: 12
+                    anchors.verticalCenter: parent.verticalCenter
+                    clip: true
+                    width: sr.mediaPlaying ? 18.5 : 0
+                    opacity: sr.mediaPlaying ? 1 : 0
+
+                    Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.InOutQuad } }
+                    Behavior on opacity { NumberAnimation { duration: 250; easing.type: Easing.InOutQuad } }
+
+                    Row {
+                        spacing: 1.5
+                        anchors.right: parent.right
+                        anchors.rightMargin: 6
+                        anchors.verticalCenter: parent.verticalCenter
+
+                        Repeater {
+                            model: [
+                                { h1: 10, h2: 3, d1: 340, d2: 400 },
+                                { h1: 6,  h2: 8,  d1: 420, d2: 320 },
+                                { h1: 12, h2: 2,  d1: 280, d2: 440 },
+                                { h1: 8,  h2: 5,  d1: 380, d2: 360 }
+                            ]
+                            Item {
+                                width: 2; height: 12
+                                Rectangle {
+                                    width: 2; radius: 1; color: sr.accent
+                                    anchors.bottom: parent.bottom; anchors.horizontalCenter: parent.horizontalCenter
+                                    height: sr.mediaPlaying ? 5 : 2
+                                    SequentialAnimation on height {
+                                        loops: Animation.Infinite; running: sr.mediaPlaying
+                                        NumberAnimation { to: modelData.h1; duration: modelData.d1; easing.type: Easing.InOutSine }
+                                        NumberAnimation { to: modelData.h2; duration: modelData.d2; easing.type: Easing.InOutSine }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Text {
+                    text: sr.currentTime12h
+                    color: textColor
+                    font.pixelSize: 13
+                    font.weight: Font.Bold
+                    anchors.verticalCenter: parent.verticalCenter
+                }
             }
 
             // --- LEFT SIDE: MEDIA ---
