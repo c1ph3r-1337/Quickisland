@@ -441,10 +441,14 @@ gtk-application-prefer-dark-theme=1
     lum_surf = get_luminance(surface)
     if lum_surf < 0.08:
         gtk_bg = blend(surface, accent, 0.08)
-        gtk_sidebar = blend(surface_alt, accent, 0.12)
+        # Use intermediate shade between darker background (surface) and current sidebar shade (surface_alt)
+        mid_sidebar = blend(surface, surface_alt, 0.50)
+        gtk_sidebar = blend(mid_sidebar, accent, 0.06)
+        gtk_card = blend(surface_alt, accent, 0.10)
     else:
         gtk_bg = surface
-        gtk_sidebar = surface_alt
+        gtk_sidebar = blend(surface, surface_alt, 0.50)
+        gtk_card = surface_alt
 
     # Update Wallbash-Gtk theme color definitions directly
     wallbash_dir = home / ".local/share/themes/Wallbash-Gtk"
@@ -498,7 +502,9 @@ gtk-application-prefer-dark-theme=1
 @define-color error_color {red};
 @define-color success_color {green};
 @define-color content_view_bg {gtk_bg};
-@define-color text_view_bg {gtk_sidebar};
+@define-color text_view_bg {gtk_card};
+@define-color sidebar_bg_color {gtk_sidebar};
+@define-color theme_sidebar_bg_color {gtk_sidebar};
 """
     for css_target in [
         home / ".config/gtk-3.0/gtk.css",
@@ -532,9 +538,9 @@ gtk-application-prefer-dark-theme=1
 @define-color headerbar_bg_color {gtk_sidebar};
 @define-color headerbar_fg_color {text_primary};
 @define-color headerbar_backdrop_color @window_bg_color;
-@define-color card_bg_color {gtk_sidebar};
+@define-color card_bg_color {gtk_card};
 @define-color card_fg_color {text_primary};
-@define-color popover_bg_color {gtk_sidebar};
+@define-color popover_bg_color {gtk_card};
 @define-color popover_fg_color {text_primary};
 @define-color dialog_bg_color {gtk_bg};
 @define-color dialog_fg_color {text_primary};
@@ -573,10 +579,10 @@ gtk-application-prefer-dark-theme=1
     --headerbar-fg-color: {text_primary};
     --headerbar-backdrop-color: {gtk_bg};
 
-    --popover-bg-color: {gtk_sidebar};
+    --popover-bg-color: {gtk_card};
     --popover-fg-color: {text_primary};
 
-    --card-bg-color: {gtk_sidebar};
+    --card-bg-color: {gtk_card};
     --card-fg-color: {text_primary};
 
     --dialog-bg-color: {gtk_bg};
@@ -595,6 +601,15 @@ gtk-application-prefer-dark-theme=1
 
 window.background {{
     background-color: @window_bg_color;
+}}
+
+/* Explicit sidebar styling for Nautilus and Libadwaita */
+.navigation-sidebar,
+navigation-sidebar,
+splitview > sidebar,
+.sidebar,
+placessidebar {{
+    background-color: @sidebar_bg_color;
 }}
 """
     for css_target in [
@@ -641,7 +656,7 @@ window.background {{
 @define-color dialog_bg_color #<wallbash_pry1>;
 @define-color dialog_fg_color #<wallbash_4xa9>;
 
-@define-color sidebar_bg_color #<wallbash_1xa1>;
+@define-color sidebar_bg_color #<wallbash_pry2>;
 @define-color sidebar_fg_color #<wallbash_4xa9>;
 @define-color sidebar_backdrop_color @window_bg_color;
 @define-color sidebar_border_color @window_bg_color;
@@ -679,7 +694,7 @@ window.background {{
     --dialog-bg-color: #<wallbash_pry1>;
     --dialog-fg-color: #<wallbash_4xa9>;
 
-    --sidebar-bg-color: #<wallbash_1xa1>;
+    --sidebar-bg-color: #<wallbash_pry2>;
     --sidebar-fg-color: #<wallbash_4xa9>;
     --sidebar-backdrop-color: #<wallbash_pry1>;
     --sidebar-border-color: #<wallbash_pry1>;
@@ -687,6 +702,15 @@ window.background {{
 
 window.background {
     background-color: @window_bg_color;
+}
+
+/* Explicit sidebar styling for Nautilus and Libadwaita */
+.navigation-sidebar,
+navigation-sidebar,
+splitview > sidebar,
+.sidebar,
+placessidebar {
+    background-color: @sidebar_bg_color;
 }
 """)
         except Exception:
