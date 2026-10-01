@@ -235,13 +235,16 @@ Item {
             }
 
             // =================================================================
-            // 1. CENTER: UNIFIED BATTERY & NETWORK STATUS COMPLICATION
+            // 1. TOP-RIGHT: UNIFIED BATTERY & NETWORK STATUS COMPLICATION
             // =================================================================
             Item {
-                id: statusCenterArea
-                anchors.centerIn: parent
-                width: 56
-                height: parent.height
+                id: statusArea
+                anchors.top: parent.top
+                anchors.topMargin: 10
+                anchors.right: parent.right
+                anchors.rightMargin: 18
+                width: 52
+                height: 66
                 opacity: Math.max(0, (notchContainer.width - 250) / (500 - 250))
                 visible: opacity > 0
 
@@ -282,8 +285,8 @@ Item {
                 id: mediaArea
                 anchors.left: parent.left
                 anchors.leftMargin: 16
-                anchors.right: statusCenterArea.left
-                anchors.rightMargin: 8
+                anchors.right: clockArea.left
+                anchors.rightMargin: 12
                 anchors.top: parent.top
                 anchors.bottom: parent.bottom
                 opacity: Math.max(0, (notchContainer.width - 250) / (500 - 250))
@@ -390,16 +393,15 @@ Item {
             }
 
             // =================================================================
-            // 3. RIGHT SIDE: CLOCK & CALENDAR
+            // 3. RIGHT / CENTER-RIGHT: CLOCK & CALENDAR
             // =================================================================
             Item {
                 id: clockArea
-                anchors.left: statusCenterArea.right
-                anchors.leftMargin: 8
-                anchors.right: parent.right
-                anchors.rightMargin: 16
+                anchors.right: statusArea.left
+                anchors.rightMargin: 12
                 anchors.top: parent.top
                 anchors.bottom: parent.bottom
+                width: 140
                 opacity: Math.max(0, (notchContainer.width - 250) / (500 - 250))
                 visible: opacity > 0
 

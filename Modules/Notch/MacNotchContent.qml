@@ -16,13 +16,16 @@ Item {
     clip: true
 
     // =========================================================================
-    // 1. CENTER: UNIFIED BATTERY & NETWORK STATUS COMPLICATION
+    // 1. TOP-RIGHT: UNIFIED BATTERY & NETWORK STATUS COMPLICATION
     // =========================================================================
     Item {
-        id: statusCenterArea
-        anchors.centerIn: parent
-        width: 56
-        height: parent.height
+        id: statusArea
+        anchors.top: parent.top
+        anchors.topMargin: 10
+        anchors.right: parent.right
+        anchors.rightMargin: 18
+        width: 52
+        height: 66
 
         CircularStatusRing {
             id: unifiedRing
@@ -60,9 +63,9 @@ Item {
     Item {
         id: mediaArea
         anchors.left: parent.left
-        anchors.leftMargin: 20
-        anchors.right: statusCenterArea.left
-        anchors.rightMargin: 12
+        anchors.leftMargin: 18
+        anchors.right: clockArea.left
+        anchors.rightMargin: 14
         anchors.top: parent.top
         anchors.bottom: parent.bottom
 
@@ -166,16 +169,15 @@ Item {
     }
 
     // =========================================================================
-    // 3. RIGHT SIDE: CLOCK & CALENDAR
+    // 3. RIGHT / CENTER-RIGHT: CLOCK & CALENDAR
     // =========================================================================
     Item {
         id: clockArea
-        anchors.left: statusCenterArea.right
-        anchors.leftMargin: 12
-        anchors.right: parent.right
-        anchors.rightMargin: 20
+        anchors.right: statusArea.left
+        anchors.rightMargin: 14
         anchors.top: parent.top
         anchors.bottom: parent.bottom
+        width: 140
 
         Column {
             anchors.centerIn: parent
