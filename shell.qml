@@ -9761,8 +9761,6 @@ function getCurrentThemeStateKey() {
                             }
                         }
                     }
-                    // Capture screenshot of current workspace for preview
-                    wsOvWindow.captureCurrentWorkspace();
                 }
             }
         }
@@ -9773,33 +9771,73 @@ function getCurrentThemeStateKey() {
             Hyprland.dispatch("workspace " + wsId);
         }
 
-        // ── Screenshot cache: map wsId -> screenshot path ────────────────────
+        // ── Persistent screenshot cache ───────────────────────────────────────
+        // Each workspace gets a fresh screenshot whenever you leave it.
+        // This ensures every card always has a real preview.
         property var wsScreenshots: ({})
+        property int lastCapturedWsId: -1
 
-        // Grim process to capture a workspace screenshot
+        // Screenshot process (runs in background)
         Process {
             id: wsGrimProc
             property int targetWsId: -1
-            property string targetPath: ""
             running: false
-            command: targetPath !== "" ? ["grim", "-o", wsOvWindow.modelData.name, "-l", "1", "-s", "0.5", targetPath] : []
+            command: targetWsId >= 0
+                ? ["grim", "-o", wsOvWindow.modelData.name, "-l", "1", "-s", "0.5",
+                   "/tmp/quickisland-ws-preview-" + targetWsId + ".png"]
+                : []
             onRunningChanged: {
-                if (!running && targetPath !== "") {
+                if (!running && targetWsId >= 0) {
+                    // Bust QML image cache by toggling the map entry
                     var updated = Object.assign({}, wsOvWindow.wsScreenshots);
-                    updated[targetWsId] = targetPath + "?t=" + Date.now();
+                    updated[targetWsId] = Date.now();   // timestamp = cache buster
                     wsOvWindow.wsScreenshots = updated;
                 }
             }
         }
 
-        // Capture screenshot of current (focused) workspace when overview opens
-        function captureCurrentWorkspace() {
-            var ws = Hyprland.focusedWorkspace;
-            if (!ws) return;
-            var path = "/tmp/quickisland-ws-preview-" + ws.id + ".png";
-            wsGrimProc.targetWsId = ws.id;
-            wsGrimProc.targetPath = path;
+        function captureWorkspace(wsId) {
+            if (wsGrimProc.running) return;   // don't overlap captures
+            wsGrimProc.targetWsId = wsId;
             wsGrimProc.running = true;
+        }
+
+        // ── Auto-capture: screenshot whenever focused workspace changes ─────
+        // Capture the OLD workspace just before leaving it, so the cache stays warm.
+        Connections {
+            target: Hyprland
+            function onFocusedWorkspaceChanged() {
+                var cur = Hyprland.focusedWorkspace;
+                if (!cur) return;
+                // Capture the workspace we JUST left (lastCapturedWsId tracks previous)
+                if (wsOvWindow.lastCapturedWsId >= 0 && wsOvWindow.lastCapturedWsId !== cur.id) {
+                    wsOvWindow.captureWorkspace(wsOvWindow.lastCapturedWsId);
+                }
+                // Also capture the new workspace after a brief settle delay
+                wsCaptureDelay.wsIdToCapture = cur.id;
+                wsCaptureDelay.restart();
+                wsOvWindow.lastCapturedWsId = cur.id;
+            }
+        }
+
+        Timer {
+            id: wsCaptureDelay
+            property int wsIdToCapture: -1
+            interval: 300   // wait 300ms for workspace animation to settle
+            repeat: false
+            onTriggered: {
+                if (wsIdToCapture >= 0) wsOvWindow.captureWorkspace(wsIdToCapture);
+            }
+        }
+
+        // Initial capture on startup
+        Component.onCompleted: {
+            var ws = Hyprland.focusedWorkspace;
+            if (ws) {
+                wsOvWindow.lastCapturedWsId = ws.id;
+                wsCaptureDelay.wsIdToCapture = ws.id;
+                wsCaptureDelay.restart();
+            }
         }
 
         // ── FocusScope (visual root + keyboard handler) ─────────────────────
@@ -9968,31 +10006,21 @@ function getCurrentThemeStateKey() {
                                 z: 1
                             }
 
-                            // Live workspace screenshot preview (captured via grim at open time)
+                            // Workspace screenshot preview (captured via grim in background)
                             Image {
                                 id: wsPreviewImg
                                 anchors.fill: parent
-                                source: {
-                                    var path = wsOvWindow.wsScreenshots[wsCardItem.wsData.id];
-                                    return path ? "file:///tmp/quickisland-ws-preview-" + wsCardItem.wsData.id + ".png" : "";
-                                }
+                                // Source uses timestamp from cache map to bust Qt's image cache
+                                source: wsOvWindow.wsScreenshots[wsCardItem.wsData.id]
+                                    ? ("file:///tmp/quickisland-ws-preview-" + wsCardItem.wsData.id
+                                       + ".png?t=" + wsOvWindow.wsScreenshots[wsCardItem.wsData.id])
+                                    : ""
                                 fillMode: Image.PreserveAspectCrop
                                 smooth: true
                                 asynchronous: true
                                 cache: false
                                 visible: status === Image.Ready
                                 z: 2
-
-                                // Reload image when screenshot cache is updated
-                                Connections {
-                                    target: wsOvWindow
-                                    function onWsScreenshotsChanged() {
-                                        if (wsOvWindow.wsScreenshots[wsCardItem.wsData.id]) {
-                                            wsPreviewImg.source = "";
-                                            wsPreviewImg.source = "file:///tmp/quickisland-ws-preview-" + wsCardItem.wsData.id + ".png";
-                                        }
-                                    }
-                                }
                             }
 
                             // Active workspace indicator dot (top-right corner)
