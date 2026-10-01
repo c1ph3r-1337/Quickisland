@@ -5,6 +5,7 @@ import qs.Modules.Bar.Widgets as BarWidgets
 import "../../" as Root
 import "../../Commons"
 import qs.Services.UI
+import Quickshell.Hyprland
 
 // =============================================================================
 // MacNotchBar — A large, centered top notch containing media and calendar.
@@ -24,6 +25,36 @@ Item {
     required property var shellRoot
     property var screen
     readonly property var sr: shellRoot
+
+    property string workspaceId: "1"
+    property bool notchWorkspaceActive: false
+
+    Timer {
+        id: notchWorkspaceTimer
+        interval: 1400
+        onTriggered: notchWorkspaceActive = false
+    }
+
+    Connections {
+        target: Hyprland
+        function onFocusedWorkspaceChanged() {
+            var monitor = screen ? Hyprland.monitorFor(screen) : null;
+            var newId = 1;
+            if (monitor && monitor.focusedWorkspace) {
+                newId = monitor.focusedWorkspace.id;
+            } else if (monitor && monitor.activeWorkspace) {
+                newId = monitor.activeWorkspace.id;
+            } else if (Hyprland.focusedWorkspace) {
+                newId = Hyprland.focusedWorkspace.id;
+            }
+            workspaceId = newId;
+            if (!isExpanded) {
+                notchWorkspaceTimer.stop();
+                notchWorkspaceActive = true;
+                notchWorkspaceTimer.restart();
+            }
+        }
+    }
 
 // ── Layout configuration ─────────────────────────────────────────────
     property bool isHovered: false
@@ -225,12 +256,43 @@ Item {
                     }
                 }
 
-                Text {
-                    text: sr.currentTime12h
-                    color: textColor
-                    font.pixelSize: 13
-                    font.weight: Font.Bold
+                Item {
+                    id: notchCenterInfo
+                    width: notchWorkspaceActive ? notchWorkspaceLabel.implicitWidth : notchIdleClock.implicitWidth
+                    height: Math.max(notchIdleClock.implicitHeight, notchWorkspaceLabel.implicitHeight)
                     anchors.verticalCenter: parent.verticalCenter
+
+                    Behavior on width { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+
+                    Text {
+                        id: notchIdleClock
+                        anchors.centerIn: parent
+                        text: sr.currentTime12h
+                        color: textColor
+                        font.pixelSize: 13
+                        font.weight: Font.Bold
+                        font.letterSpacing: 0.5
+                        font.family: "Varela Round"
+                        opacity: notchWorkspaceActive ? 0.0 : 1.0
+                        scale: notchWorkspaceActive ? 0.8 : 1.0
+                        Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+                        Behavior on scale   { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+                    }
+
+                    Text {
+                        id: notchWorkspaceLabel
+                        anchors.centerIn: parent
+                        text: workspaceId
+                        color: textColor
+                        font.pixelSize: 13
+                        font.weight: Font.Bold
+                        font.letterSpacing: 0.5
+                        font.family: "Varela Round"
+                        opacity: notchWorkspaceActive ? 1.0 : 0.0
+                        scale: notchWorkspaceActive ? 1.0 : 0.8
+                        Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+                        Behavior on scale   { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+                    }
                 }
             }
 

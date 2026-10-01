@@ -2500,6 +2500,7 @@ function getCurrentThemeStateKey() {
             property string workspaceId: "1" // Fallback for standard WM
             property bool isSystemReady: false
             property bool workspaceCircleActive: false
+            property bool notchWorkspaceActive: false
             
             // For the left circle (Y-axis)
             property real leftWsCircleSpacing: (workspaceCircleActive && shell.spatialWmEnabled && !panelWindow.showingActualWorkspace) ? 8 : -30
@@ -2533,10 +2534,16 @@ function getCurrentThemeStateKey() {
                 if (shell.spatialWmEnabled) {
                     panelWindow.workspaceX = shell.virtualWorkspaceX;
                     panelWindow.workspaceY = shell.virtualWorkspaceY;
-                    if (panelWindow.isSystemReady && panelWindow.isFocusedScreen && !mainHoverArea.containsMouse && panelWindow.activeState === 0 && !(typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode)) {
-                        workspaceTimer.stop();
-                        panelWindow.workspaceCircleActive = true;
-                        workspaceTimer.restart();
+                    if (panelWindow.isSystemReady && panelWindow.isFocusedScreen && !mainHoverArea.containsMouse && panelWindow.activeState === 0) {
+                        if (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) {
+                            notchWorkspaceTimer.stop();
+                            panelWindow.notchWorkspaceActive = true;
+                            notchWorkspaceTimer.restart();
+                        } else {
+                            workspaceTimer.stop();
+                            panelWindow.workspaceCircleActive = true;
+                            workspaceTimer.restart();
+                        }
                     }
                 }
             }
@@ -2582,10 +2589,16 @@ function getCurrentThemeStateKey() {
             onWorkspaceYChanged: triggerWorkspaceAnimation(false)
             function triggerWorkspaceAnimation(isActual) {
                 panelWindow.showingActualWorkspace = isActual;
-                if (isSystemReady && isFocusedScreen && !mainHoverArea.containsMouse && panelWindow.activeState === 0 && !(typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode)) {
-                    workspaceTimer.stop();
-                    workspaceCircleActive = true;
-                    workspaceTimer.restart();
+                if (isSystemReady && isFocusedScreen && !mainHoverArea.containsMouse && panelWindow.activeState === 0) {
+                    if (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) {
+                        notchWorkspaceTimer.stop();
+                        panelWindow.notchWorkspaceActive = true;
+                        notchWorkspaceTimer.restart();
+                    } else {
+                        workspaceTimer.stop();
+                        workspaceCircleActive = true;
+                        workspaceTimer.restart();
+                    }
                 }
             }
 
@@ -2594,8 +2607,10 @@ function getCurrentThemeStateKey() {
                 function onContainsMouseChanged() {
                     if (mainHoverArea.containsMouse) {
                         panelWindow.workspaceCircleActive = false;
-                    panelWindow.showingActualWorkspace = false;
+                        panelWindow.notchWorkspaceActive = false;
+                        panelWindow.showingActualWorkspace = false;
                         workspaceTimer.stop();
+                        notchWorkspaceTimer.stop();
                     }
                 }
             }
@@ -2605,8 +2620,10 @@ function getCurrentThemeStateKey() {
                 function onCurrentStateChanged() {
                     if (panelWindow.activeState !== 0) {
                         panelWindow.workspaceCircleActive = false;
-                    panelWindow.showingActualWorkspace = false;
+                        panelWindow.notchWorkspaceActive = false;
+                        panelWindow.showingActualWorkspace = false;
                         workspaceTimer.stop();
+                        notchWorkspaceTimer.stop();
                     }
                 }
             }
@@ -2617,6 +2634,14 @@ function getCurrentThemeStateKey() {
                 onTriggered: {
                     panelWindow.workspaceCircleActive = false;
                     panelWindow.showingActualWorkspace = false;
+                }
+            }
+
+            Timer {
+                id: notchWorkspaceTimer
+                interval: 1400
+                onTriggered: {
+                    panelWindow.notchWorkspaceActive = false;
                 }
             }
 
@@ -3137,15 +3162,43 @@ function getCurrentThemeStateKey() {
                             }
                         }
 
-                        Text {
-                            id: notchIdleClock
-                            text: shell.currentTime12h
-                            color: shell.textPrimary
-                            font.pixelSize: 13
-                            font.weight: Font.Bold
-                            font.letterSpacing: 0.5
-                            font.family: "Varela Round"
+                        Item {
+                            id: notchCenterInfo
+                            width: panelWindow.notchWorkspaceActive ? notchWorkspaceLabel.implicitWidth : notchIdleClock.implicitWidth
+                            height: Math.max(notchIdleClock.implicitHeight, notchWorkspaceLabel.implicitHeight)
                             anchors.verticalCenter: parent.verticalCenter
+
+                            Behavior on width { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+
+                            Text {
+                                id: notchIdleClock
+                                anchors.centerIn: parent
+                                text: shell.currentTime12h
+                                color: shell.textPrimary
+                                font.pixelSize: 13
+                                font.weight: Font.Bold
+                                font.letterSpacing: 0.5
+                                font.family: "Varela Round"
+                                opacity: panelWindow.notchWorkspaceActive ? 0.0 : 1.0
+                                scale: panelWindow.notchWorkspaceActive ? 0.8 : 1.0
+                                Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+                                Behavior on scale   { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+                            }
+
+                            Text {
+                                id: notchWorkspaceLabel
+                                anchors.centerIn: parent
+                                text: (shell.spatialWmEnabled && !panelWindow.showingActualWorkspace) ? panelWindow.workspaceX : panelWindow.workspaceId
+                                color: shell.textPrimary
+                                font.pixelSize: 13
+                                font.weight: Font.Bold
+                                font.letterSpacing: 0.5
+                                font.family: "Varela Round"
+                                opacity: panelWindow.notchWorkspaceActive ? 1.0 : 0.0
+                                scale: panelWindow.notchWorkspaceActive ? 1.0 : 0.8
+                                Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+                                Behavior on scale   { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+                            }
                         }
                     }
                 }
