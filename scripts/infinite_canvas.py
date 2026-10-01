@@ -156,7 +156,8 @@ def main():
                     "local_y": round(local_y),
                     "w": cw,
                     "h": ch,
-                    "class": app_class
+                    "class": app_class,
+                    "was_floating": c.get("floating", False)  # remember original floating state
                 }
             else:
                 win = windows[addr]
@@ -224,17 +225,35 @@ def main():
             win_w = win.get("w", c["size"][0])
             win_h = win.get("h", c["size"][1])
 
+            is_on_screen = (win["vx"] == new_vx and win["vy"] == new_vy)
+            was_floating = win.get("was_floating", True)
+
             if c.get("fullscreen", 0) > 0:
                 batch_cmds.append(f"dispatch fullscreen 0,address:{addr}")
-            if not c.get("floating", False):
-                batch_cmds.append(f"dispatch togglefloating address:{addr}")
 
-            if c.get("size") != [win_w, win_h]:
-                batch_cmds.append(f"dispatch resizewindowpixel exact {win_w} {win_h},address:{addr}")
-            batch_cmds.append(f"dispatch movewindowpixel exact {target_x} {target_y},address:{addr}")
+            if is_on_screen:
+                # Window is returning to the current viewport
+                if not was_floating and c.get("floating", True):
+                    # Was originally tiled — restore to tiled
+                    batch_cmds.append(f"dispatch togglefloating address:{addr}")
+                elif was_floating and not c.get("floating", False):
+                    # Was originally floating — ensure it stays floating
+                    batch_cmds.append(f"dispatch togglefloating address:{addr}")
+            else:
+                # Window needs to go off-screen — must be floating to move freely
+                if not c.get("floating", False):
+                    batch_cmds.append(f"dispatch togglefloating address:{addr}")
+
+            # Only set size/position if floating (tiled windows are managed by Hyprland layout)
+            if is_on_screen and not was_floating:
+                pass  # let Hyprland's tiling layout handle position/size
+            else:
+                if c.get("size") != [win_w, win_h]:
+                    batch_cmds.append(f"dispatch resizewindowpixel exact {win_w} {win_h},address:{addr}")
+                batch_cmds.append(f"dispatch movewindowpixel exact {target_x} {target_y},address:{addr}")
 
             # If window is now on screen, check distance to center for focus
-            if (win["vx"] == new_vx and win["vy"] == new_vy):
+            if is_on_screen:
                 dx = (target_x + win_w / 2) - center_x
                 dy = (target_y + win_h / 2) - center_y
                 dist = dx * dx + dy * dy
