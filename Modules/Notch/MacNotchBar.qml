@@ -242,9 +242,9 @@ Item {
                 anchors.top: parent.top
                 anchors.topMargin: 10
                 anchors.right: parent.right
-                anchors.rightMargin: 18
-                width: 52
-                height: 66
+                anchors.rightMargin: 16
+                width: 40
+                height: 52
                 opacity: Math.max(0, (notchContainer.width - 250) / (500 - 250))
                 visible: opacity > 0
 

@@ -23,9 +23,9 @@ Item {
         anchors.top: parent.top
         anchors.topMargin: 10
         anchors.right: parent.right
-        anchors.rightMargin: 18
-        width: 52
-        height: 66
+        anchors.rightMargin: 16
+        width: 40
+        height: 52
 
         CircularStatusRing {
             id: unifiedRing
