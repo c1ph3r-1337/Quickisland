@@ -1252,6 +1252,220 @@ theme[process_end]="{red}"
         except Exception as e:
             print(f"Error updating VS Code settings at {settings_path}: {e}")
 
+    # ---------------------------------------------------------
+    # 10. Obsidian Markdown Knowledge Base
+    # ---------------------------------------------------------
+    try:
+        obsidian_vaults = []
+        obs_config = home / ".config/obsidian/obsidian.json"
+        if obs_config.exists():
+            try:
+                with open(obs_config, "r") as f:
+                    obs_data = json.load(f)
+                for v_info in obs_data.get("vaults", {}).values():
+                    v_path = v_info.get("path")
+                    if v_path and os.path.exists(v_path):
+                        obsidian_vaults.append(Path(v_path))
+            except Exception:
+                pass
+
+        # Also discover common vault locations if not in obsidian.json
+        for cand in [
+            home / "Obsidian",
+            home / "Documents/Obsidian",
+            Path("/vault/Obsidian/Vault"),
+            Path("/vault/Notes/Obsidian Notes"),
+        ]:
+            if cand.exists() and (cand / ".obsidian").exists() and cand not in obsidian_vaults:
+                obsidian_vaults.append(cand)
+
+        if obsidian_vaults:
+            ar, ag, ab = hex_to_rgb(accent)
+            sr, sg, sb = hex_to_rgb(surface)
+            s_alt_r, s_alt_g, s_alt_b = hex_to_rgb(surface_alt)
+            sbr_r, sbr_g, sbr_b = hex_to_rgb(surface_bright)
+
+            obsidian_css = f"""/* QuickIsland Live Theme for Obsidian: {name} */
+body.theme-dark {{
+    /* Base Color Tokens */
+    --color-base-00: {surface};
+    --color-base-10: {gtk_sidebar};
+    --color-base-20: {surface_alt};
+    --color-base-25: {surface_alt};
+    --color-base-30: {surface_bright};
+    --color-base-35: {surface_bright};
+    --color-base-40: {surface_bright};
+    --color-base-50: {text_muted};
+    --color-base-60: {text_muted};
+    --color-base-70: {text_secondary};
+    --color-base-100: {text_primary};
+
+    /* Accent & Interactions */
+    --color-accent: {accent};
+    --color-accent-1: {accent};
+    --color-accent-2: {blend(accent, text_primary, 0.20)};
+    --interactive-accent: {accent};
+    --interactive-accent-hover: {blend(accent, text_primary, 0.15)};
+
+    /* Functional Colors */
+    --color-red: {red};
+    --color-green: {green};
+    --color-orange: {peach};
+    --color-yellow: {peach};
+    --color-blue: {blue};
+    --color-purple: {accent};
+    --color-cyan: {blue};
+
+    /* Backgrounds & Surfaces */
+    --background-primary: {surface};
+    --background-primary-alt: {surface};
+    --background-secondary: {gtk_sidebar};
+    --background-secondary-alt: {surface_alt};
+    --background-modifier-border: {surface_bright};
+    --background-modifier-border-hover: {accent};
+    --background-modifier-border-focus: {accent};
+    --background-modifier-form-field: {gtk_sidebar};
+
+    /* Typography */
+    --text-normal: {text_primary};
+    --text-muted: {text_secondary};
+    --text-faint: {text_muted};
+    --text-accent: {accent};
+    --text-accent-hover: {blend(accent, text_primary, 0.15)};
+
+    /* Header & Titlebar */
+    --titlebar-background: {gtk_sidebar};
+    --titlebar-background-focused: {gtk_sidebar};
+    --titlebar-text: {text_primary};
+    --titlebar-text-focused: {text_primary};
+
+    /* Status Bar */
+    --status-bar-background: {gtk_sidebar};
+    --status-bar-border-color: {surface_bright};
+    --status-bar-text: {text_secondary};
+
+    /* Tabs & Dividers */
+    --tab-background-active: {surface};
+    --tab-text-color-focused-active: {accent};
+    --tab-text-color-focused: {text_secondary};
+    --divider-color: {surface_bright};
+
+    /* Liquid Glass Effect Variables */
+    --qi-tint-1: rgba({ar}, {ag}, {ab}, 0.12);
+    --qi-tint-2: rgba({ar}, {ag}, {ab}, 0.08);
+    --qi-tint-3: rgba({sbr_r}, {sbr_g}, {sbr_b}, 0.08);
+    --qi-surface: rgba({sr}, {sg}, {sb}, 0.45);
+    --qi-surface-2: rgba({s_alt_r}, {s_alt_g}, {s_alt_b}, 0.32);
+    --qi-border: rgba({ar}, {ag}, {ab}, 0.22);
+}}
+
+/* Liquid Glass Backdrop */
+body.theme-dark .app-container,
+body.theme-dark .workspace,
+body.theme-dark .workspace-split.mod-root {{
+    background:
+        radial-gradient(700px 420px at 6% 10%, var(--qi-tint-1), transparent 68%),
+        radial-gradient(620px 360px at 92% 88%, var(--qi-tint-2), transparent 70%),
+        radial-gradient(420px 240px at 50% 0%, var(--qi-tint-3), transparent 72%),
+        linear-gradient(160deg, {surface}, {surface_alt}) !important;
+}}
+
+/* Translucent Panes & Leaves */
+body.theme-dark .workspace-leaf-content,
+body.theme-dark .workspace-tab-header-container,
+body.theme-dark .workspace-ribbon,
+body.theme-dark .status-bar,
+body.theme-dark .workspace-sidedock-vault-profile {{
+    background: linear-gradient(165deg, var(--qi-surface), var(--qi-surface-2)) !important;
+    border: 1px solid var(--qi-border) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 8px 20px rgba(0, 0, 0, 0.26);
+    backdrop-filter: blur(10px) saturate(1.05);
+    -webkit-backdrop-filter: blur(10px) saturate(1.05);
+}}
+
+/* Tab Headers */
+body.theme-dark .workspace-tab-header {{
+    background: rgba(255, 255, 255, 0.03) !important;
+    border: 1px solid var(--qi-border) !important;
+    border-radius: 8px !important;
+}}
+body.theme-dark .workspace-tab-header.is-active {{
+    background: rgba({ar}, {ag}, {ab}, 0.12) !important;
+    border-color: {accent} !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 4px 12px rgba(0, 0, 0, 0.28);
+}}
+
+/* Active Ribbon Buttons */
+body.theme-dark .workspace-ribbon :is(
+    .workspace-ribbon-action.is-active,
+    .workspace-ribbon-action.mod-active,
+    .side-dock-ribbon-action.is-active,
+    .side-dock-ribbon-action.mod-active,
+    .clickable-icon.is-active,
+    .clickable-icon.mod-active,
+    [aria-pressed="true"]
+) {{
+    background: linear-gradient(165deg, rgba({ar}, {ag}, {ab}, 0.22), rgba({ar}, {ag}, {ab}, 0.10)) !important;
+    border-color: rgba({ar}, {ag}, {ab}, 0.34) !important;
+    color: {text_primary} !important;
+}}
+
+/* Context Menus */
+body.theme-dark .menu {{
+    background: linear-gradient(165deg, rgba({sr}, {sg}, {sb}, 0.94), rgba({s_alt_r}, {s_alt_g}, {s_alt_b}, 0.88)) !important;
+    border: 1px solid var(--qi-border) !important;
+    border-radius: 12px !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}}
+body.theme-dark .menu-item:hover,
+body.theme-dark .menu-item.is-selected {{
+    background: rgba({ar}, {ag}, {ab}, 0.16) !important;
+    color: {accent} !important;
+}}
+
+/* Hide Window Control Buttons for Hyprland */
+body.theme-dark .titlebar-button-container.mod-right,
+body.theme-dark .titlebar-button-container.mod-left,
+body.theme-dark .titlebar-button,
+body.theme-dark .titlebar-button.mod-minimize,
+body.theme-dark .titlebar-button.mod-maximize,
+body.theme-dark .titlebar-button.mod-close {{
+    display: none !important;
+}}
+body.theme-dark .titlebar {{
+    -webkit-app-region: drag;
+}}
+"""
+            for v_dir in obsidian_vaults:
+                try:
+                    snip_dir = v_dir / ".obsidian/snippets"
+                    snip_dir.mkdir(parents=True, exist_ok=True)
+                    (snip_dir / "quickisland-theme.css").write_text(obsidian_css)
+                    # Also update purple-glass-bg.css if present
+                    if (snip_dir / "purple-glass-bg.css").exists():
+                        (snip_dir / "purple-glass-bg.css").write_text(obsidian_css)
+
+                    # Ensure snippet is enabled in appearance.json
+                    app_json = v_dir / ".obsidian/appearance.json"
+                    app_data = {}
+                    if app_json.exists():
+                        try:
+                            with open(app_json, "r") as f:
+                                app_data = json.load(f)
+                        except Exception:
+                            app_data = {}
+                    en = app_data.setdefault("enabledCssSnippets", [])
+                    if "quickisland-theme" not in en:
+                        en.append("quickisland-theme")
+                    app_data["enabledCssSnippets"] = en
+                    with open(app_json, "w") as f:
+                        json.dump(app_data, f, indent=2)
+                except Exception as e:
+                    print(f"Error syncing Obsidian vault {v_dir}: {e}")
+    except Exception as e:
+        print(f"Error syncing Obsidian: {e}")
+
     print(f"Successfully applied system-wide theme: {name}")
 
 if __name__ == "__main__":

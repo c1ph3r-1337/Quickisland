@@ -436,6 +436,62 @@ else
     echo -e "  ${CYAN}hl.on(\"hyprland.start\", function () hl.exec_cmd(\"~/.config/quickshell/quickisland/launch.sh\") end)${NC}"
 fi
 
+# ── Obsidian Theme Setup ──────────────────────────────────────────────────────
+header "Obsidian — QuickIsland Theme Setup"
+
+OBSIDIAN_CONF="$HOME/.config/obsidian/obsidian.json"
+VAULTS=()
+
+if [ -f "$OBSIDIAN_CONF" ]; then
+    while IFS= read -r vpath; do
+        [ -n "$vpath" ] && [ -d "$vpath" ] && VAULTS+=("$vpath")
+    done < <(python3 -c "
+import json
+try:
+    with open('$OBSIDIAN_CONF') as f:
+        data = json.load(f)
+    for v in data.get('vaults', {}).values():
+        p = v.get('path')
+        if p: print(p)
+except Exception:
+    pass
+" 2>/dev/null)
+fi
+
+for cand in "$HOME/Obsidian" "$HOME/Documents/Obsidian" "/vault/Obsidian/Vault" "/vault/Notes/Obsidian Notes"; do
+    if [ -d "$cand/.obsidian" ]; then
+        already=0
+        for existing in "${VAULTS[@]}"; do
+            [ "$existing" = "$cand" ] && already=1 && break
+        done
+        [ $already -eq 0 ] && VAULTS+=("$cand")
+    fi
+done
+
+if [ ${#VAULTS[@]} -gt 0 ]; then
+    for v in "${VAULTS[@]}"; do
+        SNIP_DIR="$v/.obsidian/snippets"
+        mkdir -p "$SNIP_DIR"
+        cp "$PROFILE_DIR/Assets/Templates/obsidian.css" "$SNIP_DIR/quickisland-theme.css" 2>/dev/null || true
+        # Enable snippet in appearance.json
+        python3 -c "
+import json
+p = '$v/.obsidian/appearance.json'
+try:
+    try:
+        with open(p) as f: d = json.load(f)
+    except Exception: d = {}
+    en = d.setdefault('enabledCssSnippets', [])
+    if 'quickisland-theme' not in en: en.append('quickisland-theme')
+    with open(p, 'w') as f: json.dump(d, f, indent=2)
+except Exception: pass
+" 2>/dev/null || true
+        success "Configured QuickIsland theme snippet in: $v"
+    done
+else
+    info "No Obsidian vaults found yet (theme will automatically sync when created)"
+fi
+
 # ── Fastfetch + Kitty Setup ───────────────────────────────────────────────────
 header "Fastfetch — Wallpaper Logo Setup"
 
