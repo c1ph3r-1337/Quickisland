@@ -16,14 +16,56 @@ Item {
     clip: true
 
     // =========================================================================
-    // 1. LEFT SIDE: MEDIA PLAYER
+    // 1. TOP-RIGHT: UNIFIED BATTERY & NETWORK STATUS COMPLICATION
+    // =========================================================================
+    Item {
+        id: statusArea
+        anchors.top: parent.top
+        anchors.topMargin: 12
+        anchors.right: parent.right
+        anchors.rightMargin: 16
+        width: 32
+        height: 42
+
+        CircularStatusRing {
+            id: unifiedRing
+            anchors.centerIn: parent
+
+            // Battery (Outer Ring Arc & Label)
+            batteryRatio: sr.batteryPercent >= 0 ? Math.max(0.0, Math.min(1.0, sr.batteryPercent / 100)) : 1.0
+            isCharging: sr.batteryCharging
+            activeColor: textColor
+            trackColor: Qt.rgba(textColor.r, textColor.g, textColor.b, 0.22)
+            batteryLabel: sr.batteryPercent >= 0 ? (Math.round(sr.batteryPercent) + "%") : ""
+
+            // Network (Center Icon & Bottom Strength Dots)
+            signalDots: {
+                if (sr.ethConnected) return 4;
+                if (sr.wifiConnected) {
+                    var sig = parseInt(sr.connectedWifiSignal || "100");
+                    if (isNaN(sig)) return 3;
+                    return Math.max(1, Math.min(4, Math.round((sig / 100) * 4)));
+                }
+                return 0;
+            }
+            networkConnected: sr.ethConnected || sr.wifiConnected
+            networkIcon: sr.ethConnected ? "../../icons/ethernet.png" : "../../icons/wifi.png"
+
+            // Left-click opens Wi-Fi, Right-click opens Control Center
+            onClicked: sr.setState(8)
+            onRightClicked: sr.setState(5)
+        }
+    }
+
+    // =========================================================================
+    // 2. LEFT SIDE: MEDIA PLAYER
     // =========================================================================
     Item {
         id: mediaArea
         anchors.left: parent.left
-        anchors.leftMargin: 20
+        anchors.leftMargin: 18
         anchors.right: clockArea.left
-        anchors.rightMargin: 16
+        anchors.rightMargin: 14
         anchors.top: parent.top
         anchors.bottom: parent.bottom
 
@@ -127,66 +169,30 @@ Item {
     }
 
     // =========================================================================
-    // 2. RIGHT SIDE: CLOCK, STATUS COMPLICATION & CALENDAR
+    // 3. RIGHT / CENTER-RIGHT: CLOCK & CALENDAR
     // =========================================================================
     Item {
         id: clockArea
-        anchors.right: parent.right
-        anchors.rightMargin: 20
+        anchors.right: statusArea.left
+        anchors.rightMargin: 14
         anchors.top: parent.top
         anchors.bottom: parent.bottom
-        width: 175
+        width: 140
 
         Column {
             anchors.centerIn: parent
             spacing: 4
 
-            // Header Row: Time & Status Complication Side by Side
-            Row {
+            Text {
                 anchors.horizontalCenter: parent.horizontalCenter
-                spacing: 8
-
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: sr.currentTime12h
-                    color: textColor
-                    font.pixelSize: 26
-                    font.weight: Font.Bold
-                    font.letterSpacing: 0.5
-                    font.family: "Varela Round"
-                }
-
-                CircularStatusRing {
-                    id: unifiedRing
-                    anchors.verticalCenter: parent.verticalCenter
-
-                    // Battery (Outer Ring Arc & Label)
-                    batteryRatio: sr.batteryPercent >= 0 ? Math.max(0.0, Math.min(1.0, sr.batteryPercent / 100)) : 1.0
-                    isCharging: sr.batteryCharging
-                    activeColor: textColor
-                    trackColor: Qt.rgba(textColor.r, textColor.g, textColor.b, 0.22)
-                    batteryLabel: sr.batteryPercent >= 0 ? (Math.round(sr.batteryPercent) + "%") : ""
-
-                    // Network (Center Icon & Bottom Strength Dots)
-                    signalDots: {
-                        if (sr.ethConnected) return 4;
-                        if (sr.wifiConnected) {
-                            var sig = parseInt(sr.connectedWifiSignal || "100");
-                            if (isNaN(sig)) return 3;
-                            return Math.max(1, Math.min(4, Math.round((sig / 100) * 4)));
-                        }
-                        return 0;
-                    }
-                    networkConnected: sr.ethConnected || sr.wifiConnected
-                    networkIcon: sr.ethConnected ? "../../icons/ethernet.png" : "../../icons/wifi.png"
-
-                    // Left-click opens Wi-Fi, Right-click opens Control Center
-                    onClicked: sr.setState(8)
-                    onRightClicked: sr.setState(5)
-                }
+                text: sr.currentTime12h
+                color: textColor
+                font.pixelSize: 28
+                font.weight: Font.Bold
+                font.letterSpacing: 0.5
+                font.family: "Varela Round"
             }
 
-            // Mini Calendar Row
             Row {
                 anchors.horizontalCenter: parent.horizontalCenter
                 spacing: 6

@@ -23,8 +23,8 @@ Item {
     signal clicked()
     signal rightClicked()
 
-    width: 26
-    height: 34
+    width: 32
+    height: 42
 
     property real animatedBatteryRatio: batteryRatio
     Behavior on animatedBatteryRatio {
@@ -37,7 +37,7 @@ Item {
     onSignalDotsChanged: ringCanvas.requestPaint()
     onTrackColorChanged: ringCanvas.requestPaint()
 
-    scale: ringMouse.containsMouse ? 1.12 : 1.0
+    scale: ringMouse.containsMouse ? 1.08 : 1.0
     Behavior on scale {
         NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
     }
@@ -45,8 +45,8 @@ Item {
     // Circular Ring Container
     Item {
         id: ringContainer
-        width: 24
-        height: 24
+        width: 28
+        height: 28
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
 
@@ -64,8 +64,8 @@ Item {
                 var h = height;
                 var cx = w / 2;
                 var cy = h / 2;
-                var strokeWidth = 1.8;
-                var r = (w - strokeWidth) / 2 - 0.8;
+                var strokeWidth = 2.0;
+                var r = (w - strokeWidth) / 2 - 1.0;
 
                 // Arc angles: Clockwise from bottom-left (145° / 0.805*PI) across the top to bottom-right (35° / 2.195*PI)
                 var startAngle = Math.PI * 0.805;
@@ -99,7 +99,7 @@ Item {
                     Math.PI * 0.458, // 82.5°
                     Math.PI * 0.375  // 67.5°
                 ];
-                var dotRadius = 0.9;
+                var dotRadius = 1.0;
 
                 for (var i = 0; i < 4; i++) {
                     var angle = dotAngles[i];
@@ -120,8 +120,8 @@ Item {
         Image {
             id: centerImg
             anchors.centerIn: parent
-            width: 10
-            height: 10
+            width: 11
+            height: 11
             source: root.networkIcon
             fillMode: Image.PreserveAspectFit
             visible: root.networkIcon !== ""
@@ -144,7 +144,7 @@ Item {
         Text {
             text: "󰂄"
             font.family: "JetBrainsMono Nerd Font"
-            font.pixelSize: 7
+            font.pixelSize: 8
             color: root.activeColor
             visible: root.isCharging
             anchors.verticalCenter: parent.verticalCenter
