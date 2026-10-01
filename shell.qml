@@ -2437,9 +2437,34 @@ function getCurrentThemeStateKey() {
             id: panelWindow
             required property ShellScreen modelData
             screen: modelData
-            visible: !(typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) || panelWindow.activeState > 0
+            visible: !(typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) || panelWindow.activeState > 0 || panelWindow.closingFromNotch
             color: "transparent"
             property var shellRootObj: shell
+
+            property bool closingFromNotch: false
+            property int prevActiveState: 0
+
+            Timer {
+                id: notchCloseTimer
+                interval: shell.animNormal + 40
+                repeat: false
+                onTriggered: {
+                    panelWindow.closingFromNotch = false;
+                }
+            }
+
+            onActiveStateChanged: {
+                if (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) {
+                    if (activeState === 0 && prevActiveState > 0) {
+                        closingFromNotch = true;
+                        notchCloseTimer.restart();
+                    } else if (activeState > 0) {
+                        notchCloseTimer.stop();
+                        closingFromNotch = false;
+                    }
+                }
+                prevActiveState = activeState;
+            }
 
             // Workspace tracking and indicator properties
             property int workspaceX: 0
@@ -2776,52 +2801,20 @@ function getCurrentThemeStateKey() {
                 id: leftFlare
                 anchors.right: island.left
                 anchors.top: island.top
-                width: Settings.isLoaded ? Settings.data.islandConfig.notchFlare : 16
+                width: (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchFlare) ? Settings.data.islandConfig.notchFlare : 12
                 height: width
-                visible: false // Handled by MacNotchBar
-                clip: true // Prevent LiquidGlassBackground from expanding the layer effect
+                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode && (panelWindow.activeState > 0 || panelWindow.closingFromNotch)
+                clip: true
 
-                LiquidGlassBackground {
-                    anchors.top: parent.top
-                    
-                    anchors.left: parent.left
-                    width: leftFlare.width + island.width + rightFlare.width
-                    height: typeof liquidGlassBg !== "undefined" ? liquidGlassBg.height : parent.height
-                    
-                    radius: 0
-                    surfaceColor: shell.surface
-                    accentColor: shell.accent
-                    borderColor: "transparent"
-                    active: Settings.isLoaded && Settings.data.colorSchemes.hyprglass
-                    isFlare: true
-                }
-                
-                Rectangle {
+                Shape {
                     anchors.fill: parent
-                    color: shell.surface
-                    visible: !(Settings.isLoaded && Settings.data.colorSchemes.hyprglass)
-                }
-
-                layer.enabled: true
-                layer.effect: MultiEffect {
-                    maskEnabled: true
-                    maskSource: ShaderEffectSource {
-                        sourceItem: Shape {
-                            width: leftFlare.width
-                            height: leftFlare.height
-                            layer.enabled: true
-                            layer.samples: 4
-                            ShapePath {
-                                fillColor: "white"
-                                strokeColor: "transparent"
-                                startX: leftFlare.width; startY: leftFlare.height
-                                PathLine { x: leftFlare.width + 1; y: leftFlare.height }
-                                PathLine { x: leftFlare.width + 1; y: -1 }
-                                PathLine { x: -1; y: -1 }
-                                PathLine { x: 0; y: 0 }
-                                PathArc { x: leftFlare.width; y: leftFlare.height; radiusX: leftFlare.width; radiusY: leftFlare.height; useLargeArc: false; direction: PathArc.CounterClockwise }
-                            }
-                        }
+                    layer.enabled: true
+                    layer.samples: 4
+                    ShapePath {
+                        fillColor: shell.surface
+                        strokeColor: "transparent"
+                        strokeWidth: 0
+                        PathSvg { path: "M 0 0 L " + leftFlare.width + " 0 L " + leftFlare.width + " " + leftFlare.height + " A " + leftFlare.width + " " + leftFlare.height + " 0 0 0 0 0 Z" }
                     }
                 }
             }
@@ -2831,52 +2824,20 @@ function getCurrentThemeStateKey() {
                 id: rightFlare
                 anchors.left: island.right
                 anchors.top: island.top
-                width: Settings.isLoaded ? Settings.data.islandConfig.notchFlare : 16
+                width: (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchFlare) ? Settings.data.islandConfig.notchFlare : 12
                 height: width
-                visible: false // Handled by MacNotchBar
-                clip: true // Prevent LiquidGlassBackground from expanding the layer effect
+                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode && (panelWindow.activeState > 0 || panelWindow.closingFromNotch)
+                clip: true
 
-                LiquidGlassBackground {
-                    anchors.top: parent.top
-                    
-                    anchors.right: parent.right
-                    width: leftFlare.width + island.width + rightFlare.width
-                    height: typeof liquidGlassBg !== "undefined" ? liquidGlassBg.height : parent.height
-
-                    radius: 0
-                    surfaceColor: shell.surface
-                    accentColor: shell.accent
-                    borderColor: "transparent"
-                    active: Settings.isLoaded && Settings.data.colorSchemes.hyprglass
-                    isFlare: true
-                }
-
-                Rectangle {
+                Shape {
                     anchors.fill: parent
-                    color: shell.surface
-                    visible: !(Settings.isLoaded && Settings.data.colorSchemes.hyprglass)
-                }
-
-                layer.enabled: true
-                layer.effect: MultiEffect {
-                    maskEnabled: true
-                    maskSource: ShaderEffectSource {
-                        sourceItem: Shape {
-                            width: rightFlare.width
-                            height: rightFlare.height
-                            layer.enabled: true
-                            layer.samples: 4
-                            ShapePath {
-                                fillColor: "white"
-                                strokeColor: "transparent"
-                                startX: 0; startY: rightFlare.height
-                                PathArc { x: rightFlare.width; y: 0; radiusX: rightFlare.width; radiusY: rightFlare.height; useLargeArc: false; direction: PathArc.CounterClockwise }
-                                PathLine { x: rightFlare.width; y: -1 }
-                                PathLine { x: -1; y: -1 }
-                                PathLine { x: -1; y: rightFlare.height }
-                                PathLine { x: 0; y: rightFlare.height }
-                            }
-                        }
+                    layer.enabled: true
+                    layer.samples: 4
+                    ShapePath {
+                        fillColor: shell.surface
+                        strokeColor: "transparent"
+                        strokeWidth: 0
+                        PathSvg { path: "M " + rightFlare.width + " 0 L 0 0 L 0 " + rightFlare.height + " A " + rightFlare.width + " " + rightFlare.height + " 0 0 1 " + rightFlare.width + " 0 Z" }
                     }
                 }
             }
@@ -2894,13 +2855,13 @@ function getCurrentThemeStateKey() {
                 color: "transparent"
                 property real islandRadius: {
                     switch (panelWindow.activeState) {
-                        case 0: return 15;
-                        case 1: return 22;
+                        case 0: return (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 18 : 15;
+                        case 1: return (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 18 : 22;
                         case 2: return 17;
                         default: return 24;
                     }
                 }
-                readonly property bool isPillState: panelWindow.activeState <= 1 && shell.prevState <= 1
+                readonly property bool isPillState: panelWindow.activeState <= 1 && shell.prevState <= 1 && !(typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode)
                 radius: isPillState ? (island.height / 2) : islandRadius
                 clip: true
 
@@ -2944,9 +2905,10 @@ function getCurrentThemeStateKey() {
                 }
 
                 property real islandWidth: {
+                    var notchFlareW = (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchFlare) ? Settings.data.islandConfig.notchFlare : 12;
                     switch (panelWindow.activeState) {
-                        case 0: return 110;
-                        case 1: return 380;
+                        case 0: return (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) ? (500 - 2 * notchFlareW) : 110;
+                        case 1: return (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) ? (500 - 2 * notchFlareW) : 380;
                         case 2: return 230;
                         case 3: return 400;
                         case 4: return 445;
@@ -2966,13 +2928,13 @@ function getCurrentThemeStateKey() {
                         case 18: return 440;
                         case 19: return 440;
                         case 20: return 510;
-                        default: return 110;
+                        default: return (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) ? (500 - 2 * notchFlareW) : 110;
                     }
                 }
                 property real islandHeight: {
                     switch (panelWindow.activeState) {
-                        case 0: return 30;
-                        case 1: return 44;
+                        case 0: return (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 110 : 30;
+                        case 1: return (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 110 : 44;
                         case 2: return 34;
                         case 3: return 76;
                         case 4: return 445;
@@ -2992,7 +2954,7 @@ function getCurrentThemeStateKey() {
                         case 18: return Math.min(680, (typeof settingsContent !== "undefined" ? settingsContent.height + 80 : 380));
                         case 19: return Math.min(680, (typeof barIslandCol !== "undefined" ? barIslandCol.height + 28 : 350));
                         case 20: return 176;
-                        default: return 30;
+                        default: return (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 110 : 30;
                     }
                 }
 
@@ -3009,7 +2971,7 @@ function getCurrentThemeStateKey() {
                 // =============================================================
                 Item {
                     anchors.fill: parent
-                    opacity: panelWindow.activeState === 0 ? 1 : 0; scale: panelWindow.activeState === 0 ? 1 : 0.92; visible: opacity > 0.01
+                    opacity: (panelWindow.activeState === 0 && !(typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode)) ? 1 : 0; scale: panelWindow.activeState === 0 ? 1 : 0.92; visible: opacity > 0.01
                     Behavior on opacity { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
                     Behavior on scale   { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
 
@@ -3073,7 +3035,7 @@ function getCurrentThemeStateKey() {
                 // =============================================================
                 Item {
                     anchors.fill: parent
-                    opacity: panelWindow.activeState === 1 ? 1 : 0; scale: panelWindow.activeState === 1 ? 1 : 0.92; visible: opacity > 0.01
+                    opacity: (panelWindow.activeState === 1 && !(typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode)) ? 1 : 0; scale: panelWindow.activeState === 1 ? 1 : 0.92; visible: opacity > 0.01
                     Behavior on opacity { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
                     Behavior on scale   { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
 

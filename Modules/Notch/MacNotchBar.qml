@@ -27,8 +27,34 @@ Item {
 
 // ── Layout configuration ─────────────────────────────────────────────
     property bool isHovered: false
-    property bool isExpanded: isHovered
+    property bool keepExpanded: false
+    readonly property bool isExpanded: isHovered || keepExpanded || (sr && sr.currentState > 0)
     
+    Timer {
+        id: autoCollapseTimer
+        interval: 1800
+        repeat: false
+        onTriggered: {
+            if (!notchMouseArea.containsMouse && (!sr || sr.currentState === 0)) {
+                keepExpanded = false;
+            }
+        }
+    }
+
+    Connections {
+        target: sr
+        function onCurrentStateChanged() {
+            if (sr && sr.currentState > 0) {
+                autoCollapseTimer.stop();
+                keepExpanded = true;
+            } else if (sr && sr.currentState === 0) {
+                if (!notchMouseArea.containsMouse) {
+                    autoCollapseTimer.restart();
+                }
+            }
+        }
+    }
+
     property real notchWidth: isExpanded ? 500 : 160
     property real notchHeight: isExpanded ? 110 : 28
     
@@ -36,7 +62,7 @@ Item {
     Behavior on notchHeight { NumberAnimation { duration: 350; easing.type: Easing.OutExpo } }
 
     readonly property real notchRadius: 18 // slightly smaller radius for collapsed mode compatibility
-    property real flareRadius: isExpanded ? 12 : 5
+    property real flareRadius: isExpanded ? ((typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchFlare) ? Settings.data.islandConfig.notchFlare : 12) : 5
     Behavior on flareRadius { NumberAnimation { duration: 350; easing.type: Easing.OutExpo } }
 
     readonly property color bgColor: sr.surface
@@ -355,11 +381,21 @@ Item {
     Timer { interval: 60000; running: true; repeat: true; onTriggered: {} }
 
     MouseArea {
+        id: notchMouseArea
         anchors.fill: notchContainer
         hoverEnabled: true
         propagateComposedEvents: true
-        onEntered: { isHovered = true; notchBar.forceActiveFocus(); }
-        onExited: isHovered = false
+        onEntered: {
+            autoCollapseTimer.stop();
+            isHovered = true;
+            notchBar.forceActiveFocus();
+        }
+        onExited: {
+            isHovered = false;
+            if (!sr || sr.currentState === 0) {
+                keepExpanded = false;
+            }
+        }
         onPressed: (mouse) => mouse.accepted = false
         onReleased: (mouse) => mouse.accepted = false
         onWheel: (wheel) => wheel.accepted = false
