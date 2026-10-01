@@ -21,6 +21,7 @@ STATE_FILE = os.path.join(STATE_DIR, "infinite_canvas_state.json")
 LAYOUT_FILE = os.path.join(STATE_DIR, "overview_layout.json")
 COORD_FILE = os.path.join(STATE_DIR, "infinite_canvas_coords")
 CAPTURES_DIR = os.path.join(STATE_DIR, "overview_captures")
+SAVED_COORDS_FILE = os.path.join(STATE_DIR, "overview_saved_coords.json")
 
 
 def log(msg):
@@ -198,29 +199,8 @@ def enter_overview():
         shot_file = os.path.join(CAPTURES_DIR, f"win_{clean_addr}.png")
         screenshot_path = None
 
-        cx, cy = c["at"]
-        cw, ch = c["size"]
-        is_visible_on_screen = (
-            vwx == cur_vx and vwy == cur_vy and
-            cx >= mon_x and (cx + cw) <= (mon_x + mon_w) and
-            cy >= mon_y and (cy + ch) <= (mon_y + mon_h) and
-            not c.get("hidden", False)
-        )
-
-        if is_visible_on_screen:
-            try:
-                subprocess.run(
-                    ["grim", "-g", f"{cx},{cy} {cw}x{ch}", "-t", "png", "-l", "1", shot_file],
-                    timeout=1.5,
-                    check=True,
-                    capture_output=True,
-                    env=env,
-                )
-                screenshot_path = shot_file
-            except Exception:
-                screenshot_path = None
-        elif os.path.exists(shot_file):
-            screenshot_path = shot_file
+        # Screencopy is handled in real-time by ScreencopyView in QML via DMA-BUF.
+        screenshot_path = shot_file if os.path.exists(shot_file) else None
 
         win_obj = {
             "address": addr,
@@ -275,12 +255,67 @@ def enter_overview():
     with open(LAYOUT_FILE, "w") as f:
         json.dump(layout, f)
 
+    # Ensure all off-screen windows on this workspace are temporarily placed within monitor bounds
+    # so Hyprland's compositor commits their frames to Wayland screencopy via zero-copy DMA-BUF.
+    saved_coords = {}
+    if os.path.exists(SAVED_COORDS_FILE):
+        try:
+            with open(SAVED_COORDS_FILE, "r") as f:
+                saved_coords = json.load(f)
+        except Exception:
+            saved_coords = {}
+
+    batch_moves = []
+    for addr, c in ws_clients.items():
+        cx, cy = c["at"]
+        cw, ch = c["size"]
+        is_on_screen = (cx >= mon_x - 50 and cx < mon_x + mon_w + 50 and
+                        cy >= mon_y - 50 and cy < mon_y + mon_h + 50)
+        if not is_on_screen:
+            if addr not in saved_coords:
+                saved_coords[addr] = [cx, cy]
+            target_temp_x = int(mon_x + 50)
+            target_temp_y = int(mon_y + 50)
+            batch_moves.append(f"dispatch movewindowpixel exact {target_temp_x} {target_temp_y},address:{addr}")
+
+    if saved_coords:
+        with open(SAVED_COORDS_FILE, "w") as f:
+            json.dump(saved_coords, f)
+
+    if batch_moves:
+        batch_cmd = "keyword animations:enabled false;" + ";".join(batch_moves) + ";keyword animations:enabled true;"
+        subprocess.run(["hyprctl", "--batch", batch_cmd], env=env, timeout=2)
+
     elapsed = (time.time() - t0) * 1000
     log(f"enter took {elapsed:.0f}ms — {len(rows)} rows, current ({cur_vx}, {cur_vy})")
 
 
+def restore_saved_coords(cleanup_only=False):
+    """Restore off-screen windows to their saved positions."""
+    env = get_hypr_env()
+    if os.path.exists(SAVED_COORDS_FILE):
+        if not cleanup_only:
+            try:
+                with open(SAVED_COORDS_FILE, "r") as f:
+                    saved_coords = json.load(f)
+                if saved_coords:
+                    batch_restores = [
+                        f"dispatch movewindowpixel exact {coords[0]} {coords[1]},address:{addr}"
+                        for addr, coords in saved_coords.items()
+                    ]
+                    batch_cmd = "keyword animations:enabled false;" + ";".join(batch_restores) + ";keyword animations:enabled true;"
+                    subprocess.run(["hyprctl", "--batch", batch_cmd], env=env, timeout=2)
+            except Exception as e:
+                log(f"Error restoring saved coords: {e}")
+        try:
+            os.remove(SAVED_COORDS_FILE)
+        except Exception:
+            pass
+
+
 def exit_overview():
     log("exit overview")
+    restore_saved_coords(cleanup_only=False)
 
 
 def jump_to(target_arg):
@@ -324,9 +359,13 @@ def jump_to(target_arg):
         except Exception:
             pass
 
+    if target_vx == cur_vx and target_vy == cur_vy:
+        exit_overview()
+        return
+
     log(f"jumping to virtual workspace ({target_vx}, {target_vy})")
+    restore_saved_coords(cleanup_only=True)
     subprocess.run([canvas_script, "jump", str(target_vx), str(target_vy)], timeout=2)
-    exit_overview()
 
 
 def focus_window(addr):
@@ -350,13 +389,18 @@ def focus_window(addr):
         target_vy = win_state.get("vy", cur_vy)
         if target_vx != cur_vx or target_vy != cur_vy:
             log(f"window {addr} at virtual ({target_vx}, {target_vy}) -> jumping canvas")
+            restore_saved_coords(cleanup_only=True)
             subprocess.run([canvas_script, "jump", str(target_vx), str(target_vy)], timeout=2)
+        else:
+            restore_saved_coords(cleanup_only=False)
+    else:
+        restore_saved_coords(cleanup_only=False)
 
     try:
         subprocess.run(["hyprctl", "dispatch", "focuswindow", f"address:{addr}"], env=env, timeout=2)
     except Exception as e:
         log(f"focus failed: {e}")
-    exit_overview()
+
 
 
 if __name__ == "__main__":
@@ -367,7 +411,7 @@ if __name__ == "__main__":
     elif action == "exit":
         exit_overview()
     elif action == "jump":
-        target = sys.argv[2] if len(sys.argv) > 2 else "0_0"
+        target = " ".join(sys.argv[2:]) if len(sys.argv) > 2 else "0_0"
         jump_to(target)
     elif action == "focus":
         addr = sys.argv[2] if len(sys.argv) > 2 else ""

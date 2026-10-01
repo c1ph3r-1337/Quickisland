@@ -5,6 +5,7 @@ import QtQuick.Effects
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
+import Quickshell.Wayland._Screencopy
 import Quickshell.Services.Pipewire
 import Quickshell.Services.Mpris
 import Quickshell.Services.UPower
@@ -9117,6 +9118,19 @@ function getCurrentThemeStateKey() {
             property int selectedRow: 0
             property int selectedCol: 0
 
+            function getWaylandToplevel(address) {
+                if (!address || !Hyprland.toplevels) return null;
+                var clean = address.startsWith("0x") ? address.substring(2) : address;
+                var tls = Hyprland.toplevels.values;
+                for (var i = 0; i < tls.length; i++) {
+                    var tl = tls[i];
+                    if (tl && (tl.address === clean || tl.address === address)) {
+                        return tl.wayland || null;
+                    }
+                }
+                return null;
+            }
+
             // ── Processes ──────────────────────────────────────────────
             Process {
                 id: overviewLayoutProc
@@ -9169,6 +9183,7 @@ function getCurrentThemeStateKey() {
                 target: shell
                 function onOverviewActiveChanged() {
                     if (shell.overviewActive) {
+                        try { Hyprland.refreshToplevels(); } catch(e) {}
                         overviewEnterProc.running = true;
                         overviewRoot.forceActiveFocus();
                     } else {
@@ -9396,72 +9411,119 @@ function getCurrentThemeStateKey() {
                             Repeater {
                                 model: rowData.windows || []
 
-                                Item {
-                                    id: winTileItem
-                                    property var winData: modelData
-                                    property bool isWinSelected: rowItem.isRowSelected && index === overviewOverlayWindow.selectedCol
+                                    Item {
+                                        id: winTileItem
+                                        property var winData: modelData
+                                        property bool isWinSelected: rowItem.isRowSelected && index === overviewOverlayWindow.selectedCol
+                                        property var toplevelHandle: overviewOverlayWindow.getWaylandToplevel(winData.address)
 
-                                    // Exact spatial coordinate placement along the continuous horizontal canvas
-                                    x: Math.round(rowMonitorCard.x + winData.offset_x * overviewRowsColumn.cardWidth)
-                                    y: Math.round(rowMonitorCard.y + winData.offset_y * overviewRowsColumn.cardHeight)
-                                    width: Math.max(50, Math.round(winData.rel_w * overviewRowsColumn.cardWidth))
-                                    height: Math.max(35, Math.round(winData.rel_h * overviewRowsColumn.cardHeight))
-                                    z: 10
-                                    scale: winTileMouse.containsMouse || winTileItem.isWinSelected ? 1.025 : 1.0
-                                    Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutQuad } }
+                                        onToplevelHandleChanged: {
+                                            if (toplevelHandle && !liveStream.hasContent) {
+                                                liveStream.captureFrame();
+                                            }
+                                        }
 
-                                    // Multi-layer realistic floating drop shadow
-                                    Rectangle {
-                                        anchors.fill: winFrame
-                                        anchors.topMargin: 6
-                                        anchors.bottomMargin: -11
-                                        anchors.leftMargin: -5
-                                        anchors.rightMargin: -5
-                                        radius: 15
-                                        color: "#40000000"
-                                        z: 1
-                                    }
-                                    Rectangle {
-                                        anchors.fill: winFrame
-                                        anchors.topMargin: 3
-                                        anchors.bottomMargin: -6
-                                        anchors.leftMargin: -2
-                                        anchors.rightMargin: -2
-                                        radius: 13
-                                        color: "#55000000"
-                                        z: 2
-                                    }
+                                        Timer {
+                                            id: retryToplevelTimer
+                                            interval: 35
+                                            repeat: true
+                                            running: shell.overviewActive && winTileItem.toplevelHandle === null
+                                            onTriggered: {
+                                                var tl = overviewOverlayWindow.getWaylandToplevel(winData.address);
+                                                if (tl) {
+                                                    winTileItem.toplevelHandle = tl;
+                                                    retryToplevelTimer.stop();
+                                                }
+                                            }
+                                        }
 
-                                    // Window Frame
-                                    Rectangle {
-                                        id: winFrame
-                                        anchors.fill: parent
-                                        radius: 11
-                                        clip: true
-                                        color: "#E614161E"
-                                        z: 3
-                                        border.width: winTileMouse.containsMouse || winTileItem.isWinSelected ? 1.5 : (winData.focused ? 1.5 : 1.0)
-                                        border.color: winTileMouse.containsMouse || winTileItem.isWinSelected ? shell.accent
-                                                    : (winData.focused ? Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.8) : "#28FFFFFF")
+                                        Timer {
+                                            id: retryFrameTimer
+                                            interval: 80
+                                            repeat: true
+                                            running: shell.overviewActive && winTileItem.toplevelHandle !== null && !liveStream.hasContent
+                                            onTriggered: {
+                                                if (liveStream.captureSource) {
+                                                    liveStream.captureFrame();
+                                                }
+                                            }
+                                        }
 
-                                        Behavior on border.color { ColorAnimation { duration: 140 } }
+                                        // Exact spatial coordinate placement along the continuous horizontal canvas
+                                        x: Math.round(rowMonitorCard.x + winData.offset_x * overviewRowsColumn.cardWidth)
+                                        y: Math.round(rowMonitorCard.y + winData.offset_y * overviewRowsColumn.cardHeight)
+                                        width: Math.max(50, Math.round(winData.rel_w * overviewRowsColumn.cardWidth))
+                                        height: Math.max(35, Math.round(winData.rel_h * overviewRowsColumn.cardHeight))
+                                        z: 10
+                                        scale: winTileMouse.containsMouse || winTileItem.isWinSelected ? 1.025 : 1.0
+                                        Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutQuad } }
 
-                                        // Live GPU Screenshot Preview
+                                        // Multi-layer realistic floating drop shadow
+                                        Rectangle {
+                                            anchors.fill: winFrame
+                                            anchors.topMargin: 6
+                                            anchors.bottomMargin: -11
+                                            anchors.leftMargin: -5
+                                            anchors.rightMargin: -5
+                                            radius: 15
+                                            color: "#40000000"
+                                            z: 1
+                                        }
+                                        Rectangle {
+                                            anchors.fill: winFrame
+                                            anchors.topMargin: 3
+                                            anchors.bottomMargin: -6
+                                            anchors.leftMargin: -2
+                                            anchors.rightMargin: -2
+                                            radius: 13
+                                            color: "#55000000"
+                                            z: 2
+                                        }
+
+                                        // Window Frame
+                                        Rectangle {
+                                            id: winFrame
+                                            anchors.fill: parent
+                                            radius: 11
+                                            clip: true
+                                            color: "#E614161E"
+                                            z: 3
+                                            border.width: winTileMouse.containsMouse || winTileItem.isWinSelected ? 1.5 : (winData.focused ? 1.5 : 1.0)
+                                            border.color: winTileMouse.containsMouse || winTileItem.isWinSelected ? shell.accent
+                                                        : (winData.focused ? Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.8) : "#28FFFFFF")
+
+                                            Behavior on border.color { ColorAnimation { duration: 140 } }
+
+                                            // ── Live GPU Screencopy Window Preview (Zero-copy DMA-BUF) ────
+                                            ScreencopyView {
+                                                id: liveStream
+                                                anchors.fill: parent
+                                                captureSource: winTileItem.toplevelHandle
+                                                live: shell.overviewActive
+                                                paintCursor: false
+                                                visible: hasContent
+                                                z: 2
+                                            }
+
+
+                                        // Fallback cached screenshot if available
                                         Image {
                                             anchors.fill: parent
                                             source: winData.screenshot ? "file://" + winData.screenshot : ""
-                                            visible: winData.screenshot !== null && winData.screenshot !== ""
+                                            visible: !liveStream.hasContent && winData.screenshot !== null && winData.screenshot !== ""
                                             fillMode: Image.PreserveAspectCrop
                                             smooth: true
                                             asynchronous: true
+                                            z: 1
                                         }
 
-                                        // Fallback when no screenshot
+                                        // Fallback when no stream or screenshot
                                         Column {
                                             anchors.centerIn: parent
                                             spacing: 3
-                                            visible: !winData.screenshot || winData.screenshot === ""
+                                            visible: !liveStream.hasContent && (!winData.screenshot || winData.screenshot === "")
                                             width: parent.width - 10
+                                            z: 0
 
                                             Text {
                                                 anchors.horizontalCenter: parent.horizontalCenter
