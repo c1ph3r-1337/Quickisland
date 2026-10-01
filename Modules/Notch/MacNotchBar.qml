@@ -28,7 +28,7 @@ Item {
 // ── Layout configuration ─────────────────────────────────────────────
     property bool isHovered: false
     property bool keepExpanded: false
-    readonly property bool isExpanded: isHovered || keepExpanded || (sr && sr.currentState > 0)
+    readonly property bool isExpanded: isHovered || keepExpanded
     
     Timer {
         id: autoCollapseTimer

@@ -1221,6 +1221,14 @@ function getCurrentThemeStateKey() {
         Quickshell.execDetached(["bash", "-c", sedCmd]);
     }
 
+    property bool notchMenuClosing: false
+    Timer {
+        id: notchCloseTimer
+        interval: shell.animNormal + 40
+        repeat: false
+        onTriggered: shell.notchMenuClosing = false
+    }
+
     function setState(s) {
         console.log("[State Debug] setState called: " + currentState + " -> " + s);
         prevState = currentState;
@@ -1228,6 +1236,13 @@ function getCurrentThemeStateKey() {
         if (currentState > 0 && s === 0) {
             hoverCooldown = true;
             hoverCooldownTimer.restart();
+            if (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) {
+                notchMenuClosing = true;
+                notchCloseTimer.restart();
+            }
+        } else if (s > 0) {
+            notchCloseTimer.stop();
+            notchMenuClosing = false;
         }
         if (s === 1) {
             lastState1Time = Date.now();
@@ -2437,34 +2452,9 @@ function getCurrentThemeStateKey() {
             id: panelWindow
             required property ShellScreen modelData
             screen: modelData
-            visible: !(typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) || panelWindow.activeState > 0 || panelWindow.closingFromNotch
+            visible: !(typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) || panelWindow.activeState > 0 || shell.notchMenuClosing
             color: "transparent"
             property var shellRootObj: shell
-
-            property bool closingFromNotch: false
-            property int prevActiveState: 0
-
-            Timer {
-                id: notchCloseTimer
-                interval: shell.animNormal + 40
-                repeat: false
-                onTriggered: {
-                    panelWindow.closingFromNotch = false;
-                }
-            }
-
-            onActiveStateChanged: {
-                if (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) {
-                    if (activeState === 0 && prevActiveState > 0) {
-                        closingFromNotch = true;
-                        notchCloseTimer.restart();
-                    } else if (activeState > 0) {
-                        notchCloseTimer.stop();
-                        closingFromNotch = false;
-                    }
-                }
-                prevActiveState = activeState;
-            }
 
             // Workspace tracking and indicator properties
             property int workspaceX: 0
@@ -2611,11 +2601,11 @@ function getCurrentThemeStateKey() {
             anchors { top: true; left: true; right: true }
             implicitHeight: 720
 
-            property real targetMaskWidth: island ? (island.islandWidth + (workspaceCircleActive ? (30 + 8) : 0)) : ((Settings.isLoaded && Settings.data.islandConfig.notchMode) ? Settings.data.islandConfig.collapsedWidth : 110)
-            property real targetMaskHeight: island ? Math.max(island.islandHeight, workspaceCircleActive ? 30 : 0) : ((Settings.isLoaded && Settings.data.islandConfig.notchMode) ? Settings.data.islandConfig.barHeight : 30)
+            property real targetMaskWidth: island ? (island.islandWidth + (workspaceCircleActive ? (30 + 8) : 0)) : ((Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 500 : 110)
+            property real targetMaskHeight: island ? Math.max(island.islandHeight, workspaceCircleActive ? 30 : 0) : ((Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 110 : 30)
 
-            property real maskWidth: (Settings.isLoaded && Settings.data.islandConfig.notchMode) ? Settings.data.islandConfig.collapsedWidth : 110
-            property real maskHeight: (Settings.isLoaded && Settings.data.islandConfig.notchMode) ? Settings.data.islandConfig.barHeight : 30
+            property real maskWidth: (Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 500 : 110
+            property real maskHeight: (Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 110 : 30
 
             Timer {
                 id: maskDelayTimer
@@ -2803,7 +2793,7 @@ function getCurrentThemeStateKey() {
                 anchors.top: island.top
                 width: (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchFlare) ? Settings.data.islandConfig.notchFlare : 12
                 height: width
-                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode && (panelWindow.activeState > 0 || panelWindow.closingFromNotch)
+                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode && (panelWindow.activeState > 0 || shell.notchMenuClosing)
                 clip: true
 
                 Shape {
@@ -2826,7 +2816,7 @@ function getCurrentThemeStateKey() {
                 anchors.top: island.top
                 width: (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchFlare) ? Settings.data.islandConfig.notchFlare : 12
                 height: width
-                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode && (panelWindow.activeState > 0 || panelWindow.closingFromNotch)
+                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode && (panelWindow.activeState > 0 || shell.notchMenuClosing)
                 clip: true
 
                 Shape {
@@ -9049,7 +9039,7 @@ function getCurrentThemeStateKey() {
             id: notchPanelWindow
             required property ShellScreen modelData
             screen: modelData
-            visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode
+            visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode && (shell.currentState === 0 && !shell.notchMenuClosing)
             color: "transparent"
 
             WlrLayershell.namespace: "macnotch-bar"
