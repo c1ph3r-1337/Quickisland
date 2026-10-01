@@ -9941,7 +9941,7 @@ function getCurrentThemeStateKey() {
                                     fillMode: Image.PreserveAspectCrop; smooth: true; asynchronous: true; z: 1
                                 }
 
-                                // Workspace screenshot preview
+                                // Workspace screenshot preview (fallback / inactive workspaces)
                                 Image {
                                     id: wsPreviewImg; anchors.fill: parent
                                     source: wsOvWindow.wsScreenshots[wsCardItem.wsData.id]
@@ -9950,7 +9950,20 @@ function getCurrentThemeStateKey() {
                                         : ""
                                     fillMode: Image.PreserveAspectCrop; smooth: true
                                     asynchronous: true; cache: false
-                                    visible: status === Image.Ready; z: 2
+                                    visible: status === Image.Ready && !wsLiveMonitor.hasContent; z: 2
+                                }
+
+                                // Live monitor screencopy — only for the currently active workspace
+                                ScreencopyView {
+                                    id: wsLiveMonitor
+                                    anchors.fill: parent
+                                    captureSource: wsCardItem.isFocused
+                                        ? Hyprland.monitorFor(wsOvWindow.modelData)
+                                        : null
+                                    live: shell.wsOverviewActive && wsCardItem.isFocused
+                                    paintCursor: false
+                                    visible: hasContent
+                                    z: 3
                                 }
 
                                 // Active workspace pulsing dot
