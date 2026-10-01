@@ -1390,11 +1390,29 @@ body.theme-dark .workspace-sidedock-vault-profile {{
     -webkit-backdrop-filter: blur(10px) saturate(1.05);
 }}
 
-/* Tab Headers (No colored borders & remove flare artifacts) */
+/* Tab Headers (Clean Floating Pill Alignment & No Flare Artifacts) */
+body.theme-dark .workspace-tab-header-container {{
+    display: flex !important;
+    align-items: center !important;
+}}
+body.theme-dark .workspace-tab-header-container-inner {{
+    margin: 0 !important;
+    padding: 0 4px !important;
+    display: flex !important;
+    align-items: center !important;
+    height: 100% !important;
+}}
 body.theme-dark .workspace-tab-header {{
     background: transparent !important;
     border: none !important;
     border-radius: 8px !important;
+    height: 30px !important;
+    max-height: 30px !important;
+    margin: auto 2px !important;
+    align-self: center !important;
+    display: flex !important;
+    align-items: center !important;
+    padding: 0 6px !important;
 }}
 body.theme-dark .workspace-tab-header.is-active {{
     background: rgba(255, 255, 255, 0.06) !important;
@@ -1402,6 +1420,26 @@ body.theme-dark .workspace-tab-header.is-active {{
     border-radius: 8px !important;
     box-shadow: none !important;
 }}
+body.theme-dark .workspace-tab-header-inner {{
+    align-items: center !important;
+    display: flex !important;
+    height: 100% !important;
+    padding: 0 4px !important;
+}}
+body.theme-dark .workspace-tab-header-new-tab {{
+    display: flex !important;
+    align-items: center !important;
+    align-self: center !important;
+    height: 30px !important;
+    margin: auto 4px !important;
+    padding: 0 !important;
+}}
+body.theme-dark .workspace-tab-header-new-tab .clickable-icon {{
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}}
+
 /* Eliminate Obsidian tab flare pseudo-elements that create black box artifacts */
 body.theme-dark .workspace-tab-header::before,
 body.theme-dark .workspace-tab-header::after,
