@@ -1321,10 +1321,11 @@ body.theme-dark {{
     --background-primary-alt: {surface};
     --background-secondary: {gtk_sidebar};
     --background-secondary-alt: {surface_alt};
-    --background-modifier-border: {surface_bright};
-    --background-modifier-border-hover: {accent};
-    --background-modifier-border-focus: {accent};
+    --background-modifier-border: rgba(255, 255, 255, 0.05);
+    --background-modifier-border-hover: rgba(255, 255, 255, 0.08);
+    --background-modifier-border-focus: rgba(255, 255, 255, 0.10);
     --background-modifier-form-field: {gtk_sidebar};
+    --blockquote-border-color: rgba(255, 255, 255, 0.15);
 
     /* Typography */
     --text-normal: {text_primary};
@@ -1341,22 +1342,23 @@ body.theme-dark {{
 
     /* Status Bar */
     --status-bar-background: {gtk_sidebar};
-    --status-bar-border-color: {surface_bright};
+    --status-bar-border-color: transparent;
     --status-bar-text: {text_secondary};
 
     /* Tabs & Dividers */
     --tab-background-active: {surface};
-    --tab-text-color-focused-active: {accent};
+    --tab-text-color-focused-active: {text_primary};
     --tab-text-color-focused: {text_secondary};
-    --divider-color: {surface_bright};
+    --tab-outline-color: transparent;
+    --divider-color: rgba(255, 255, 255, 0.05);
 
     /* Liquid Glass Effect Variables */
-    --qi-tint-1: rgba({ar}, {ag}, {ab}, 0.12);
-    --qi-tint-2: rgba({ar}, {ag}, {ab}, 0.08);
-    --qi-tint-3: rgba({sbr_r}, {sbr_g}, {sbr_b}, 0.08);
-    --qi-surface: rgba({sr}, {sg}, {sb}, 0.45);
-    --qi-surface-2: rgba({s_alt_r}, {s_alt_g}, {s_alt_b}, 0.32);
-    --qi-border: rgba({ar}, {ag}, {ab}, 0.22);
+    --qi-tint-1: rgba({ar}, {ag}, {ab}, 0.08);
+    --qi-tint-2: rgba({ar}, {ag}, {ab}, 0.05);
+    --qi-tint-3: rgba({sbr_r}, {sbr_g}, {sbr_b}, 0.05);
+    --qi-surface: rgba({sr}, {sg}, {sb}, 0.50);
+    --qi-surface-2: rgba({s_alt_r}, {s_alt_g}, {s_alt_b}, 0.35);
+    --qi-border: transparent;
 }}
 
 /* Liquid Glass Backdrop */
@@ -1370,32 +1372,32 @@ body.theme-dark .workspace-split.mod-root {{
         linear-gradient(160deg, {surface}, {surface_alt}) !important;
 }}
 
-/* Translucent Panes & Leaves */
+/* Translucent Panes & Leaves (No border / highlight lines) */
 body.theme-dark .workspace-leaf-content,
 body.theme-dark .workspace-tab-header-container,
 body.theme-dark .workspace-ribbon,
 body.theme-dark .status-bar,
 body.theme-dark .workspace-sidedock-vault-profile {{
     background: linear-gradient(165deg, var(--qi-surface), var(--qi-surface-2)) !important;
-    border: 1px solid var(--qi-border) !important;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 8px 20px rgba(0, 0, 0, 0.26);
+    border: none !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 8px 20px rgba(0, 0, 0, 0.22);
     backdrop-filter: blur(10px) saturate(1.05);
     -webkit-backdrop-filter: blur(10px) saturate(1.05);
 }}
 
-/* Tab Headers */
+/* Tab Headers (No colored borders) */
 body.theme-dark .workspace-tab-header {{
-    background: rgba(255, 255, 255, 0.03) !important;
-    border: 1px solid var(--qi-border) !important;
+    background: transparent !important;
+    border: none !important;
     border-radius: 8px !important;
 }}
 body.theme-dark .workspace-tab-header.is-active {{
-    background: rgba({ar}, {ag}, {ab}, 0.12) !important;
-    border-color: {accent} !important;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 4px 12px rgba(0, 0, 0, 0.28);
+    background: rgba(255, 255, 255, 0.06) !important;
+    border: none !important;
+    box-shadow: none !important;
 }}
 
-/* Active Ribbon Buttons */
+/* Active Ribbon Buttons (Clean hover/active, no highlight borders) */
 body.theme-dark .workspace-ribbon :is(
     .workspace-ribbon-action.is-active,
     .workspace-ribbon-action.mod-active,
@@ -1405,23 +1407,32 @@ body.theme-dark .workspace-ribbon :is(
     .clickable-icon.mod-active,
     [aria-pressed="true"]
 ) {{
-    background: linear-gradient(165deg, rgba({ar}, {ag}, {ab}, 0.22), rgba({ar}, {ag}, {ab}, 0.10)) !important;
-    border-color: rgba({ar}, {ag}, {ab}, 0.34) !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: none !important;
     color: {text_primary} !important;
+}}
+
+/* Markdown quotes & callouts (No harsh colored highlight bar) */
+body.theme-dark .markdown-rendered blockquote,
+body.theme-dark .cm-quote {{
+    border-left-color: rgba(255, 255, 255, 0.18) !important;
+}}
+body.theme-dark .callout {{
+    border: none !important;
 }}
 
 /* Context Menus */
 body.theme-dark .menu {{
-    background: linear-gradient(165deg, rgba({sr}, {sg}, {sb}, 0.94), rgba({s_alt_r}, {s_alt_g}, {s_alt_b}, 0.88)) !important;
-    border: 1px solid var(--qi-border) !important;
+    background: linear-gradient(165deg, rgba({sr}, {sg}, {sb}, 0.96), rgba({s_alt_r}, {s_alt_g}, {s_alt_b}, 0.90)) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
     border-radius: 12px !important;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
 }}
 body.theme-dark .menu-item:hover,
 body.theme-dark .menu-item.is-selected {{
-    background: rgba({ar}, {ag}, {ab}, 0.16) !important;
-    color: {accent} !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: {text_primary} !important;
 }}
 
 /* Hide Window Control Buttons for Hyprland */
