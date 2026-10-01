@@ -441,13 +441,13 @@ gtk-application-prefer-dark-theme=1
     lum_surf = get_luminance(surface)
     if lum_surf < 0.08:
         gtk_bg = blend(surface, accent, 0.08)
-        # Use intermediate shade between darker background (surface) and current sidebar shade (surface_alt)
-        mid_sidebar = blend(surface, surface_alt, 0.50)
-        gtk_sidebar = blend(mid_sidebar, accent, 0.06)
+        # Balanced tone between background and surface_alt (less dark than 50%, softer than 100%)
+        mid_sidebar = blend(surface, surface_alt, 0.72)
+        gtk_sidebar = blend(mid_sidebar, accent, 0.08)
         gtk_card = blend(surface_alt, accent, 0.10)
     else:
         gtk_bg = surface
-        gtk_sidebar = blend(surface, surface_alt, 0.50)
+        gtk_sidebar = blend(surface, surface_alt, 0.72)
         gtk_card = surface_alt
 
     # Update Wallbash-Gtk theme color definitions directly
