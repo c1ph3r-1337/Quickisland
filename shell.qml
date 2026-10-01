@@ -964,6 +964,43 @@ function getCurrentThemeStateKey() {
     }
 
     IpcHandler {
+        target: "theme"
+        function set(name: string) {
+            for (var i = 0; i < shell.presets.length; i++) {
+                if (shell.presets[i].name.toLowerCase() === name.toLowerCase()) {
+                    shell.themeMode = "custom";
+                    shell.applyPreset(shell.presets[i]);
+                    return;
+                }
+            }
+        }
+        function next() {
+            var curr = 0;
+            for (var i = 0; i < shell.presets.length; i++) {
+                if (shell.customAccent.toString().toLowerCase() === shell.presets[i].accent.toLowerCase()) {
+                    curr = i;
+                    break;
+                }
+            }
+            var nextIdx = (curr + 1) % shell.presets.length;
+            shell.themeMode = "custom";
+            shell.applyPreset(shell.presets[nextIdx]);
+        }
+        function prev() {
+            var curr = 0;
+            for (var i = 0; i < shell.presets.length; i++) {
+                if (shell.customAccent.toString().toLowerCase() === shell.presets[i].accent.toLowerCase()) {
+                    curr = i;
+                    break;
+                }
+            }
+            var prevIdx = (curr - 1 + shell.presets.length) % shell.presets.length;
+            shell.themeMode = "custom";
+            shell.applyPreset(shell.presets[prevIdx]);
+        }
+    }
+
+    IpcHandler {
         target: "lockscreen"
         function lock() {
             shell.locked = true;
@@ -2663,20 +2700,9 @@ function getCurrentThemeStateKey() {
                 height: typeof island !== "undefined" ? island.islandRadius : 0
                 visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode
                 clip: true
-                LiquidGlassBackground {
-                    anchors.top: parent.top
-                    x: -(leftFlare.visible ? leftFlare.width : 0)
-                    width: (leftFlare.visible ? leftFlare.width : 0) + island.width + (rightFlare.visible ? rightFlare.width : 0)
-                    height: typeof liquidGlassBg !== "undefined" ? liquidGlassBg.height : parent.height
-                    radius: 0
-                    surfaceColor: shell.surface
-                    accentColor: shell.accent
-                    active: Settings.isLoaded && Settings.data.colorSchemes.hyprglass
-                }
                 Rectangle {
                     anchors.fill: parent
-                    color: shell.surface
-                    visible: !(typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.colorSchemes.hyprglass)
+                    color: panelWindow.flareBgColor
                 }
             }
 
@@ -2688,20 +2714,9 @@ function getCurrentThemeStateKey() {
                 height: typeof island !== "undefined" ? island.islandRadius : 0
                 visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode
                 clip: true
-                LiquidGlassBackground {
-                    anchors.top: parent.top
-                    x: -(leftFlare.visible ? leftFlare.width : 0) - (island.width - width)
-                    width: (leftFlare.visible ? leftFlare.width : 0) + island.width + (rightFlare.visible ? rightFlare.width : 0)
-                    height: typeof liquidGlassBg !== "undefined" ? liquidGlassBg.height : parent.height
-                    radius: 0
-                    surfaceColor: shell.surface
-                    accentColor: shell.accent
-                    active: Settings.isLoaded && Settings.data.colorSchemes.hyprglass
-                }
                 Rectangle {
                     anchors.fill: parent
-                    color: shell.surface
-                    visible: !(typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.colorSchemes.hyprglass)
+                    color: panelWindow.flareBgColor
                 }
             }
 
@@ -2738,6 +2753,12 @@ function getCurrentThemeStateKey() {
                 Region {
                     item: island
                     radius: island ? island.islandRadius : 0
+                }
+                Region {
+                    item: leftGapFiller
+                }
+                Region {
+                    item: rightGapFiller
                 }
                 Region {
                     item: leftFlare
@@ -2792,6 +2813,18 @@ function getCurrentThemeStateKey() {
                 Behavior on shadowVerticalOffset { NumberAnimation { duration: shell.animFast } }
             }
 
+            property color flareBgColor: {
+                if (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.colorSchemes.hyprglass) {
+                    if (Settings.data.colorSchemes.hyprglassStyle === "liquid") {
+                        return Qt.rgba(0.0, 0.0, 0.0, Settings.data.colorSchemes.liquidOpacity);
+                    } else {
+                        return Qt.rgba(shell.surface.r, shell.surface.g, shell.surface.b, Settings.data.colorSchemes.frostedOpacity);
+                    }
+                }
+                return shell.surface;
+            }
+            Behavior on flareBgColor { ColorAnimation { duration: 400; easing.type: Easing.OutCubic } }
+
             property real currentFlareRadius: {
                 if (!(typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode)) return 12;
                 return (panelWindow.activeState === 0) ? 5 : ((Settings.data.islandConfig.notchFlare) ? Settings.data.islandConfig.notchFlare : 12);
@@ -2810,10 +2843,8 @@ function getCurrentThemeStateKey() {
 
                 Shape {
                     anchors.fill: parent
-                    layer.enabled: true
-                    layer.samples: 4
                     ShapePath {
-                        fillColor: shell.surface
+                        fillColor: panelWindow.flareBgColor
                         strokeColor: "transparent"
                         strokeWidth: 0
                         PathSvg { path: "M 0 0 L " + leftFlare.width + " 0 L " + leftFlare.width + " " + leftFlare.height + " A " + leftFlare.width + " " + leftFlare.height + " 0 0 0 0 0 Z" }
@@ -2833,10 +2864,8 @@ function getCurrentThemeStateKey() {
 
                 Shape {
                     anchors.fill: parent
-                    layer.enabled: true
-                    layer.samples: 4
                     ShapePath {
-                        fillColor: shell.surface
+                        fillColor: panelWindow.flareBgColor
                         strokeColor: "transparent"
                         strokeWidth: 0
                         PathSvg { path: "M " + rightFlare.width + " 0 L 0 0 L 0 " + rightFlare.height + " A " + rightFlare.width + " " + rightFlare.height + " 0 0 1 " + rightFlare.width + " 0 Z" }

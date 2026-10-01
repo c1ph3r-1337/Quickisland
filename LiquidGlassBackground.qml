@@ -40,6 +40,7 @@ Item {
             anchors.fill: parent
             radius: root.radius
             color: "transparent"
+            visible: !(typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode)
             gradient: Gradient {
                 GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.035) }
                 GradientStop { position: 0.4; color: "transparent" }
