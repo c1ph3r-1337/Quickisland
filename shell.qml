@@ -9223,9 +9223,46 @@ function getCurrentThemeStateKey() {
                 }
 
                 opacity: shell.overviewActive ? 1.0 : 0.0
-                scale: shell.overviewActive ? 1.0 : 0.96
-                Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutQuad } }
-                Behavior on scale { NumberAnimation { duration: 220; easing.bezierCurve: [0.22, 1.0, 0.36, 1.0] } }
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: shell.overviewActive ? 220 : 180
+                        easing.type: Easing.OutQuad
+                    }
+                }
+
+                function clampCol() {
+                    var d = overviewOverlayWindow.layoutData;
+                    if (!d || !d.rows) return;
+                    var currRow = d.rows[overviewOverlayWindow.selectedRow];
+                    var winCount = currRow && currRow.windows ? currRow.windows.length : 0;
+                    if (winCount > 0) {
+                        overviewOverlayWindow.selectedCol = Math.min(overviewOverlayWindow.selectedCol, winCount - 1);
+                    } else {
+                        overviewOverlayWindow.selectedCol = 0;
+                    }
+                }
+
+                WheelHandler {
+                    id: overviewWheel
+                    target: overviewRoot
+                    orientation: Qt.Vertical
+                    acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                    onWheel: (event) => {
+                        var d = overviewOverlayWindow.layoutData;
+                        if (!d || !d.rows || d.rows.length <= 1) return;
+                        if (event.angleDelta.y < -20) {
+                            if (overviewOverlayWindow.selectedRow < d.rows.length - 1) {
+                                overviewOverlayWindow.selectedRow++;
+                                overviewRoot.clampCol();
+                            }
+                        } else if (event.angleDelta.y > 20) {
+                            if (overviewOverlayWindow.selectedRow > 0) {
+                                overviewOverlayWindow.selectedRow--;
+                                overviewRoot.clampCol();
+                            }
+                        }
+                    }
+                }
 
                 // ── Keyboard Navigation (Material Shell Spatial Rows) ──────────
                 Keys.onPressed: (event) => {
@@ -9233,39 +9270,71 @@ function getCurrentThemeStateKey() {
                     if (!d || !d.rows) return;
                     var rowCount = d.rows.length;
 
-                    if (event.key === Qt.Key_Escape || event.key === Qt.Key_Space || event.key === Qt.Key_QuoteLeft || event.key === Qt.Key_AsciiTilde) {
+                    if (event.key === Qt.Key_Escape || event.key === Qt.Key_QuoteLeft || event.key === Qt.Key_AsciiTilde) {
                         shell.overviewActive = false;
                         event.accepted = true;
                     } else if (event.key === Qt.Key_Up || event.key === Qt.Key_K) {
-                        overviewOverlayWindow.selectedRow = Math.max(0, overviewOverlayWindow.selectedRow - 1);
-                        overviewOverlayWindow.selectedCol = 0;
+                        if (overviewOverlayWindow.selectedRow > 0) {
+                            overviewOverlayWindow.selectedRow--;
+                            overviewRoot.clampCol();
+                        }
                         event.accepted = true;
                     } else if (event.key === Qt.Key_Down || event.key === Qt.Key_J) {
-                        overviewOverlayWindow.selectedRow = Math.min(rowCount - 1, overviewOverlayWindow.selectedRow + 1);
-                        overviewOverlayWindow.selectedCol = 0;
+                        if (overviewOverlayWindow.selectedRow < rowCount - 1) {
+                            overviewOverlayWindow.selectedRow++;
+                            overviewRoot.clampCol();
+                        }
                         event.accepted = true;
                     } else if (event.key === Qt.Key_Left || event.key === Qt.Key_H) {
                         var currRow = d.rows[overviewOverlayWindow.selectedRow];
                         var winCount = currRow && currRow.windows ? currRow.windows.length : 0;
-                        if (winCount > 0) {
-                            overviewOverlayWindow.selectedCol = Math.max(0, overviewOverlayWindow.selectedCol - 1);
+                        if (overviewOverlayWindow.selectedCol > 0) {
+                            overviewOverlayWindow.selectedCol--;
+                        } else if (overviewOverlayWindow.selectedRow > 0) {
+                            overviewOverlayWindow.selectedRow--;
+                            var prevRow = d.rows[overviewOverlayWindow.selectedRow];
+                            var prevWinCount = prevRow && prevRow.windows ? prevRow.windows.length : 0;
+                            overviewOverlayWindow.selectedCol = Math.max(0, prevWinCount - 1);
                         }
                         event.accepted = true;
                     } else if (event.key === Qt.Key_Right || event.key === Qt.Key_L) {
                         var currRow = d.rows[overviewOverlayWindow.selectedRow];
                         var winCount = currRow && currRow.windows ? currRow.windows.length : 0;
-                        if (winCount > 0) {
-                            overviewOverlayWindow.selectedCol = Math.min(winCount - 1, overviewOverlayWindow.selectedCol + 1);
+                        if (overviewOverlayWindow.selectedCol < winCount - 1) {
+                            overviewOverlayWindow.selectedCol++;
+                        } else if (overviewOverlayWindow.selectedRow < rowCount - 1) {
+                            overviewOverlayWindow.selectedRow++;
+                            overviewOverlayWindow.selectedCol = 0;
+                        }
+                        event.accepted = true;
+                    } else if (event.key === Qt.Key_Tab) {
+                        var currRow = d.rows[overviewOverlayWindow.selectedRow];
+                        var winCount = currRow && currRow.windows ? currRow.windows.length : 0;
+                        if (overviewOverlayWindow.selectedCol < winCount - 1) {
+                            overviewOverlayWindow.selectedCol++;
+                        } else {
+                            overviewOverlayWindow.selectedRow = (overviewOverlayWindow.selectedRow + 1) % rowCount;
+                            overviewOverlayWindow.selectedCol = 0;
+                        }
+                        event.accepted = true;
+                    } else if (event.key === Qt.Key_Backtab) {
+                        if (overviewOverlayWindow.selectedCol > 0) {
+                            overviewOverlayWindow.selectedCol--;
+                        } else {
+                            overviewOverlayWindow.selectedRow = (overviewOverlayWindow.selectedRow - 1 + rowCount) % rowCount;
+                            var targetRow = d.rows[overviewOverlayWindow.selectedRow];
+                            var targetWinCount = targetRow && targetRow.windows ? targetRow.windows.length : 0;
+                            overviewOverlayWindow.selectedCol = Math.max(0, targetWinCount - 1);
                         }
                         event.accepted = true;
                     } else if (event.key >= Qt.Key_1 && event.key <= Qt.Key_9) {
                         var rowIdx = event.key - Qt.Key_1;
                         if (rowIdx < rowCount) {
                             overviewOverlayWindow.selectedRow = rowIdx;
-                            overviewOverlayWindow.selectedCol = 0;
+                            overviewRoot.clampCol();
                             event.accepted = true;
                         }
-                    } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                    } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
                         var currRow = d.rows[overviewOverlayWindow.selectedRow];
                         if (currRow) {
                             overviewOverlayWindow.jumpPending = true;
@@ -9286,6 +9355,13 @@ function getCurrentThemeStateKey() {
                 Item {
                     id: overviewWallpaperWrap
                     anchors.fill: parent
+                    opacity: shell.overviewActive ? 1.0 : 0.0
+                    Behavior on opacity {
+                        NumberAnimation {
+                            duration: shell.overviewActive ? 260 : 180
+                            easing.type: Easing.OutQuad
+                        }
+                    }
 
                     Image {
                         id: overviewWallpaperBg
@@ -9333,6 +9409,15 @@ function getCurrentThemeStateKey() {
                     readonly property real cardWidth: Math.round(cardHeight * 16.0 / 9.0)
                     readonly property real cardGap: 24
 
+                    transformOrigin: Item.Center
+                    scale: shell.overviewActive ? 1.0 : 1.45
+                    Behavior on scale {
+                        NumberAnimation {
+                            duration: shell.overviewActive ? 280 : 200
+                            easing.bezierCurve: shell.overviewActive ? [0.16, 1.0, 0.3, 1.0] : [0.4, 0.0, 0.7, 0.2]
+                        }
+                    }
+
                     Repeater {
                         model: overviewOverlayWindow.layoutData ? overviewOverlayWindow.layoutData.rows : []
 
@@ -9367,6 +9452,7 @@ function getCurrentThemeStateKey() {
                                 Item {
                                     id: cellItem
                                     property var cellData: modelData
+                                    visible: cellData.has_windows
                                     property real cellX: Math.round((rowItem.width - overviewRowsColumn.cardWidth) / 2 + (cellData.vx - (overviewOverlayWindow.layoutData ? overviewOverlayWindow.layoutData.cur_vx : 0)) * (overviewRowsColumn.cardWidth + overviewRowsColumn.cardGap) + rowItem.trackPanX)
                                     property real cellY: Math.round((rowItem.height - overviewRowsColumn.cardHeight) / 2)
 
@@ -9476,7 +9562,9 @@ function getCurrentThemeStateKey() {
                                         y: Math.round((rowItem.height - overviewRowsColumn.cardHeight) / 2 + (winData.rel_y !== undefined ? winData.rel_y : winData.offset_y) * overviewRowsColumn.cardHeight)
                                         width: Math.max(50, Math.round(winData.rel_w * overviewRowsColumn.cardWidth))
                                         height: Math.max(35, Math.round(winData.rel_h * overviewRowsColumn.cardHeight))
-                                        z: 10
+                                        z: winTileItem.isWinSelected ? 25 : 10
+                                        scale: winTileItem.isWinSelected ? 1.04 : 1.0
+                                        Behavior on scale { NumberAnimation { duration: 160; easing.bezierCurve: [0.2, 0.9, 0.3, 1.0] } }
 
                                         Rectangle {
                                             id: winTileMask
@@ -9494,7 +9582,9 @@ function getCurrentThemeStateKey() {
                                             radius: 16
                                             color: "#E614161E"
                                             z: 3
-                                            border.width: 0
+                                            border.width: winTileItem.isWinSelected ? 2 : 0
+                                            border.color: winTileItem.isWinSelected ? (shell.cPrimary ? shell.cPrimary : "#7aa2f7") : "transparent"
+                                            Behavior on border.width { NumberAnimation { duration: 140 } }
 
                                             layer.enabled: true
                                             layer.smooth: true

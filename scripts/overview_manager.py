@@ -226,10 +226,8 @@ def enter_overview():
     min_all_vx = min(all_vxs)
     max_all_vx = max(all_vxs)
 
-    # Dynamic row stack: show all rows with windows, plus 1 empty row above and below
-    min_vy = min(occupied_vys) - 1
-    max_vy = max(occupied_vys) + 1
-    display_vys = list(range(max_vy, min_vy - 1, -1))
+    # Dynamic row stack: show only rows that have at least one window (or active workspace)
+    display_vys = sorted(list(occupied_vys), reverse=True)
 
     # Build rows (descending vy: top-to-bottom, matching Material Shell)
     rows = []
@@ -243,23 +241,39 @@ def enter_overview():
         row_wins = [w for w in all_windows if w["vwy"] == vy]
         row_wins.sort(key=lambda w: (w["vwx"], w["rel_x"]))
 
-        # Collect all horizontal cell coordinates (vx) for this row
-        row_vxs = {w["vwx"] for w in row_wins}
-        row_vxs.add(cur_vx)
-        if (max_all_vx - min_all_vx) <= 5:
-            min_rvx = min_all_vx
-            max_rvx = max_all_vx
-        else:
-            min_rvx = min(row_vxs)
-            max_rvx = max(row_vxs)
+        # Workspaces with at least one window in this row
+        occupied_vx_set = {w["vwx"] for w in row_wins}
+        if not occupied_vx_set and vy == cur_vy:
+            occupied_vx_set.add(cur_vx)
+
+        # Center windows within each workspace cell preview
+        for vx in occupied_vx_set:
+            cell_wins = [w for w in row_wins if w["vwx"] == vx]
+            if not cell_wins:
+                continue
+            min_x = min(w["rel_x"] for w in cell_wins)
+            max_x = max(w["rel_x"] + w["rel_w"] for w in cell_wins)
+            total_w = max_x - min_x
+
+            min_y = min(w["rel_y"] for w in cell_wins)
+            max_y = max(w["rel_y"] + w["rel_h"] for w in cell_wins)
+            total_h = max_y - min_y
+
+            shift_x = round((1.0 - total_w) / 2.0 - min_x, 4)
+            shift_y = round((1.0 - total_h) / 2.0 - min_y, 4)
+
+            for w in cell_wins:
+                w["rel_x"] = round(max(0.01, min(0.99 - w["rel_w"], w["rel_x"] + shift_x)), 4)
+                w["rel_y"] = round(max(0.01, min(0.99 - w["rel_h"], w["rel_y"] + shift_y)), 4)
 
         cells = []
-        for vx in range(min_rvx, max_rvx + 1):
+        for vx in sorted(list(occupied_vx_set)):
+            has_w = any(w["vwx"] == vx for w in row_wins)
             cells.append({
                 "vx": vx,
                 "is_current": (vx == cur_vx and vy == cur_vy),
                 "is_current_col": (vx == cur_vx),
-                "has_windows": any(w["vwx"] == vx for w in row_wins)
+                "has_windows": has_w
             })
 
         rows.append({
