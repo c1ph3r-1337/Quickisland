@@ -23,8 +23,8 @@ Item {
     signal clicked()
     signal rightClicked()
 
-    width: 40
-    height: 52
+    width: 32
+    height: 42
 
     property real animatedBatteryRatio: batteryRatio
     Behavior on animatedBatteryRatio {
@@ -45,8 +45,8 @@ Item {
     // Circular Ring Container
     Item {
         id: ringContainer
-        width: 36
-        height: 36
+        width: 28
+        height: 28
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
 
@@ -64,8 +64,8 @@ Item {
                 var h = height;
                 var cx = w / 2;
                 var cy = h / 2;
-                var strokeWidth = 2.5;
-                var r = (w - strokeWidth) / 2 - 1.5;
+                var strokeWidth = 2.0;
+                var r = (w - strokeWidth) / 2 - 1.0;
 
                 // Arc angles: Clockwise from bottom-left (145° / 0.805*PI) across the top to bottom-right (35° / 2.195*PI)
                 var startAngle = Math.PI * 0.805;
@@ -99,7 +99,7 @@ Item {
                     Math.PI * 0.458, // 82.5°
                     Math.PI * 0.375  // 67.5°
                 ];
-                var dotRadius = 1.3;
+                var dotRadius = 1.0;
 
                 for (var i = 0; i < 4; i++) {
                     var angle = dotAngles[i];
@@ -120,8 +120,8 @@ Item {
         Image {
             id: centerImg
             anchors.centerIn: parent
-            width: 14
-            height: 14
+            width: 11
+            height: 11
             source: root.networkIcon
             fillMode: Image.PreserveAspectFit
             visible: root.networkIcon !== ""
@@ -137,14 +137,14 @@ Item {
     // Battery Percentage Label (Below Ring)
     Row {
         anchors.top: ringContainer.bottom
-        anchors.topMargin: 2
+        anchors.topMargin: 1
         anchors.horizontalCenter: parent.horizontalCenter
-        spacing: 2
+        spacing: 1
 
         Text {
             text: "󰂄"
             font.family: "JetBrainsMono Nerd Font"
-            font.pixelSize: 9
+            font.pixelSize: 8
             color: root.activeColor
             visible: root.isCharging
             anchors.verticalCenter: parent.verticalCenter
@@ -153,9 +153,9 @@ Item {
         Text {
             text: root.batteryLabel
             color: root.activeColor
-            font.pixelSize: 9
+            font.pixelSize: 8
             font.weight: Font.Bold
-            font.letterSpacing: 0.2
+            font.letterSpacing: 0.1
             anchors.verticalCenter: parent.verticalCenter
             visible: root.batteryLabel !== ""
         }

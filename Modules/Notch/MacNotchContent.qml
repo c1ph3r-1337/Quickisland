@@ -21,11 +21,11 @@ Item {
     Item {
         id: statusArea
         anchors.top: parent.top
-        anchors.topMargin: 10
+        anchors.topMargin: 12
         anchors.right: parent.right
         anchors.rightMargin: 16
-        width: 40
-        height: 52
+        width: 32
+        height: 42
 
         CircularStatusRing {
             id: unifiedRing
