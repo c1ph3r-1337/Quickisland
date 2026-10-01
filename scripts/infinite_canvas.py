@@ -226,27 +226,34 @@ def main():
             win_h = win.get("h", c["size"][1])
 
             is_on_screen = (win["vx"] == new_vx and win["vy"] == new_vy)
-            was_floating = win.get("was_floating", True)
+            currently_floating = c.get("floating", False)
+
+            # Backfill was_floating for windows registered before this fix,
+            # but only when the window is currently on-screen (hasn't been force-floated yet).
+            # Default False — assume originally tiled if unknown.
+            if "was_floating" not in win:
+                win["was_floating"] = currently_floating if is_on_screen else False
+            was_floating = win["was_floating"]
 
             if c.get("fullscreen", 0) > 0:
                 batch_cmds.append(f"dispatch fullscreen 0,address:{addr}")
 
             if is_on_screen:
-                # Window is returning to the current viewport
-                if not was_floating and c.get("floating", True):
+                # Window returning to viewport — restore original float state
+                if not was_floating and currently_floating:
                     # Was originally tiled — restore to tiled
                     batch_cmds.append(f"dispatch togglefloating address:{addr}")
-                elif was_floating and not c.get("floating", False):
-                    # Was originally floating — ensure it stays floating
+                elif was_floating and not currently_floating:
+                    # Was originally floating — restore to floating
                     batch_cmds.append(f"dispatch togglefloating address:{addr}")
             else:
-                # Window needs to go off-screen — must be floating to move freely
-                if not c.get("floating", False):
+                # Window going off-screen — must float to move freely
+                if not currently_floating:
                     batch_cmds.append(f"dispatch togglefloating address:{addr}")
 
-            # Only set size/position if floating (tiled windows are managed by Hyprland layout)
+            # Tiled windows coming back: let Hyprland layout handle position/size
             if is_on_screen and not was_floating:
-                pass  # let Hyprland's tiling layout handle position/size
+                pass
             else:
                 if c.get("size") != [win_w, win_h]:
                     batch_cmds.append(f"dispatch resizewindowpixel exact {win_w} {win_h},address:{addr}")
