@@ -54,21 +54,17 @@ Item {
         height: notchHeight
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
-        
-        MouseArea {
-            id: hoverArea
-            anchors.fill: parent
-            hoverEnabled: true
-        }
 
         // Background mask
         ShaderEffectSource {
             id: bgMask
             anchors.fill: parent
+            visible: false
+            hideSource: true
+            live: true
             sourceItem: Item {
                 width: bgMask.width
                 height: bgMask.height
-                layer.enabled: true
                 
                 // Main body
                 Rectangle {
@@ -76,7 +72,7 @@ Item {
                     anchors.leftMargin: flareRadius
                     anchors.rightMargin: flareRadius
                     radius: notchRadius
-                    color: "white"
+                    color: "black"
                 }
                 
                 // Square off top of main body
@@ -87,7 +83,7 @@ Item {
                     anchors.leftMargin: flareRadius
                     anchors.rightMargin: flareRadius
                     height: notchHeight / 2
-                    color: "white"
+                    color: "black"
                 }
                 
                 // Left Flare (Reverse Round)
@@ -98,8 +94,9 @@ Item {
                     height: flareRadius
                     
                     ShapePath {
-                        fillColor: "white"
+                        fillColor: "black"
                         strokeColor: "transparent"
+                        strokeWidth: 0
                         PathSvg { path: "M 0 0 L " + flareRadius + " 0 L " + flareRadius + " " + flareRadius + " A " + flareRadius + " " + flareRadius + " 0 0 0 0 0 Z" }
                     }
                 }
@@ -112,8 +109,9 @@ Item {
                     height: flareRadius
                     
                     ShapePath {
-                        fillColor: "white"
+                        fillColor: "black"
                         strokeColor: "transparent"
+                        strokeWidth: 0
                         PathSvg { path: "M " + flareRadius + " 0 L 0 0 L 0 " + flareRadius + " A " + flareRadius + " " + flareRadius + " 0 0 1 " + flareRadius + " 0 Z" }
                     }
                 }
@@ -138,17 +136,8 @@ Item {
                 radius: 0
                 surfaceColor: sr.surface
                 accentColor: sr.accent
-                borderColor: Qt.rgba(1, 1, 1, 0.05)
+                borderColor: "transparent"
                 active: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.colorSchemes.hyprglass
-            }
-            
-            // Optional subtle border on the bottom
-            Item {
-                anchors.fill: parent
-                Rectangle {
-                    anchors.bottom: parent.bottom; anchors.horizontalCenter: parent.horizontalCenter
-                    width: notchWidth - (flareRadius * 2); height: 1; color: Qt.rgba(1, 1, 1, 0.08)
-                }
             }
         }
 
