@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
-Rock-solid Coordinate-Locked Infinite Canvas Engine for Hyprland.
+Rock-solid Coordinate-Locked Spatial Workspace Engine for Hyprland.
 
 Maintains an absolute virtual coordinate grid (vx, vy) for each window.
 Prevents window drift, loss of coordinates, and animation lag corruption.
 Windows remain pinned to their exact virtual workspace coordinate forever.
+When Spatial Workspace is disabled, seamlessly navigates physical Hyprland workspaces.
 """
 
 import sys
@@ -13,11 +14,25 @@ import json
 import subprocess
 import fcntl
 import math
+import time
 
 STATE_DIR = os.path.expanduser("~/.cache/quickisland")
-STATE_FILE = os.path.join(STATE_DIR, "infinite_canvas_state.json")
-COORD_FILE = os.path.join(STATE_DIR, "infinite_canvas_coords")
-LOCK_FILE = os.path.join(STATE_DIR, "infinite_canvas.lock")
+STATE_FILE = os.path.join(STATE_DIR, "spatial_workspace_state.json")
+LEGACY_STATE_FILE = os.path.join(STATE_DIR, "infinite_canvas_state.json")
+COORD_FILE = os.path.join(STATE_DIR, "spatial_workspace_coords")
+LEGACY_COORD_FILE = os.path.join(STATE_DIR, "infinite_canvas_coords")
+LOCK_FILE = os.path.join(STATE_DIR, "spatial_workspace.lock")
+SPATIAL_STATE_FILE = os.path.join(STATE_DIR, "spatial_wm_state")
+
+
+def is_spatial_enabled():
+    try:
+        if os.path.exists(SPATIAL_STATE_FILE):
+            with open(SPATIAL_STATE_FILE, "r") as f:
+                return f.read().strip() == "1"
+    except Exception:
+        pass
+    return False
 
 
 def get_hypr_env():
@@ -41,49 +56,73 @@ def run_json(cmd, env):
 
 
 def load_state():
-    if os.path.exists(STATE_FILE):
-        try:
-            with open(STATE_FILE, "r") as f:
-                return json.load(f)
-        except Exception:
-            pass
+    for fpath in (STATE_FILE, LEGACY_STATE_FILE):
+        if os.path.exists(fpath):
+            try:
+                with open(fpath, "r") as f:
+                    return json.load(f)
+            except Exception:
+                pass
     # Fallback to COORD_FILE
     cur_vx, cur_vy = 0, 0
-    if os.path.exists(COORD_FILE):
-        try:
-            with open(COORD_FILE, "r") as f:
-                parts = f.read().strip().split()
-                if len(parts) >= 2:
-                    cur_vx, cur_vy = int(parts[0]), int(parts[1])
-        except Exception:
-            pass
+    for cpath in (COORD_FILE, LEGACY_COORD_FILE):
+        if os.path.exists(cpath):
+            try:
+                with open(cpath, "r") as f:
+                    parts = f.read().strip().split()
+                    if len(parts) >= 2:
+                        cur_vx, cur_vy = int(parts[0]), int(parts[1])
+                        break
+            except Exception:
+                pass
     return {"cur_vx": cur_vx, "cur_vy": cur_vy, "windows": {}}
 
 
 def save_state(state):
     os.makedirs(STATE_DIR, exist_ok=True)
-    with open(STATE_FILE, "w") as f:
-        json.dump(state, f, indent=2)
-    with open(COORD_FILE, "w") as f:
-        f.write(f"{state['cur_vx']} {state['cur_vy']}\n")
+    coords_content = f"{state['cur_vx']} {state['cur_vy']}\n"
+    for fpath in (STATE_FILE, LEGACY_STATE_FILE):
+        try:
+            with open(fpath, "w") as f:
+                json.dump(state, f, indent=2)
+        except Exception:
+            pass
+    for cpath in (COORD_FILE, LEGACY_COORD_FILE):
+        try:
+            with open(cpath, "w") as f:
+                f.write(coords_content)
+        except Exception:
+            pass
 
-
-import time
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: infinite_canvas.py left|right|up|down|jump <vx> <vy>|reset", file=sys.stderr)
+        print("Usage: spatial_workspace.py left|right|up|down|jump <vx> <vy>|reset", file=sys.stderr)
         sys.exit(1)
 
     action = sys.argv[1].lower()
     os.makedirs(STATE_DIR, exist_ok=True)
+    env = get_hypr_env()
+
+    # If spatial workspace is toggled off, fallback to physical Hyprland workspace navigation
+    if not is_spatial_enabled():
+        if action == "left":
+            subprocess.run(["hyprctl", "dispatch", "workspace", "r-1"], env=env)
+        elif action == "right":
+            subprocess.run(["hyprctl", "dispatch", "workspace", "r+1"], env=env)
+        elif action == "jump" and len(sys.argv) > 2:
+            try:
+                target_ws = int(sys.argv[2]) + 1
+                subprocess.run(["hyprctl", "dispatch", "workspace", str(target_ws)], env=env)
+            except Exception:
+                pass
+        return
 
     # Use file locking to guarantee atomic execution across rapid keypresses
     lock_fd = open(LOCK_FILE, "w")
     fcntl.flock(lock_fd, fcntl.LOCK_EX)
 
     try:
-        env = get_hypr_env()
         monitors = run_json("hyprctl monitors -j", env=env) or []
         if not monitors:
             return
@@ -99,7 +138,6 @@ def main():
 
         clients = run_json("hyprctl clients -j", env=env) or []
         all_clients = {c["address"]: c for c in clients}
-        all_mapped = {c["address"]: c for c in clients if c.get("mapped")}
         ws_clients = {addr: c for addr, c in all_clients.items() if c.get("workspace", {}).get("id") == active_ws_id}
 
         state = load_state()

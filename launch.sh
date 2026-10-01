@@ -17,4 +17,8 @@ export XDG_DATA_DIRS="$HOME/.local/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/
 CURRENT_ICON_THEME=$(gsettings get org.gnome.desktop.interface icon-theme 2>/dev/null | tr -d "'")
 export QS_ICON_THEME="${CURRENT_ICON_THEME:-Tela-circle-dracula}"
 
+# Default Spatial Workspace to toggled OFF on boot / startup
+mkdir -p "$HOME/.cache/quickisland"
+echo "0" > "$HOME/.cache/quickisland/spatial_wm_state" 2>/dev/null
+
 exec quickshell -p "$SCRIPT_DIR" "$@"

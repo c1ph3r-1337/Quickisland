@@ -99,6 +99,11 @@ ShellRoot {
     property bool pickerRunning: false
     property bool locked: false
     property bool spatialWmEnabled: false
+    onSpatialWmEnabledChanged: {
+        if (!spatialWmEnabled) {
+            shell.overviewActive = false;
+        }
+    }
 
     Process {
         id: spatialWmProc
@@ -111,9 +116,7 @@ ShellRoot {
         running: true
         stdout: StdioCollector {
             onStreamFinished: {
-                if (text.trim() === "1") {
-                    shell.spatialWmEnabled = true;
-                }
+                shell.spatialWmEnabled = (text.trim() === "1");
             }
         }
     }
@@ -920,7 +923,11 @@ function getCurrentThemeStateKey() {
     IpcHandler {
         target: "overview"
         function toggle() {
-            shell.overviewActive = !shell.overviewActive;
+            if (shell.spatialWmEnabled) {
+                shell.overviewActive = !shell.overviewActive;
+            } else {
+                shell.wsOverviewActive = !shell.wsOverviewActive;
+            }
         }
     }
 
@@ -6278,8 +6285,8 @@ function getCurrentThemeStateKey() {
                                     anchors.right: spatialWmToggle.left; anchors.rightMargin: 8
                                     anchors.verticalCenter: parent.verticalCenter
                                     spacing: 2
-                                    Text { width: parent.width; text: "Infinite Canvas WM"; color: "#ffffff"; font.pixelSize: 12; font.weight: Font.Bold; elide: Text.ElideRight }
-                                    Text { width: parent.width; text: "Use 2D Workspace Grid & Overview (HyprExpo)"; color: shell.textSecondary; font.pixelSize: 9; elide: Text.ElideRight }
+                                    Text { width: parent.width; text: "Spatial Workspace"; color: "#ffffff"; font.pixelSize: 12; font.weight: Font.Bold; elide: Text.ElideRight }
+                                    Text { width: parent.width; text: "2D spatial workspace grid & overview"; color: shell.textSecondary; font.pixelSize: 9; elide: Text.ElideRight }
                                 }
                             }
 
@@ -7855,9 +7862,9 @@ function getCurrentThemeStateKey() {
                                     { keys: "Super + L", desc: "Lock Screen" },
                                     { keys: "Ctrl + Alt + Del", desc: "Logout / Power Menu" },
                                     { keys: "Swipe Left/Right", desc: "Switch CC/Launcher/Power" },
-                                    { keys: "Ctrl+Super+Space", desc: "Infinite Canvas Overview" },
-                                    { keys: "Super + Arrows", desc: "Pan Infinite Canvas" },
-                                    { keys: "Super + 1..9", desc: "Jump Virtual X-Axis" },
+                                    { keys: "Ctrl+Super+Space", desc: "Overview (Spatial / Workspaces)" },
+                                    { keys: "Super + Arrows", desc: "Pan Spatial Workspace" },
+                                    { keys: "Super + 1..9", desc: "Jump Spatial Workspace" },
                                     { keys: "Ctrl+Super+Arrows", desc: "Shift Actual Workspace" }
                                 ]
                                 delegate: Rectangle {
@@ -9112,12 +9119,12 @@ function getCurrentThemeStateKey() {
             color: "transparent"
 
             Region { id: overviewMaskRegion }
-            mask: shell.overviewActive ? null : overviewMaskRegion
+            mask: (shell.overviewActive && shell.spatialWmEnabled) ? null : overviewMaskRegion
 
             WlrLayershell.namespace: "quickisland-overview"
             WlrLayershell.layer: WlrLayer.Overlay
             WlrLayershell.exclusionMode: ExclusionMode.Ignore
-            WlrLayershell.keyboardFocus: shell.overviewActive ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+            WlrLayershell.keyboardFocus: (shell.overviewActive && shell.spatialWmEnabled) ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
             anchors { top: true; bottom: true; left: true; right: true }
 
@@ -9251,19 +9258,19 @@ function getCurrentThemeStateKey() {
             FocusScope {
                 id: overviewRoot
                 anchors.fill: parent
-                focus: shell.overviewActive
-                visible: shell.overviewActive || overviewRoot.opacity > 0
+                focus: shell.overviewActive && shell.spatialWmEnabled
+                visible: (shell.overviewActive && shell.spatialWmEnabled) || overviewRoot.opacity > 0
 
                 Component.onCompleted: {
-                    if (shell.overviewActive) overviewRoot.forceActiveFocus();
+                    if (shell.overviewActive && shell.spatialWmEnabled) overviewRoot.forceActiveFocus();
                 }
                 onActiveFocusChanged: {
-                    if (!activeFocus && shell.overviewActive) {
+                    if (!activeFocus && shell.overviewActive && shell.spatialWmEnabled) {
                         overviewRoot.forceActiveFocus();
                     }
                 }
 
-                opacity: shell.overviewActive ? 1.0 : 0.0
+                opacity: (shell.overviewActive && shell.spatialWmEnabled) ? 1.0 : 0.0
                 Behavior on opacity {
                     NumberAnimation {
                         duration: shell.overviewActive ? 120 : 100
@@ -9413,7 +9420,7 @@ function getCurrentThemeStateKey() {
                     onClicked: overviewOverlayWindow.triggerDismiss()
                 }
 
-                // ── Material Shell Stacked Rows (Infinite Canvas) ──────────────────────
+                // ── Material Shell Stacked Rows (Spatial Workspace) ───────────────────
                 Column {
                     id: overviewRowsColumn
                     anchors.horizontalCenter: parent.horizontalCenter

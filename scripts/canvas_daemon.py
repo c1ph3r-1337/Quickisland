@@ -19,8 +19,8 @@ import time
 import fcntl
 
 STATE_DIR = os.path.expanduser("~/.cache/quickisland")
-STATE_FILE = os.path.join(STATE_DIR, "infinite_canvas_state.json")
-COORD_FILE = os.path.join(STATE_DIR, "infinite_canvas_coords")
+STATE_FILE = os.path.join(STATE_DIR, "spatial_workspace_state.json")
+COORD_FILE = os.path.join(STATE_DIR, "spatial_workspace_coords")
 BINDINGS_FILE = os.path.expanduser("~/.config/quickshell/quickisland/canvas_bindings.json")
 LOCK_FILE = os.path.join(STATE_DIR, "canvas_daemon.lock")
 

@@ -17,9 +17,11 @@ import math
 import time
 
 STATE_DIR = os.path.expanduser("~/.cache/quickisland")
-STATE_FILE = os.path.join(STATE_DIR, "infinite_canvas_state.json")
+STATE_FILE = os.path.join(STATE_DIR, "spatial_workspace_state.json")
+LEGACY_STATE_FILE = os.path.join(STATE_DIR, "infinite_canvas_state.json")
 LAYOUT_FILE = os.path.join(STATE_DIR, "overview_layout.json")
-COORD_FILE = os.path.join(STATE_DIR, "infinite_canvas_coords")
+COORD_FILE = os.path.join(STATE_DIR, "spatial_workspace_coords")
+LEGACY_COORD_FILE = os.path.join(STATE_DIR, "infinite_canvas_coords")
 CAPTURES_DIR = os.path.join(STATE_DIR, "overview_captures")
 SAVED_COORDS_FILE = os.path.join(STATE_DIR, "overview_saved_coords.json")
 
@@ -51,30 +53,42 @@ def run_json(cmd, env=None):
 
 
 def load_state():
-    if os.path.exists(STATE_FILE):
-        try:
-            with open(STATE_FILE, "r") as f:
-                return json.load(f)
-        except Exception:
-            pass
+    for fpath in (STATE_FILE, LEGACY_STATE_FILE):
+        if os.path.exists(fpath):
+            try:
+                with open(fpath, "r") as f:
+                    return json.load(f)
+            except Exception:
+                pass
     cur_vx, cur_vy = 0, 0
-    if os.path.exists(COORD_FILE):
-        try:
-            with open(COORD_FILE, "r") as f:
-                parts = f.read().strip().split()
-                if len(parts) >= 2:
-                    cur_vx, cur_vy = int(parts[0]), int(parts[1])
-        except Exception:
-            pass
+    for cpath in (COORD_FILE, LEGACY_COORD_FILE):
+        if os.path.exists(cpath):
+            try:
+                with open(cpath, "r") as f:
+                    parts = f.read().strip().split()
+                    if len(parts) >= 2:
+                        cur_vx, cur_vy = int(parts[0]), int(parts[1])
+                        break
+            except Exception:
+                pass
     return {"cur_vx": cur_vx, "cur_vy": cur_vy, "windows": {}}
 
 
 def save_state(state):
     os.makedirs(STATE_DIR, exist_ok=True)
-    with open(STATE_FILE, "w") as f:
-        json.dump(state, f, indent=2)
-    with open(COORD_FILE, "w") as f:
-        f.write(f"{state['cur_vx']} {state['cur_vy']}\n")
+    coords_content = f"{state['cur_vx']} {state['cur_vy']}\n"
+    for fpath in (STATE_FILE, LEGACY_STATE_FILE):
+        try:
+            with open(fpath, "w") as f:
+                json.dump(state, f, indent=2)
+        except Exception:
+            pass
+    for cpath in (COORD_FILE, LEGACY_COORD_FILE):
+        try:
+            with open(cpath, "w") as f:
+                f.write(coords_content)
+        except Exception:
+            pass
 
 
 def enter_overview():
@@ -393,7 +407,7 @@ def exit_overview():
 
 def jump_to(target_arg):
     """Jump to target virtual workspace coordinate (format: 'vx_vy' or 'vx vy')."""
-    canvas_script = os.path.expanduser("~/.config/quickshell/quickisland/scripts/infinite_canvas.sh")
+    canvas_script = os.path.expanduser("~/.config/quickshell/quickisland/scripts/spatial_workspace.sh")
     if not os.path.exists(canvas_script):
         log(f"Canvas script not found: {canvas_script}")
         return
@@ -444,7 +458,7 @@ def jump_to(target_arg):
 def focus_window(addr):
     """Focus a window, jumping the canvas to its exact virtual cell first if needed."""
     env = get_hypr_env()
-    canvas_script = os.path.expanduser("~/.config/quickshell/quickisland/scripts/infinite_canvas.sh")
+    canvas_script = os.path.expanduser("~/.config/quickshell/quickisland/scripts/spatial_workspace.sh")
 
     active_ws_info = run_json("hyprctl activeworkspace -j", env=env) or {}
     active_ws_id = active_ws_info.get("id", 1)

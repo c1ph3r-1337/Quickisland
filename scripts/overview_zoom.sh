@@ -3,7 +3,7 @@ set -euo pipefail
 
 STATE_DIR=~/.cache/quickisland
 SAVE_FILE="$STATE_DIR/overview_saved_windows"
-COORD_FILE="$STATE_DIR/infinite_canvas_coords"
+COORD_FILE="$STATE_DIR/spatial_workspace_coords"
 mkdir -p "$STATE_DIR"
 
 if [[ -f "$COORD_FILE" ]]; then
@@ -74,7 +74,7 @@ jump_to() {
     TARGET_VY=$2
     exit_overview
     if [[ "$TARGET_VX" != "$CUR_VX" ]] || [[ "$TARGET_VY" != "$CUR_VY" ]]; then
-        ~/.config/quickshell/quickisland/scripts/infinite_canvas.sh jump "$TARGET_VX" "$TARGET_VY"
+        ~/.config/quickshell/quickisland/scripts/spatial_workspace.sh jump "$TARGET_VX" "$TARGET_VY"
     fi
 }
 
