@@ -5,6 +5,7 @@ import os
 import re
 import subprocess
 import time
+import colorsys
 from pathlib import Path
 
 def hex_to_rgb(hex_str):
@@ -1286,8 +1287,18 @@ theme[process_end]="{red}"
             sbr_r, sbr_g, sbr_b = hex_to_rgb(surface_bright)
             bgr_r, bgr_g, bgr_b = hex_to_rgb(gtk_bg)
 
+            h_val, l_val, s_val = colorsys.rgb_to_hls(ar / 255.0, ag / 255.0, ab / 255.0)
+            accent_h = round(h_val * 360)
+            accent_s = round(s_val * 100)
+            accent_l = round(l_val * 100)
+
             obsidian_css = f"""/* QuickIsland Live Theme for Obsidian: {name} */
 body.theme-dark {{
+    /* Accent HSL values (eliminates Obsidian default 258 purple fallback) */
+    --accent-h: {accent_h};
+    --accent-s: {accent_s}%;
+    --accent-l: {accent_l}%;
+
     /* Base Color Tokens */
     --color-base-00: {gtk_bg};
     --color-base-10: {gtk_sidebar};
@@ -1308,14 +1319,36 @@ body.theme-dark {{
     --interactive-accent: {accent};
     --interactive-accent-hover: {blend(accent, text_primary, 0.15)};
 
+    /* Override purple color variables to theme accent so no purple leaks */
+    --color-purple: {accent};
+    --color-purple-rgb: {ar}, {ag}, {ab};
+    --color-violet: {accent};
+
     /* Functional Colors */
     --color-red: {red};
     --color-green: {green};
     --color-orange: {peach};
     --color-yellow: {peach};
     --color-blue: {blue};
-    --color-purple: {accent};
     --color-cyan: {blue};
+
+    /* Icon and Accent tokens */
+    --icon-color: var(--text-muted);
+    --icon-color-hover: {accent};
+    --icon-color-active: {accent};
+    --icon-color-focused: {accent};
+    --nav-item-color-active: {accent};
+    --nav-item-color-selected: {accent};
+    --link-color: {accent};
+    --link-color-hover: {blend(accent, text_primary, 0.15)};
+    --link-external-color: {accent};
+    --link-external-color-hover: {blend(accent, text_primary, 0.15)};
+    --checkbox-color: {accent};
+    --checkbox-color-hover: {blend(accent, text_primary, 0.15)};
+    --tag-color: {accent};
+    --tag-color-hover: {blend(accent, text_primary, 0.15)};
+    --caret-color: {accent};
+    --cursor: {accent};
 
     /* Backgrounds & Surfaces */
     --background-primary: {gtk_bg};
@@ -1528,6 +1561,37 @@ body.theme-dark .titlebar-button.mod-close {{
 body.theme-dark .titlebar {{
     -webkit-app-region: drag;
 }}
+
+/* Pinned icons (tabs, file explorer plus, view actions) */
+.workspace-tab-header-status-icon.mod-pinned,
+.view-action.mod-pinned,
+.clickable-icon.mod-pinned,
+.file-explorer-plus.pin-icon,
+.file-explorer-plus .pin-icon,
+.tree-item-pinned .tree-item-icon,
+svg.lucide-pin,
+[aria-label*="Pin"] svg,
+[aria-label*="pin"] svg {{
+    color: var(--color-accent) !important;
+    stroke: var(--color-accent) !important;
+}}
+
+/* Editing Toolbar plugin & cMenu theme override */
+.editing-toolbar,
+.cMenuToolbar {{
+    background-color: var(--qi-surface) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}}
+.editing-toolbar .toolbar-icon,
+.cMenuToolbar .cMenuCommandItem {{
+    color: var(--text-normal) !important;
+}}
+.editing-toolbar .toolbar-icon:hover,
+.cMenuToolbar .cMenuCommandItem:hover,
+.editing-toolbar .toolbar-icon.is-active,
+.cMenuToolbar .cMenuCommandItem.is-active {{
+    color: var(--color-accent) !important;
+}}
 """
             for v_dir in obsidian_vaults:
                 try:
@@ -1538,7 +1602,7 @@ body.theme-dark .titlebar {{
                     if (snip_dir / "purple-glass-bg.css").exists():
                         (snip_dir / "purple-glass-bg.css").write_text(obsidian_css)
 
-                    # Ensure snippet is enabled in appearance.json
+                    # Ensure snippet is enabled in appearance.json and accentColor is set
                     app_json = v_dir / ".obsidian/appearance.json"
                     app_data = {}
                     if app_json.exists():
@@ -1551,8 +1615,26 @@ body.theme-dark .titlebar {{
                     if "quickisland-theme" not in en:
                         en.append("quickisland-theme")
                     app_data["enabledCssSnippets"] = en
+                    app_data["accentColor"] = accent
                     with open(app_json, "w") as f:
                         json.dump(app_data, f, indent=2)
+
+                    # Update editing-toolbar config if present to remove leftover purple
+                    et_json = v_dir / ".obsidian/plugins/editing-toolbar/data.json"
+                    if et_json.exists():
+                        try:
+                            with open(et_json, "r") as f:
+                                et_data = json.load(f)
+                            et_data["cMenuFontColor"] = accent
+                            et_data["custom_fc1"] = accent
+                            et_data["custom_fc4"] = blend(accent, surface_bright, 0.3)
+                            if "appearanceByStyle" in et_data and "top" in et_data["appearanceByStyle"]:
+                                et_data["appearanceByStyle"]["top"]["toolbarBackgroundColor"] = "rgba(255, 255, 255, 0.05)"
+                            et_data["toolbarBackgroundColor"] = "rgba(255, 255, 255, 0.05)"
+                            with open(et_json, "w") as f:
+                                json.dump(et_data, f, indent=2)
+                        except Exception:
+                            pass
                 except Exception as e:
                     print(f"Error syncing Obsidian vault {v_dir}: {e}")
     except Exception as e:

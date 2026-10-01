@@ -1,5 +1,10 @@
 /* QuickIsland Theme for Obsidian */
 body.theme-dark {
+    /* Accent HSL values (eliminates Obsidian default 258 purple fallback) */
+    --accent-h: 170;
+    --accent-s: 78%;
+    --accent-l: 60%;
+
     /* Base Color Tokens */
     --color-base-00: #12211f;
     --color-base-10: #1a2c29;
@@ -20,14 +25,36 @@ body.theme-dark {
     --interactive-accent: #49e8ce;
     --interactive-accent-hover: #5df2d9;
 
+    /* Override purple color variables to theme accent so no purple leaks */
+    --color-purple: #49e8ce;
+    --color-purple-rgb: 73, 232, 206;
+    --color-violet: #49e8ce;
+
     /* Functional Colors */
     --color-red: #ee6c81;
     --color-green: #78e28a;
     --color-orange: #f0ae7e;
     --color-yellow: #f0ae7e;
     --color-blue: #82aeed;
-    --color-purple: #49e8ce;
     --color-cyan: #82aeed;
+
+    /* Icon and Accent tokens */
+    --icon-color: var(--text-muted);
+    --icon-color-hover: #49e8ce;
+    --icon-color-active: #49e8ce;
+    --icon-color-focused: #49e8ce;
+    --nav-item-color-active: #49e8ce;
+    --nav-item-color-selected: #49e8ce;
+    --link-color: #49e8ce;
+    --link-color-hover: #5df2d9;
+    --link-external-color: #49e8ce;
+    --link-external-color-hover: #5df2d9;
+    --checkbox-color: #49e8ce;
+    --checkbox-color-hover: #5df2d9;
+    --tag-color: #49e8ce;
+    --tag-color-hover: #5df2d9;
+    --caret-color: #49e8ce;
+    --cursor: #49e8ce;
 
     /* Backgrounds & Surfaces */
     --background-primary: #12211f;
@@ -239,4 +266,35 @@ body.theme-dark .titlebar-button.mod-close {
 }
 body.theme-dark .titlebar {
     -webkit-app-region: drag;
+}
+
+/* Pinned icons (tabs, file explorer plus, view actions) */
+.workspace-tab-header-status-icon.mod-pinned,
+.view-action.mod-pinned,
+.clickable-icon.mod-pinned,
+.file-explorer-plus.pin-icon,
+.file-explorer-plus .pin-icon,
+.tree-item-pinned .tree-item-icon,
+svg.lucide-pin,
+[aria-label*="Pin"] svg,
+[aria-label*="pin"] svg {
+    color: var(--color-accent) !important;
+    stroke: var(--color-accent) !important;
+}
+
+/* Editing Toolbar plugin & cMenu theme override */
+.editing-toolbar,
+.cMenuToolbar {
+    background-color: var(--qi-surface) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+.editing-toolbar .toolbar-icon,
+.cMenuToolbar .cMenuCommandItem {
+    color: var(--text-normal) !important;
+}
+.editing-toolbar .toolbar-icon:hover,
+.cMenuToolbar .cMenuCommandItem:hover,
+.editing-toolbar .toolbar-icon.is-active,
+.cMenuToolbar .cMenuCommandItem.is-active {
+    color: var(--color-accent) !important;
 }
