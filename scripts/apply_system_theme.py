@@ -1397,6 +1397,16 @@ body.theme-dark {{
     --qi-surface: rgba({bgr_r}, {bgr_g}, {bgr_b}, 0.42);
     --qi-surface-2: rgba({s_alt_r}, {s_alt_g}, {s_alt_b}, 0.30);
     --qi-border: transparent;
+
+    /* Legacy Token Compatibility */
+    --pg-tint-1: var(--qi-tint-1);
+    --pg-tint-2: var(--qi-tint-2);
+    --pg-tint-3: var(--qi-tint-3);
+    --pg-surface: var(--qi-surface);
+    --pg-surface-2: var(--qi-surface-2);
+    --pg-border: var(--background-modifier-border);
+    --pg-base-1: var(--background-primary);
+    --pg-base-2: var(--background-secondary);
 }}
 
 /* Liquid Glass Backdrop */
