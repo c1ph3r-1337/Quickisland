@@ -9761,6 +9761,8 @@ function getCurrentThemeStateKey() {
                             }
                         }
                     }
+                    // Capture screenshot of current workspace for preview
+                    wsOvWindow.captureCurrentWorkspace();
                 }
             }
         }
@@ -9769,6 +9771,35 @@ function getCurrentThemeStateKey() {
         function switchToWorkspace(wsId) {
             shell.wsOverviewActive = false;
             Hyprland.dispatch("workspace " + wsId);
+        }
+
+        // ── Screenshot cache: map wsId -> screenshot path ────────────────────
+        property var wsScreenshots: ({})
+
+        // Grim process to capture a workspace screenshot
+        Process {
+            id: wsGrimProc
+            property int targetWsId: -1
+            property string targetPath: ""
+            running: false
+            command: targetPath !== "" ? ["grim", "-o", wsOvWindow.modelData.name, "-l", "1", "-s", "0.5", targetPath] : []
+            onRunningChanged: {
+                if (!running && targetPath !== "") {
+                    var updated = Object.assign({}, wsOvWindow.wsScreenshots);
+                    updated[targetWsId] = targetPath + "?t=" + Date.now();
+                    wsOvWindow.wsScreenshots = updated;
+                }
+            }
+        }
+
+        // Capture screenshot of current (focused) workspace when overview opens
+        function captureCurrentWorkspace() {
+            var ws = Hyprland.focusedWorkspace;
+            if (!ws) return;
+            var path = "/tmp/quickisland-ws-preview-" + ws.id + ".png";
+            wsGrimProc.targetWsId = ws.id;
+            wsGrimProc.targetPath = path;
+            wsGrimProc.running = true;
         }
 
         // ── FocusScope (visual root + keyboard handler) ─────────────────────
@@ -9937,15 +9968,31 @@ function getCurrentThemeStateKey() {
                                 z: 1
                             }
 
-                            // Live workspace screencopy (DMA-BUF zero-copy)
-                            ScreencopyView {
-                                id: wsLiveStream
+                            // Live workspace screenshot preview (captured via grim at open time)
+                            Image {
+                                id: wsPreviewImg
                                 anchors.fill: parent
-                                captureSource: wsCardItem.wsData
-                                live: shell.wsOverviewActive
-                                paintCursor: false
-                                visible: hasContent
+                                source: {
+                                    var path = wsOvWindow.wsScreenshots[wsCardItem.wsData.id];
+                                    return path ? "file:///tmp/quickisland-ws-preview-" + wsCardItem.wsData.id + ".png" : "";
+                                }
+                                fillMode: Image.PreserveAspectCrop
+                                smooth: true
+                                asynchronous: true
+                                cache: false
+                                visible: status === Image.Ready
                                 z: 2
+
+                                // Reload image when screenshot cache is updated
+                                Connections {
+                                    target: wsOvWindow
+                                    function onWsScreenshotsChanged() {
+                                        if (wsOvWindow.wsScreenshots[wsCardItem.wsData.id]) {
+                                            wsPreviewImg.source = "";
+                                            wsPreviewImg.source = "file:///tmp/quickisland-ws-preview-" + wsCardItem.wsData.id + ".png";
+                                        }
+                                    }
+                                }
                             }
 
                             // Active workspace indicator dot (top-right corner)
