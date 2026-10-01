@@ -126,6 +126,32 @@ body.theme-dark .workspace-tab-header-container .workspace-tab-header::after {
     height: 0 !important;
 }
 
+/* Inner Workspace Transparency & Seamless View Integration */
+body.theme-dark .workspace-split.mod-root .workspace-leaf,
+body.theme-dark .workspace-split.mod-root .workspace-leaf-content,
+body.theme-dark .workspace-split.mod-root .view-content,
+body.theme-dark .workspace-split.mod-root .markdown-preview-view,
+body.theme-dark .workspace-split.mod-root .markdown-source-view,
+body.theme-dark .workspace-split.mod-root .cm-scroller,
+body.theme-dark .workspace-split.mod-root .cm-editor,
+body.theme-dark .workspace-split.mod-root .cm-gutters {
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
+body.theme-dark .view-header,
+body.theme-dark .view-header-nav-buttons,
+body.theme-dark .view-header-title-container,
+body.theme-dark .view-actions,
+body.theme-dark .view-header-left,
+body.theme-dark .view-header-right {
+    background: transparent !important;
+    border-color: transparent !important;
+}
+body.theme-dark .view-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
+}
+
 /* Active Ribbon Buttons (Clean hover/active, no highlight borders) */
 body.theme-dark .workspace-ribbon :is(
     .workspace-ribbon-action.is-active,

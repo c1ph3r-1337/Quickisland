@@ -1284,11 +1284,12 @@ theme[process_end]="{red}"
             sr, sg, sb = hex_to_rgb(surface)
             s_alt_r, s_alt_g, s_alt_b = hex_to_rgb(surface_alt)
             sbr_r, sbr_g, sbr_b = hex_to_rgb(surface_bright)
+            bgr_r, bgr_g, bgr_b = hex_to_rgb(gtk_bg)
 
             obsidian_css = f"""/* QuickIsland Live Theme for Obsidian: {name} */
 body.theme-dark {{
     /* Base Color Tokens */
-    --color-base-00: {surface};
+    --color-base-00: {gtk_bg};
     --color-base-10: {gtk_sidebar};
     --color-base-20: {surface_alt};
     --color-base-25: {surface_alt};
@@ -1317,8 +1318,8 @@ body.theme-dark {{
     --color-cyan: {blue};
 
     /* Backgrounds & Surfaces */
-    --background-primary: {surface};
-    --background-primary-alt: {surface};
+    --background-primary: {gtk_bg};
+    --background-primary-alt: {gtk_bg};
     --background-secondary: {gtk_sidebar};
     --background-secondary-alt: {surface_alt};
     --background-modifier-border: rgba(255, 255, 255, 0.05);
@@ -1360,8 +1361,8 @@ body.theme-dark {{
     --qi-tint-1: rgba({ar}, {ag}, {ab}, 0.08);
     --qi-tint-2: rgba({ar}, {ag}, {ab}, 0.05);
     --qi-tint-3: rgba({sbr_r}, {sbr_g}, {sbr_b}, 0.05);
-    --qi-surface: rgba({sr}, {sg}, {sb}, 0.50);
-    --qi-surface-2: rgba({s_alt_r}, {s_alt_g}, {s_alt_b}, 0.35);
+    --qi-surface: rgba({bgr_r}, {bgr_g}, {bgr_b}, 0.42);
+    --qi-surface-2: rgba({s_alt_r}, {s_alt_g}, {s_alt_b}, 0.30);
     --qi-border: transparent;
 }}
 
@@ -1373,7 +1374,7 @@ body.theme-dark .workspace-split.mod-root {{
         radial-gradient(700px 420px at 6% 10%, var(--qi-tint-1), transparent 68%),
         radial-gradient(620px 360px at 92% 88%, var(--qi-tint-2), transparent 70%),
         radial-gradient(420px 240px at 50% 0%, var(--qi-tint-3), transparent 72%),
-        linear-gradient(160deg, {surface}, {surface_alt}) !important;
+        linear-gradient(160deg, {gtk_bg}, {surface_alt}) !important;
 }}
 
 /* Translucent Panes & Leaves (No border / highlight lines) */
@@ -1411,6 +1412,32 @@ body.theme-dark .workspace-tab-header-container .workspace-tab-header::after {{
     box-shadow: none !important;
     width: 0 !important;
     height: 0 !important;
+}}
+
+/* Inner Workspace Transparency & Seamless View Integration */
+body.theme-dark .workspace-split.mod-root .workspace-leaf,
+body.theme-dark .workspace-split.mod-root .workspace-leaf-content,
+body.theme-dark .workspace-split.mod-root .view-content,
+body.theme-dark .workspace-split.mod-root .markdown-preview-view,
+body.theme-dark .workspace-split.mod-root .markdown-source-view,
+body.theme-dark .workspace-split.mod-root .cm-scroller,
+body.theme-dark .workspace-split.mod-root .cm-editor,
+body.theme-dark .workspace-split.mod-root .cm-gutters {{
+    background: transparent !important;
+    background-color: transparent !important;
+}}
+
+body.theme-dark .view-header,
+body.theme-dark .view-header-nav-buttons,
+body.theme-dark .view-header-title-container,
+body.theme-dark .view-actions,
+body.theme-dark .view-header-left,
+body.theme-dark .view-header-right {{
+    background: transparent !important;
+    border-color: transparent !important;
+}}
+body.theme-dark .view-header {{
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
 }}
 
 /* Active Ribbon Buttons (Clean hover/active, no highlight borders) */
