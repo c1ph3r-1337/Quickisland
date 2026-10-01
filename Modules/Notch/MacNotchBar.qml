@@ -240,17 +240,18 @@ Item {
             Item {
                 id: statusArea
                 anchors.top: parent.top
-                anchors.topMargin: 12
+                anchors.bottom: parent.bottom
                 anchors.right: parent.right
                 anchors.rightMargin: 16
                 width: 32
-                height: 42
                 opacity: Math.max(0, (notchContainer.width - 250) / (500 - 250))
                 visible: opacity > 0
 
                 CircularStatusRing {
                     id: unifiedRing
-                    anchors.centerIn: parent
+                    anchors.top: parent.top
+                    anchors.topMargin: 14
+                    anchors.horizontalCenter: parent.horizontalCenter
 
                     // Battery (Outer Ring Arc & Label)
                     batteryRatio: sr.batteryPercent >= 0 ? Math.max(0.0, Math.min(1.0, sr.batteryPercent / 100)) : 1.0
@@ -276,7 +277,62 @@ Item {
                     onClicked: sr.setState(8)
                     onRightClicked: sr.setState(5)
                 }
+
+                // Media Now Playing Visualizer under Circular Complication
+                Item {
+                    id: mediaVisualizerContainer
+                    anchors.top: unifiedRing.bottom
+                    anchors.topMargin: 10
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: 24
+                    height: 18
+                    opacity: sr.mediaPlaying ? 1.0 : ((sr.mediaTitle && sr.mediaTitle !== "") ? 0.35 : 0.0)
+                    visible: opacity > 0
+                    Behavior on opacity { NumberAnimation { duration: 250; easing.type: Easing.InOutQuad } }
+
+                    Row {
+                        anchors.centerIn: parent
+                        spacing: 2
+
+                        Repeater {
+                            model: [
+                                { h1: 14, h2: 3,  d1: 340, d2: 400 },
+                                { h1: 7,  h2: 12, d1: 420, d2: 320 },
+                                { h1: 16, h2: 2,  d1: 280, d2: 440 },
+                                { h1: 10, h2: 5,  d1: 380, d2: 360 }
+                            ]
+                            Item {
+                                width: 2.5; height: 16
+                                Rectangle {
+                                width: 2.5; radius: 1.25
+                                color: sr.accent || textColor
+                                anchors.bottom: parent.bottom
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                height: sr.mediaPlaying ? 5 : 2
+                                SequentialAnimation on height {
+                                    loops: Animation.Infinite
+                                    running: sr.mediaPlaying
+                                    NumberAnimation { to: modelData.h1; duration: modelData.d1; easing.type: Easing.InOutSine }
+                                    NumberAnimation { to: modelData.h2; duration: modelData.d2; easing.type: Easing.InOutSine }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    hoverEnabled: true
+                    onClicked: {
+                        if (sr.mediaPlayer) {
+                            if (sr.mediaPlaying) sr.mediaPlayer.pause();
+                            else sr.mediaPlayer.play();
+                        }
+                    }
+                }
             }
+        }
 
             // =================================================================
             // 2. LEFT SIDE: MEDIA
