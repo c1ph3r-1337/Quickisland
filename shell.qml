@@ -26,6 +26,7 @@ ShellRoot {
     property int virtualWorkspaceX: 0
     property int virtualWorkspaceY: 0
     property bool overviewActive: false
+    property bool wsOverviewActive: false
     Connections {
         target: Settings.data.colorSchemes
         function onHyprglassChanged() {
@@ -920,6 +921,13 @@ function getCurrentThemeStateKey() {
         target: "overview"
         function toggle() {
             shell.overviewActive = !shell.overviewActive;
+        }
+    }
+
+    IpcHandler {
+        target: "wsoverview"
+        function toggle() {
+            shell.wsOverviewActive = !shell.wsOverviewActive;
         }
     }
 
@@ -9692,6 +9700,310 @@ function getCurrentThemeStateKey() {
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+
+    // =============================================================================
+    // PHYSICAL WORKSPACE HORIZONTAL OVERVIEW
+    // Horizontal strip of Hyprland workspaces with grim screenshot previews.
+    // Toggle via: quickshell ipc -p ... call wsoverview toggle  (Super+Tab)
+    // =============================================================================
+    Variants {
+        model: Quickshell.screens
+
+        PanelWindow {
+            id: wsOvWindow
+            required property ShellScreen modelData
+            screen: modelData
+            color: "transparent"
+
+            Region { id: wsOvMaskRegion }
+            mask: shell.wsOverviewActive ? null : wsOvMaskRegion
+
+            WlrLayershell.namespace: "quickisland-wsoverview"
+            WlrLayershell.layer: WlrLayer.Overlay
+            WlrLayershell.exclusionMode: ExclusionMode.Ignore
+            WlrLayershell.keyboardFocus: shell.wsOverviewActive ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+
+            anchors { top: true; bottom: true; left: true; right: true }
+
+            // ── Sorted physical workspaces (live from Hyprland) ────────────────
+            property var sortedWorkspaces: {
+                if (!Hyprland.workspaces) return [];
+                var arr = Hyprland.workspaces.values.slice().sort(function(a, b) { return a.id - b.id; });
+                return arr;
+            }
+
+            property int selectedWsIdx: 0
+
+            onSortedWorkspacesChanged: {
+                if (selectedWsIdx >= sortedWorkspaces.length && sortedWorkspaces.length > 0)
+                    selectedWsIdx = sortedWorkspaces.length - 1;
+            }
+
+            // ── On activate: focus the currently active workspace ───────────────
+            Connections {
+                target: shell
+                function onWsOverviewActiveChanged() {
+                    if (shell.wsOverviewActive) {
+                        wsOvRoot.forceActiveFocus();
+                        var ws = Hyprland.focusedWorkspace;
+                        if (ws) {
+                            for (var i = 0; i < wsOvWindow.sortedWorkspaces.length; i++) {
+                                if (wsOvWindow.sortedWorkspaces[i].id === ws.id) {
+                                    wsOvWindow.selectedWsIdx = i;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            function switchToWorkspace(wsId) {
+                shell.wsOverviewActive = false;
+                Hyprland.dispatch("workspace " + wsId);
+            }
+
+            // ── Persistent screenshot cache ───────────────────────────────────
+            property var wsScreenshots: ({})
+            property int lastCapturedWsId: -1
+
+            Process {
+                id: wsGrimProc
+                property int targetWsId: -1
+                running: false
+                command: targetWsId >= 0
+                    ? ["grim", "-o", wsOvWindow.modelData.name, "-l", "1", "-s", "0.5",
+                       "/tmp/quickisland-ws-preview-" + targetWsId + ".png"]
+                    : []
+                onRunningChanged: {
+                    if (!running && targetWsId >= 0) {
+                        var updated = Object.assign({}, wsOvWindow.wsScreenshots);
+                        updated[targetWsId] = Date.now();
+                        wsOvWindow.wsScreenshots = updated;
+                    }
+                }
+            }
+
+            function captureWorkspace(wsId) {
+                if (wsGrimProc.running) return;
+                wsGrimProc.targetWsId = wsId;
+                wsGrimProc.running = true;
+            }
+
+            // Auto-capture: screenshot whenever focused workspace changes
+            Connections {
+                target: Hyprland
+                function onFocusedWorkspaceChanged() {
+                    var cur = Hyprland.focusedWorkspace;
+                    if (!cur) return;
+                    if (wsOvWindow.lastCapturedWsId >= 0 && wsOvWindow.lastCapturedWsId !== cur.id)
+                        wsOvWindow.captureWorkspace(wsOvWindow.lastCapturedWsId);
+                    wsCaptureDelay.wsIdToCapture = cur.id;
+                    wsCaptureDelay.restart();
+                    wsOvWindow.lastCapturedWsId = cur.id;
+                }
+            }
+
+            Timer {
+                id: wsCaptureDelay
+                property int wsIdToCapture: -1
+                interval: 300
+                repeat: false
+                onTriggered: { if (wsIdToCapture >= 0) wsOvWindow.captureWorkspace(wsIdToCapture); }
+            }
+
+            Component.onCompleted: {
+                var ws = Hyprland.focusedWorkspace;
+                if (ws) {
+                    wsOvWindow.lastCapturedWsId = ws.id;
+                    wsCaptureDelay.wsIdToCapture = ws.id;
+                    wsCaptureDelay.restart();
+                }
+            }
+
+            // ── FocusScope ────────────────────────────────────────────────────
+            FocusScope {
+                id: wsOvRoot
+                anchors.fill: parent
+                focus: shell.wsOverviewActive
+
+                opacity: shell.wsOverviewActive ? 1.0 : 0.0
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: shell.wsOverviewActive ? 220 : 160
+                        easing.type: Easing.OutQuad
+                    }
+                }
+
+                Keys.onPressed: (event) => {
+                    var total = wsOvWindow.sortedWorkspaces.length;
+                    if (total === 0) { event.accepted = true; return; }
+                    if (event.key === Qt.Key_Left) {
+                        if (wsOvWindow.selectedWsIdx > 0) wsOvWindow.selectedWsIdx--;
+                        event.accepted = true;
+                    } else if (event.key === Qt.Key_Right) {
+                        if (wsOvWindow.selectedWsIdx < total - 1) wsOvWindow.selectedWsIdx++;
+                        event.accepted = true;
+                    } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                        var selWs = wsOvWindow.sortedWorkspaces[wsOvWindow.selectedWsIdx];
+                        if (selWs) wsOvWindow.switchToWorkspace(selWs.id);
+                        event.accepted = true;
+                    } else if (event.key === Qt.Key_Escape) {
+                        shell.wsOverviewActive = false;
+                        event.accepted = true;
+                    }
+                }
+
+                // ── Blurred wallpaper backdrop ────────────────────────────────
+                Item {
+                    anchors.fill: parent
+                    Image {
+                        id: wsOvWallpaperBg
+                        anchors.fill: parent
+                        source: "file:///home/c1ph3r/.cache/wal/current-wallpaper"
+                        fillMode: Image.PreserveAspectCrop
+                        smooth: true; asynchronous: true; visible: false
+                    }
+                    MultiEffect {
+                        source: wsOvWallpaperBg; anchors.fill: wsOvWallpaperBg
+                        blurEnabled: true; blur: 0.88; blurMax: 36; brightness: -0.15; contrast: 0.05
+                    }
+                    Rectangle { anchors.fill: parent; color: "#38000000" }
+                }
+
+                MouseArea { anchors.fill: parent; onClicked: shell.wsOverviewActive = false }
+
+                // ── Horizontal workspace card strip ───────────────────────────
+                Item {
+                    id: wsOvStrip
+                    readonly property real cardH: 236
+                    readonly property real cardW: Math.round(cardH * 16.0 / 9.0)
+                    readonly property real cardGap: 28
+
+                    property real panX: {
+                        var selCardCenter = wsOvWindow.selectedWsIdx * (cardW + cardGap) + cardW / 2;
+                        return Math.round(parent.width / 2 - selCardCenter);
+                    }
+                    Behavior on panX { NumberAnimation { duration: 220; easing.bezierCurve: [0.22, 1.0, 0.36, 1.0] } }
+
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: parent.width
+                    height: wsOvStrip.cardH
+
+                    transformOrigin: Item.Center
+                    scale: shell.wsOverviewActive ? 1.0 : 1.4
+                    Behavior on scale {
+                        NumberAnimation {
+                            duration: shell.wsOverviewActive ? 280 : 200
+                            easing.bezierCurve: shell.wsOverviewActive ? [0.16, 1.0, 0.3, 1.0] : [0.4, 0.0, 0.7, 0.2]
+                        }
+                    }
+
+                    Repeater {
+                        model: wsOvWindow.sortedWorkspaces
+
+                        Item {
+                            id: wsCardItem
+                            required property var modelData
+                            required property int index
+                            property var wsData: modelData
+                            property bool isSelected: index === wsOvWindow.selectedWsIdx
+                            property bool isFocused: Hyprland.focusedWorkspace && wsData.id === Hyprland.focusedWorkspace.id
+
+                            x: Math.round(wsOvStrip.panX + index * (wsOvStrip.cardW + wsOvStrip.cardGap))
+                            y: 0
+                            width: wsOvStrip.cardW
+                            height: wsOvStrip.cardH
+
+                            scale: isSelected ? 1.05 : 1.0
+                            Behavior on scale { NumberAnimation { duration: 160; easing.bezierCurve: [0.2, 0.9, 0.3, 1.0] } }
+                            z: isSelected ? 10 : 1
+
+                            Rectangle {
+                                id: wsCardMask; anchors.fill: parent; radius: 20
+                                color: "white"; visible: false; layer.enabled: true
+                            }
+
+                            Rectangle {
+                                id: wsCard; anchors.fill: parent; radius: 20
+                                color: "#1A1B26"; border.width: 0
+                                layer.enabled: true; layer.smooth: true
+                                layer.effect: MultiEffect { maskEnabled: true; maskSource: wsCardMask }
+
+                                // Wallpaper fallback
+                                Image {
+                                    anchors.fill: parent
+                                    source: "file:///home/c1ph3r/.cache/wal/current-wallpaper"
+                                    fillMode: Image.PreserveAspectCrop; smooth: true; asynchronous: true; z: 1
+                                }
+
+                                // Workspace screenshot preview
+                                Image {
+                                    id: wsPreviewImg; anchors.fill: parent
+                                    source: wsOvWindow.wsScreenshots[wsCardItem.wsData.id]
+                                        ? ("file:///tmp/quickisland-ws-preview-" + wsCardItem.wsData.id
+                                           + ".png?t=" + wsOvWindow.wsScreenshots[wsCardItem.wsData.id])
+                                        : ""
+                                    fillMode: Image.PreserveAspectCrop; smooth: true
+                                    asynchronous: true; cache: false
+                                    visible: status === Image.Ready; z: 2
+                                }
+
+                                // Active workspace pulsing dot
+                                Rectangle {
+                                    visible: wsCardItem.isFocused
+                                    width: 10; height: 10; radius: 5
+                                    color: shell.cPrimary ? shell.cPrimary : "#7aa2f7"
+                                    anchors { top: parent.top; right: parent.right; margins: 10 }
+                                    z: 4
+                                    SequentialAnimation on opacity {
+                                        running: wsCardItem.isFocused && shell.wsOverviewActive
+                                        loops: Animation.Infinite
+                                        NumberAnimation { to: 0.5; duration: 900 }
+                                        NumberAnimation { to: 1.0; duration: 900 }
+                                    }
+                                }
+
+                                // Workspace number label
+                                Rectangle {
+                                    anchors { left: parent.left; bottom: parent.bottom; margins: 10 }
+                                    width: wsLabel.implicitWidth + 14; height: wsLabel.implicitHeight + 8
+                                    radius: 8; color: "#AA000000"; z: 4
+                                    Text {
+                                        id: wsLabel; anchors.centerIn: parent
+                                        text: wsCardItem.wsData.name !== "" ? wsCardItem.wsData.name : wsCardItem.wsData.id
+                                        color: "white"; font.pixelSize: 13; font.family: "Inter"; font.weight: Font.Medium
+                                    }
+                                }
+
+                                // Dim overlay for non-selected
+                                Rectangle {
+                                    anchors.fill: parent; radius: 20; z: 3
+                                    color: wsCardItem.isSelected ? "transparent" : "#2A000000"
+                                    Behavior on color { ColorAnimation { duration: 160 } }
+                                }
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                onClicked: wsOvWindow.switchToWorkspace(wsCardItem.wsData.id)
+                                onEntered: wsOvWindow.selectedWsIdx = wsCardItem.index
+                            }
+                        }
+                    }
+                }
+
+                // Hint label
+                Text {
+                    anchors { bottom: parent.bottom; horizontalCenter: parent.horizontalCenter; bottomMargin: 32 }
+                    text: "← → navigate   Enter switch   Esc dismiss"
+                    color: "#99ffffff"; font.pixelSize: 12; font.family: "Inter"
+                    opacity: shell.wsOverviewActive ? 0.7 : 0.0
+                    Behavior on opacity { NumberAnimation { duration: 200 } }
                 }
             }
         }
