@@ -9331,6 +9331,7 @@ function getCurrentThemeStateKey() {
 
                     readonly property real cardHeight: 236
                     readonly property real cardWidth: Math.round(cardHeight * 16.0 / 9.0)
+                    readonly property real cardGap: 24
 
                     Repeater {
                         model: overviewOverlayWindow.layoutData ? overviewOverlayWindow.layoutData.rows : []
@@ -9345,54 +9346,82 @@ function getCurrentThemeStateKey() {
                             width: overviewRoot.width
                             height: overviewRowsColumn.cardHeight
 
-                            // ── Central Desktop Wallpaper Viewport Card ──────────────
-                            Rectangle {
-                                id: rowCardMask
-                                anchors.fill: rowMonitorCard
-                                radius: 20
-                                color: "white"
-                                visible: false
-                                layer.enabled: true
+                            property real trackPanX: {
+                                if (!isRowSelected || !rowData.windows || rowData.windows.length === 0) return 0;
+                                var selIdx = Math.min(overviewOverlayWindow.selectedCol, rowData.windows.length - 1);
+                                var selWin = rowData.windows[selIdx];
+                                if (!selWin) return 0;
+                                var curVx = overviewOverlayWindow.layoutData ? overviewOverlayWindow.layoutData.cur_vx : 0;
+                                var targetCellX = (selWin.vwx - curVx) * (overviewRowsColumn.cardWidth + overviewRowsColumn.cardGap);
+                                if (Math.abs(targetCellX) <= (rowItem.width - overviewRowsColumn.cardWidth) / 2 - 40) {
+                                    return 0;
+                                }
+                                return -targetCellX;
                             }
+                            Behavior on trackPanX { NumberAnimation { duration: 220; easing.bezierCurve: [0.22, 1.0, 0.36, 1.0] } }
 
-                            Rectangle {
-                                id: rowMonitorCard
-                                x: Math.round((parent.width - width) / 2)
-                                y: Math.round((parent.height - height) / 2)
-                                width: overviewRowsColumn.cardWidth
-                                height: overviewRowsColumn.cardHeight
-                                radius: 20
-                                color: "transparent"
-                                z: 1
+                            // ── Desktop Wallpaper Viewport Cards (One per Horizontal Coordinate Cell) ──────────────
+                            Repeater {
+                                model: rowData.cells || []
 
-                                layer.enabled: true
-                                layer.smooth: true
-                                layer.effect: MultiEffect {
-                                    maskEnabled: true
-                                    maskSource: rowCardMask
-                                }
+                                Item {
+                                    id: cellItem
+                                    property var cellData: modelData
+                                    property real cellX: Math.round((rowItem.width - overviewRowsColumn.cardWidth) / 2 + (cellData.vx - (overviewOverlayWindow.layoutData ? overviewOverlayWindow.layoutData.cur_vx : 0)) * (overviewRowsColumn.cardWidth + overviewRowsColumn.cardGap) + rowItem.trackPanX)
+                                    property real cellY: Math.round((rowItem.height - overviewRowsColumn.cardHeight) / 2)
 
-                                // Desktop Wallpaper Image (matches user reference desktop view)
-                                Image {
-                                    anchors.fill: parent
-                                    source: "file://" + (overviewOverlayWindow.layoutData && overviewOverlayWindow.layoutData.wallpaper ? overviewOverlayWindow.layoutData.wallpaper : "/home/c1ph3r/.cache/wal/current-wallpaper")
-                                    fillMode: Image.PreserveAspectCrop
-                                    smooth: true
-                                    asynchronous: true
-                                }
+                                    x: cellX
+                                    y: cellY
+                                    width: overviewRowsColumn.cardWidth
+                                    height: overviewRowsColumn.cardHeight
+                                    z: 1
 
-                                // Click card to jump to this workspace row
-                                MouseArea {
-                                    id: rowCardMouse
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onEntered: overviewOverlayWindow.selectedRow = rowItem.rowIndex
-                                    onClicked: {
-                                        overviewOverlayWindow.jumpPending = true;
-                                        shell.overviewActive = false;
-                                        overviewJumpProc.targetWs = (overviewOverlayWindow.layoutData ? overviewOverlayWindow.layoutData.cur_vx : 0) + " " + rowData.vy;
-                                        overviewJumpProc.running = true;
+                                    Rectangle {
+                                        id: cellCardMask
+                                        anchors.fill: parent
+                                        radius: 20
+                                        color: "white"
+                                        visible: false
+                                        layer.enabled: true
+                                    }
+
+                                    Rectangle {
+                                        id: cellMonitorCard
+                                        anchors.fill: parent
+                                        radius: 20
+                                        color: "transparent"
+                                        border.width: 0
+
+                                        layer.enabled: true
+                                        layer.smooth: true
+                                        layer.effect: MultiEffect {
+                                            maskEnabled: true
+                                            maskSource: cellCardMask
+                                        }
+
+                                        // Desktop Wallpaper Image (matches user desktop view)
+                                        Image {
+                                            anchors.fill: parent
+                                            source: "file://" + (overviewOverlayWindow.layoutData && overviewOverlayWindow.layoutData.wallpaper ? overviewOverlayWindow.layoutData.wallpaper : "/home/c1ph3r/.cache/wal/current-wallpaper")
+                                            fillMode: Image.PreserveAspectCrop
+                                            smooth: true
+                                            asynchronous: true
+                                        }
+
+                                        // Click card to jump to this specific horizontal cell and workspace row
+                                        MouseArea {
+                                            id: cellCardMouse
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onEntered: overviewOverlayWindow.selectedRow = rowItem.rowIndex
+                                            onClicked: {
+                                                overviewOverlayWindow.jumpPending = true;
+                                                shell.overviewActive = false;
+                                                overviewJumpProc.targetWs = cellData.vx + " " + rowData.vy;
+                                                overviewJumpProc.running = true;
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -9439,9 +9468,12 @@ function getCurrentThemeStateKey() {
                                             }
                                         }
 
-                                        // Exact spatial coordinate placement along the continuous horizontal canvas
-                                        x: Math.round(rowMonitorCard.x + winData.offset_x * overviewRowsColumn.cardWidth)
-                                        y: Math.round(rowMonitorCard.y + winData.offset_y * overviewRowsColumn.cardHeight)
+                                        // Cell base X for this window's horizontal coordinate (vwx)
+                                        property real cellBaseX: Math.round((rowItem.width - overviewRowsColumn.cardWidth) / 2 + (winData.vwx - (overviewOverlayWindow.layoutData ? overviewOverlayWindow.layoutData.cur_vx : 0)) * (overviewRowsColumn.cardWidth + overviewRowsColumn.cardGap) + rowItem.trackPanX)
+
+                                        // Exact spatial coordinate placement inside this cell
+                                        x: Math.round(cellBaseX + (winData.rel_x !== undefined ? winData.rel_x : (winData.offset_x - (winData.vwx - (overviewOverlayWindow.layoutData ? overviewOverlayWindow.layoutData.cur_vx : 0)))) * overviewRowsColumn.cardWidth)
+                                        y: Math.round((rowItem.height - overviewRowsColumn.cardHeight) / 2 + (winData.rel_y !== undefined ? winData.rel_y : winData.offset_y) * overviewRowsColumn.cardHeight)
                                         width: Math.max(50, Math.round(winData.rel_w * overviewRowsColumn.cardWidth))
                                         height: Math.max(35, Math.round(winData.rel_h * overviewRowsColumn.cardHeight))
                                         z: 10

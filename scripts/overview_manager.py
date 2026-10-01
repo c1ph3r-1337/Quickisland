@@ -209,6 +209,8 @@ def enter_overview():
             "focused": (c.get("focusHistoryID") == 0),
             "vwx": vwx,
             "vwy": vwy,
+            "rel_x": round(max(0.0, min(1.0, local_x / mon_w)), 4),
+            "rel_y": round(max(0.0, min(1.0, local_y / mon_h)), 4),
             "offset_x": round(offset_x, 4),
             "offset_y": round(offset_y, 4),
             "rel_w": round(rel_w, 4),
@@ -216,6 +218,13 @@ def enter_overview():
             "screenshot": screenshot_path,
         }
         all_windows.append(win_obj)
+
+    # Collect all horizontal cell coordinates (vx) across all windows and cur_vx
+    all_vxs = {cur_vx}
+    for w in all_windows:
+        all_vxs.add(w["vwx"])
+    min_all_vx = min(all_vxs)
+    max_all_vx = max(all_vxs)
 
     # Dynamic row stack: show all rows with windows, plus 1 empty row above and below
     min_vy = min(occupied_vys) - 1
@@ -232,15 +241,36 @@ def enter_overview():
             selected_row_idx = r_idx
 
         row_wins = [w for w in all_windows if w["vwy"] == vy]
-        row_wins.sort(key=lambda w: w["offset_x"])
+        row_wins.sort(key=lambda w: (w["vwx"], w["rel_x"]))
+
+        # Collect all horizontal cell coordinates (vx) for this row
+        row_vxs = {w["vwx"] for w in row_wins}
+        row_vxs.add(cur_vx)
+        if (max_all_vx - min_all_vx) <= 5:
+            min_rvx = min_all_vx
+            max_rvx = max_all_vx
+        else:
+            min_rvx = min(row_vxs)
+            max_rvx = max(row_vxs)
+
+        cells = []
+        for vx in range(min_rvx, max_rvx + 1):
+            cells.append({
+                "vx": vx,
+                "is_current": (vx == cur_vx and vy == cur_vy),
+                "is_current_col": (vx == cur_vx),
+                "has_windows": any(w["vwx"] == vx for w in row_wins)
+            })
 
         rows.append({
             "vy": vy,
             "row_index": r_idx,
             "is_active": is_active_row,
+            "cells": cells,
             "window_count": len(row_wins),
             "windows": row_wins,
         })
+
 
     wallpaper_path = os.path.expanduser("~/.cache/wal/current-wallpaper")
     layout = {
