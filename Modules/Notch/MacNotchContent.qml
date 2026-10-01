@@ -31,9 +31,9 @@ Item {
             // Battery (Outer Ring Arc & Label)
             batteryRatio: sr.batteryPercent >= 0 ? Math.max(0.0, Math.min(1.0, sr.batteryPercent / 100)) : 1.0
             isCharging: sr.batteryCharging
-            batteryColor: sr.batteryPercent < 20 ? (sr.red || "#f38ba8") : (sr.batteryCharging ? (sr.green || "#a6e3a1") : sr.accent)
+            activeColor: textColor
+            trackColor: Qt.rgba(textColor.r, textColor.g, textColor.b, 0.22)
             batteryLabel: sr.batteryPercent >= 0 ? (Math.round(sr.batteryPercent) + "%") : ""
-            trackColor: Qt.rgba(1, 1, 1, 0.12)
 
             // Network (Center Icon & Bottom Strength Dots)
             signalDots: {
@@ -45,9 +45,8 @@ Item {
                 }
                 return 0;
             }
-            dotsActiveColor: (sr.ethConnected || sr.wifiConnected) ? textColor : textMutedColor
+            networkConnected: sr.ethConnected || sr.wifiConnected
             networkIcon: sr.ethConnected ? "../../icons/ethernet.png" : "../../icons/wifi.png"
-            networkIconColor: (sr.ethConnected || sr.wifiConnected) ? textColor : textMutedColor
 
             // Left-click opens Wi-Fi, Right-click opens Control Center
             onClicked: sr.setState(8)

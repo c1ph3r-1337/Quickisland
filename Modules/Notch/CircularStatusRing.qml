@@ -7,14 +7,14 @@ Item {
     // Battery binds to outer ring arc
     property real batteryRatio: 1.0
     property bool isCharging: false
-    property color batteryColor: "#5F9C74"
-    property color trackColor: Qt.rgba(1, 1, 1, 0.14)
+    property color activeColor: "#ffffff"
+    property color trackColor: Qt.rgba(1, 1, 1, 0.22)
+    property color batteryColor: (batteryRatio <= 0.15 && !isCharging) ? "#f38ba8" : activeColor
 
     // Network binds to center icon & bottom 4 dots
     property int signalDots: 4       // 0 to 4 dots
-    property color dotsActiveColor: "#ffffff"
+    property bool networkConnected: signalDots > 0
     property string networkIcon: ""
-    property color networkIconColor: "#ffffff"
 
     // Battery text label below ring
     property string batteryLabel: ""
@@ -24,7 +24,7 @@ Item {
     signal rightClicked()
 
     width: 52
-    height: 68
+    height: 66
 
     property real animatedBatteryRatio: batteryRatio
     Behavior on animatedBatteryRatio {
@@ -32,9 +32,9 @@ Item {
     }
 
     onAnimatedBatteryRatioChanged: ringCanvas.requestPaint()
+    onActiveColorChanged: ringCanvas.requestPaint()
     onBatteryColorChanged: ringCanvas.requestPaint()
     onSignalDotsChanged: ringCanvas.requestPaint()
-    onDotsActiveColorChanged: ringCanvas.requestPaint()
     onTrackColorChanged: ringCanvas.requestPaint()
 
     scale: ringMouse.containsMouse ? 1.08 : 1.0
@@ -64,13 +64,13 @@ Item {
                 var h = height;
                 var cx = w / 2;
                 var cy = h / 2;
-                var strokeWidth = 3.5;
+                var strokeWidth = 3.2;
                 var r = (w - strokeWidth) / 2 - 2;
 
-                // Arc angles: Clockwise from bottom-left (122° / 0.68*PI) across the top to bottom-right (58° / 2.32*PI)
-                var startAngle = Math.PI * 0.68;
-                var endAngle = Math.PI * 2.32;
-                var totalSpan = endAngle - startAngle; // ~295 degrees
+                // Arc angles: Clockwise from bottom-left (145° / 0.805*PI) across the top to bottom-right (35° / 2.195*PI)
+                var startAngle = Math.PI * 0.805;
+                var endAngle = Math.PI * 2.195;
+                var totalSpan = endAngle - startAngle; // ~250 degrees
 
                 ctx.lineWidth = strokeWidth;
                 ctx.lineCap = "round";
@@ -90,15 +90,16 @@ Item {
                     ctx.stroke();
                 }
 
-                // 3. Four discrete dots along the bottom opening (representing signal strength)
-                // Left-to-right: 0.63*PI, 0.54*PI, 0.46*PI, 0.37*PI
+                // 3. Four discrete dots along the bottom opening with wide gap to arc ends
+                // Centered at 90° (0.50*PI). Spaced 15° apart from 112.5° to 67.5°
+                // Arc ends at 145° and 35°, leaving >32° (11px) gap so dots NEVER touch the circle
                 var dotAngles = [
-                    Math.PI * 0.63,
-                    Math.PI * 0.54,
-                    Math.PI * 0.46,
-                    Math.PI * 0.37
+                    Math.PI * 0.625, // 112.5°
+                    Math.PI * 0.542, // 97.5°
+                    Math.PI * 0.458, // 82.5°
+                    Math.PI * 0.375  // 67.5°
                 ];
-                var dotRadius = 1.8;
+                var dotRadius = 1.7;
 
                 for (var i = 0; i < 4; i++) {
                     var angle = dotAngles[i];
@@ -107,7 +108,7 @@ Item {
 
                     ctx.beginPath();
                     ctx.arc(dx, dy, dotRadius, 0, Math.PI * 2);
-                    ctx.fillStyle = (i < root.signalDots) ? root.dotsActiveColor : root.trackColor;
+                    ctx.fillStyle = (i < root.signalDots) ? root.activeColor : root.trackColor;
                     ctx.fill();
                 }
             }
@@ -128,7 +129,7 @@ Item {
             layer.effect: MultiEffect {
                 brightness: 1.0
                 colorization: 1.0
-                colorizationColor: root.networkIconColor
+                colorizationColor: root.networkConnected ? root.activeColor : root.trackColor
             }
         }
     }
@@ -151,7 +152,7 @@ Item {
 
         Text {
             text: root.batteryLabel
-            color: root.batteryColor
+            color: root.activeColor
             font.pixelSize: 10
             font.weight: Font.Bold
             font.letterSpacing: 0.3
