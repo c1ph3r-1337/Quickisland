@@ -221,7 +221,7 @@ Item {
                 }
             }
         }
-        MouseArea { anchors.fill: parent; z: -1; cursorShape: Qt.PointingHandCursor; onClicked: sr.setState(10) }
+        MouseArea { anchors.fill: parent; z: -1; cursorShape: Qt.PointingHandCursor; onClicked: sr.setState(5) }
     }
 
     // =========================================================================
