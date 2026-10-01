@@ -246,7 +246,7 @@ def enter_overview():
         if not occupied_vx_set and vy == cur_vy:
             occupied_vx_set.add(cur_vx)
 
-        # Center windows within each workspace cell preview
+        # Center windows within each workspace cell preview and scale down large/stretched windows
         for vx in occupied_vx_set:
             cell_wins = [w for w in row_wins if w["vwx"] == vx]
             if not cell_wins:
@@ -259,12 +259,30 @@ def enter_overview():
             max_y = max(w["rel_y"] + w["rel_h"] for w in cell_wins)
             total_h = max_y - min_y
 
+            # If the window(s) are large or stretched, scale down to leave clean equal margins
+            max_allowed = 0.82
+            if total_w > max_allowed or total_h > max_allowed:
+                scale_factor = min(max_allowed / max(total_w, 0.001), max_allowed / max(total_h, 0.001))
+                for w in cell_wins:
+                    w["rel_w"] = round(w["rel_w"] * scale_factor, 4)
+                    w["rel_h"] = round(w["rel_h"] * scale_factor, 4)
+                    w["rel_x"] = round(min_x + (w["rel_x"] - min_x) * scale_factor, 4)
+                    w["rel_y"] = round(min_y + (w["rel_y"] - min_y) * scale_factor, 4)
+
+                min_x = min(w["rel_x"] for w in cell_wins)
+                max_x = max(w["rel_x"] + w["rel_w"] for w in cell_wins)
+                total_w = max_x - min_x
+
+                min_y = min(w["rel_y"] for w in cell_wins)
+                max_y = max(w["rel_y"] + w["rel_h"] for w in cell_wins)
+                total_h = max_y - min_y
+
             shift_x = round((1.0 - total_w) / 2.0 - min_x, 4)
             shift_y = round((1.0 - total_h) / 2.0 - min_y, 4)
 
             for w in cell_wins:
-                w["rel_x"] = round(max(0.01, min(0.99 - w["rel_w"], w["rel_x"] + shift_x)), 4)
-                w["rel_y"] = round(max(0.01, min(0.99 - w["rel_h"], w["rel_y"] + shift_y)), 4)
+                w["rel_x"] = round(w["rel_x"] + shift_x, 4)
+                w["rel_y"] = round(w["rel_y"] + shift_y, 4)
 
         cells = []
         for vx in sorted(list(occupied_vx_set)):
@@ -286,11 +304,22 @@ def enter_overview():
         })
 
 
+    active_row = rows[selected_row_idx] if selected_row_idx < len(rows) else None
+    selected_col_idx = 0
+    if active_row and active_row.get("windows"):
+        for idx, w in enumerate(active_row["windows"]):
+            if w.get("focused"):
+                selected_col_idx = idx
+                break
+            if w.get("vwx") == cur_vx:
+                selected_col_idx = idx
+
     wallpaper_path = os.path.expanduser("~/.cache/wal/current-wallpaper")
     layout = {
         "cur_vx": cur_vx,
         "cur_vy": cur_vy,
         "selected_row": selected_row_idx,
+        "selected_col": selected_col_idx,
         "wallpaper": wallpaper_path if os.path.exists(wallpaper_path) else "",
         "rows": rows,
     }

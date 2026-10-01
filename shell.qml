@@ -9178,11 +9178,49 @@ function getCurrentThemeStateKey() {
                 command: ["python3", Qt.resolvedUrl("scripts/overview_manager.py").toString().replace("file://", ""), "focus", targetAddress]
             }
 
+            function triggerJump(targetVx, targetVy) {
+                if (typeof overviewCanvas !== "undefined" && overviewCanvas) {
+                    overviewCanvas.exitPanX = -targetVx * overviewCanvas.stepX;
+                    overviewCanvas.exitPanY = targetVy * overviewCanvas.stepY;
+                }
+                overviewOverlayWindow.jumpPending = true;
+                shell.overviewActive = false;
+                overviewJumpProc.targetWs = targetVx + " " + targetVy;
+                overviewJumpProc.running = true;
+            }
+
+            function triggerFocus(address, targetVx, targetVy) {
+                if (typeof overviewCanvas !== "undefined" && overviewCanvas) {
+                    overviewCanvas.exitPanX = -targetVx * overviewCanvas.stepX;
+                    overviewCanvas.exitPanY = targetVy * overviewCanvas.stepY;
+                }
+                overviewOverlayWindow.jumpPending = true;
+                shell.overviewActive = false;
+                overviewFocusProc.targetAddress = address;
+                overviewFocusProc.running = true;
+            }
+
+            function triggerDismiss() {
+                if (typeof overviewCanvas !== "undefined" && overviewCanvas) {
+                    var curVx = overviewOverlayWindow.layoutData ? overviewOverlayWindow.layoutData.cur_vx : 0;
+                    var curVy = overviewOverlayWindow.layoutData ? overviewOverlayWindow.layoutData.cur_vy : 0;
+                    overviewCanvas.exitPanX = -curVx * overviewCanvas.stepX;
+                    overviewCanvas.exitPanY = curVy * overviewCanvas.stepY;
+                }
+                shell.overviewActive = false;
+            }
+
             // ── Lifecycle ──────────────────────────────────────────────
             Connections {
                 target: shell
                 function onOverviewActiveChanged() {
                     if (shell.overviewActive) {
+                        var curVx = overviewOverlayWindow.layoutData ? overviewOverlayWindow.layoutData.cur_vx : 0;
+                        var curVy = overviewOverlayWindow.layoutData ? overviewOverlayWindow.layoutData.cur_vy : 0;
+                        if (typeof overviewCanvas !== "undefined" && overviewCanvas) {
+                            overviewCanvas.exitPanX = -curVx * overviewCanvas.stepX;
+                            overviewCanvas.exitPanY = curVy * overviewCanvas.stepY;
+                        }
                         try { Hyprland.refreshToplevels(); } catch(e) {}
                         overviewEnterProc.running = true;
                         overviewRoot.forceActiveFocus();
@@ -9271,7 +9309,7 @@ function getCurrentThemeStateKey() {
                     var rowCount = d.rows.length;
 
                     if (event.key === Qt.Key_Escape || event.key === Qt.Key_QuoteLeft || event.key === Qt.Key_AsciiTilde) {
-                        shell.overviewActive = false;
+                        overviewOverlayWindow.triggerDismiss();
                         event.accepted = true;
                     } else if (event.key === Qt.Key_Up || event.key === Qt.Key_K) {
                         if (overviewOverlayWindow.selectedRow > 0) {
@@ -9337,14 +9375,11 @@ function getCurrentThemeStateKey() {
                     } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
                         var currRow = d.rows[overviewOverlayWindow.selectedRow];
                         if (currRow) {
-                            overviewOverlayWindow.jumpPending = true;
-                            shell.overviewActive = false;
                             if (currRow.windows && currRow.windows.length > overviewOverlayWindow.selectedCol) {
-                                overviewFocusProc.targetAddress = currRow.windows[overviewOverlayWindow.selectedCol].address;
-                                overviewFocusProc.running = true;
+                                var selWin = currRow.windows[overviewOverlayWindow.selectedCol];
+                                overviewOverlayWindow.triggerFocus(selWin.address, selWin.vwx, currRow.vy);
                             } else {
-                                overviewJumpProc.targetWs = d.cur_vx + " " + currRow.vy;
-                                overviewJumpProc.running = true;
+                                overviewOverlayWindow.triggerJump(d.cur_vx, currRow.vy);
                             }
                         }
                         event.accepted = true;
@@ -9393,29 +9428,94 @@ function getCurrentThemeStateKey() {
                 MouseArea {
                     id: overviewDimBg
                     anchors.fill: parent
-                    onClicked: shell.overviewActive = false
+                    onClicked: overviewOverlayWindow.triggerDismiss()
                 }
 
-                // ── Material Shell Stacked Rows (Infinite Canvas) ──────────────────────
-                Column {
-                    id: overviewRowsColumn
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    y: Math.round((parent.height - cardHeight) / 2 - overviewOverlayWindow.selectedRow * (cardHeight + spacing))
-                    Behavior on y { NumberAnimation { duration: 220; easing.bezierCurve: [0.22, 1.0, 0.36, 1.0] } }
-                    spacing: 16
+                // ── Material Shell Centered Spatial Canvas (0,0 Locked at Center) ───────
+                Item {
+                    id: overviewCanvas
+                    anchors.fill: parent
                     visible: overviewOverlayWindow.layoutData !== null
 
                     readonly property real cardHeight: 236
                     readonly property real cardWidth: Math.round(cardHeight * 16.0 / 9.0)
                     readonly property real cardGap: 24
+                    readonly property real rowSpacing: 16
 
-                    transformOrigin: Item.Center
-                    scale: shell.overviewActive ? 1.0 : 1.45
-                    Behavior on scale {
+                    readonly property real stepX: cardWidth + cardGap
+                    readonly property real stepY: cardHeight + rowSpacing
+
+                    // Center (0, 0) strictly in the center of the screen
+                    readonly property real centerBaseX: Math.round((width - cardWidth) / 2)
+                    readonly property real centerBaseY: Math.round((height - cardHeight) / 2)
+
+                    // Exit pan targets (set when triggering focus/jump/dismiss)
+                    property real exitPanX: 0
+                    property real exitPanY: 0
+
+                    // Navigation pan: if selected workspace is outside comfortable viewport, shift gently
+                    // Otherwise stays at 0 so (0,0) is strictly centered!
+                    property real selectedVx: {
+                        var d = overviewOverlayWindow.layoutData;
+                        if (!d || !d.rows || overviewOverlayWindow.selectedRow >= d.rows.length) return 0;
+                        var r = d.rows[overviewOverlayWindow.selectedRow];
+                        if (!r.windows || r.windows.length === 0) return 0;
+                        var col = Math.min(overviewOverlayWindow.selectedCol, r.windows.length - 1);
+                        return r.windows[col] ? r.windows[col].vwx : 0;
+                    }
+                    property real selectedVy: {
+                        var d = overviewOverlayWindow.layoutData;
+                        if (!d || !d.rows || overviewOverlayWindow.selectedRow >= d.rows.length) return 0;
+                        return d.rows[overviewOverlayWindow.selectedRow].vy;
+                    }
+
+                    // For workspaces within [-1, 1], navPan is 0 -> (0,0) is dead-center.
+                    // For workspaces beyond [-1, 1], smoothly pan only as much as needed so they are visible.
+                    property real navPanX: {
+                        var margin = (width - cardWidth) / 2 - 40;
+                        var targetOffset = -selectedVx * stepX;
+                        if (Math.abs(targetOffset) <= margin) return 0;
+                        return targetOffset > 0 ? (targetOffset - margin) : (targetOffset + margin);
+                    }
+                    Behavior on navPanX { NumberAnimation { duration: 220; easing.bezierCurve: [0.22, 1.0, 0.36, 1.0] } }
+
+                    property real navPanY: {
+                        var marginY = (height - cardHeight) / 2 - 30;
+                        var targetOffsetY = selectedVy * stepY;
+                        if (Math.abs(targetOffsetY) <= marginY) return 0;
+                        return targetOffsetY > 0 ? (targetOffsetY - marginY) : (targetOffsetY + marginY);
+                    }
+                    Behavior on navPanY { NumberAnimation { duration: 220; easing.bezierCurve: [0.22, 1.0, 0.36, 1.0] } }
+
+                    property real animScale: shell.overviewActive ? 1.0 : 1.45
+                    Behavior on animScale {
                         NumberAnimation {
                             duration: shell.overviewActive ? 280 : 200
                             easing.bezierCurve: shell.overviewActive ? [0.16, 1.0, 0.3, 1.0] : [0.4, 0.0, 0.7, 0.2]
                         }
+                    }
+
+                    property real animPanX: shell.overviewActive ? navPanX : exitPanX
+                    Behavior on animPanX {
+                        NumberAnimation {
+                            duration: shell.overviewActive ? 260 : 200
+                            easing.bezierCurve: shell.overviewActive ? [0.16, 1.0, 0.3, 1.0] : [0.4, 0.0, 0.7, 0.2]
+                        }
+                    }
+
+                    property real animPanY: shell.overviewActive ? navPanY : exitPanY
+                    Behavior on animPanY {
+                        NumberAnimation {
+                            duration: shell.overviewActive ? 260 : 200
+                            easing.bezierCurve: shell.overviewActive ? [0.16, 1.0, 0.3, 1.0] : [0.4, 0.0, 0.7, 0.2]
+                        }
+                    }
+
+                    transformOrigin: Item.Center
+                    scale: animScale
+                    transform: Translate {
+                        x: overviewCanvas.animPanX
+                        y: overviewCanvas.animPanY
                     }
 
                     Repeater {
@@ -9428,22 +9528,9 @@ function getCurrentThemeStateKey() {
                             property bool isRowSelected: index === overviewOverlayWindow.selectedRow
                             property bool isRowActive: rowData.is_active
 
-                            width: overviewRoot.width
-                            height: overviewRowsColumn.cardHeight
-
-                            property real trackPanX: {
-                                if (!isRowSelected || !rowData.windows || rowData.windows.length === 0) return 0;
-                                var selIdx = Math.min(overviewOverlayWindow.selectedCol, rowData.windows.length - 1);
-                                var selWin = rowData.windows[selIdx];
-                                if (!selWin) return 0;
-                                var curVx = overviewOverlayWindow.layoutData ? overviewOverlayWindow.layoutData.cur_vx : 0;
-                                var targetCellX = (selWin.vwx - curVx) * (overviewRowsColumn.cardWidth + overviewRowsColumn.cardGap);
-                                if (Math.abs(targetCellX) <= (rowItem.width - overviewRowsColumn.cardWidth) / 2 - 40) {
-                                    return 0;
-                                }
-                                return -targetCellX;
-                            }
-                            Behavior on trackPanX { NumberAnimation { duration: 220; easing.bezierCurve: [0.22, 1.0, 0.36, 1.0] } }
+                            width: overviewCanvas.width
+                            height: overviewCanvas.cardHeight
+                            y: Math.round(overviewCanvas.centerBaseY - rowData.vy * overviewCanvas.stepY)
 
                             // ── Desktop Wallpaper Viewport Cards (One per Horizontal Coordinate Cell) ──────────────
                             Repeater {
@@ -9453,13 +9540,10 @@ function getCurrentThemeStateKey() {
                                     id: cellItem
                                     property var cellData: modelData
                                     visible: cellData.has_windows
-                                    property real cellX: Math.round((rowItem.width - overviewRowsColumn.cardWidth) / 2 + (cellData.vx - (overviewOverlayWindow.layoutData ? overviewOverlayWindow.layoutData.cur_vx : 0)) * (overviewRowsColumn.cardWidth + overviewRowsColumn.cardGap) + rowItem.trackPanX)
-                                    property real cellY: Math.round((rowItem.height - overviewRowsColumn.cardHeight) / 2)
-
-                                    x: cellX
-                                    y: cellY
-                                    width: overviewRowsColumn.cardWidth
-                                    height: overviewRowsColumn.cardHeight
+                                    x: Math.round(overviewCanvas.centerBaseX + cellData.vx * overviewCanvas.stepX)
+                                    y: 0
+                                    width: overviewCanvas.cardWidth
+                                    height: overviewCanvas.cardHeight
                                     z: 1
 
                                     Rectangle {
@@ -9501,12 +9585,7 @@ function getCurrentThemeStateKey() {
                                             hoverEnabled: true
                                             cursorShape: Qt.PointingHandCursor
                                             onEntered: overviewOverlayWindow.selectedRow = rowItem.rowIndex
-                                            onClicked: {
-                                                overviewOverlayWindow.jumpPending = true;
-                                                shell.overviewActive = false;
-                                                overviewJumpProc.targetWs = cellData.vx + " " + rowData.vy;
-                                                overviewJumpProc.running = true;
-                                            }
+                                            onClicked: overviewOverlayWindow.triggerJump(cellData.vx, rowData.vy)
                                         }
                                     }
                                 }
@@ -9516,143 +9595,142 @@ function getCurrentThemeStateKey() {
                             Repeater {
                                 model: rowData.windows || []
 
-                                    Item {
-                                        id: winTileItem
-                                        property var winData: modelData
-                                        property bool isWinSelected: rowItem.isRowSelected && index === overviewOverlayWindow.selectedCol
-                                        property var toplevelHandle: overviewOverlayWindow.getWaylandToplevel(winData.address)
+                                Item {
+                                    id: winTileItem
+                                    property var winData: modelData
+                                    property bool isWinSelected: rowItem.isRowSelected && index === overviewOverlayWindow.selectedCol
+                                    property var toplevelHandle: overviewOverlayWindow.getWaylandToplevel(winData.address)
 
-                                        onToplevelHandleChanged: {
-                                            if (toplevelHandle && !liveStream.hasContent) {
+                                    onToplevelHandleChanged: {
+                                        if (toplevelHandle && !liveStream.hasContent) {
+                                            liveStream.captureFrame();
+                                        }
+                                    }
+
+                                    Timer {
+                                        id: retryToplevelTimer
+                                        interval: 35
+                                        repeat: true
+                                        running: shell.overviewActive && winTileItem.toplevelHandle === null
+                                        onTriggered: {
+                                            var tl = overviewOverlayWindow.getWaylandToplevel(winData.address);
+                                            if (tl) {
+                                                winTileItem.toplevelHandle = tl;
+                                                retryToplevelTimer.stop();
+                                            }
+                                        }
+                                    }
+
+                                    Timer {
+                                        id: retryFrameTimer
+                                        interval: 80
+                                        repeat: true
+                                        running: shell.overviewActive && winTileItem.toplevelHandle !== null && !liveStream.hasContent
+                                        onTriggered: {
+                                            if (liveStream.captureSource) {
                                                 liveStream.captureFrame();
                                             }
                                         }
+                                    }
 
-                                        Timer {
-                                            id: retryToplevelTimer
-                                            interval: 35
-                                            repeat: true
-                                            running: shell.overviewActive && winTileItem.toplevelHandle === null
-                                            onTriggered: {
-                                                var tl = overviewOverlayWindow.getWaylandToplevel(winData.address);
-                                                if (tl) {
-                                                    winTileItem.toplevelHandle = tl;
-                                                    retryToplevelTimer.stop();
-                                                }
-                                            }
+                                    // Cell base X for this window's horizontal coordinate (vwx) relative to (0,0)
+                                    property real cellBaseX: Math.round(overviewCanvas.centerBaseX + winData.vwx * overviewCanvas.stepX)
+
+                                    // Exact spatial coordinate placement inside this cell
+                                    x: Math.round(cellBaseX + winData.rel_x * overviewCanvas.cardWidth)
+                                    y: Math.round(winData.rel_y * overviewCanvas.cardHeight)
+                                    width: Math.max(50, Math.round(winData.rel_w * overviewCanvas.cardWidth))
+                                    height: Math.max(35, Math.round(winData.rel_h * overviewCanvas.cardHeight))
+                                    z: winTileItem.isWinSelected ? 30 : 10
+                                    scale: winTileItem.isWinSelected ? 1.04 : 1.0
+                                    Behavior on scale { NumberAnimation { duration: 160; easing.bezierCurve: [0.2, 0.9, 0.3, 1.0] } }
+
+                                    Rectangle {
+                                        id: winTileMask
+                                        anchors.fill: parent
+                                        radius: 16
+                                        color: "white"
+                                        visible: false
+                                        layer.enabled: true
+                                    }
+
+                                    // Window Frame
+                                    Rectangle {
+                                        id: winFrame
+                                        anchors.fill: parent
+                                        radius: 16
+                                        color: "#E614161E"
+                                        z: 3
+                                        border.width: winTileItem.isWinSelected ? 2 : 0
+                                        border.color: winTileItem.isWinSelected ? (shell.cPrimary ? shell.cPrimary : "#7aa2f7") : "transparent"
+                                        Behavior on border.width { NumberAnimation { duration: 140 } }
+
+                                        layer.enabled: true
+                                        layer.smooth: true
+                                        layer.effect: MultiEffect {
+                                            maskEnabled: true
+                                            maskSource: winTileMask
                                         }
 
-                                        Timer {
-                                            id: retryFrameTimer
-                                            interval: 80
-                                            repeat: true
-                                            running: shell.overviewActive && winTileItem.toplevelHandle !== null && !liveStream.hasContent
-                                            onTriggered: {
-                                                if (liveStream.captureSource) {
-                                                    liveStream.captureFrame();
-                                                }
-                                            }
-                                        }
-
-                                        // Cell base X for this window's horizontal coordinate (vwx)
-                                        property real cellBaseX: Math.round((rowItem.width - overviewRowsColumn.cardWidth) / 2 + (winData.vwx - (overviewOverlayWindow.layoutData ? overviewOverlayWindow.layoutData.cur_vx : 0)) * (overviewRowsColumn.cardWidth + overviewRowsColumn.cardGap) + rowItem.trackPanX)
-
-                                        // Exact spatial coordinate placement inside this cell
-                                        x: Math.round(cellBaseX + (winData.rel_x !== undefined ? winData.rel_x : (winData.offset_x - (winData.vwx - (overviewOverlayWindow.layoutData ? overviewOverlayWindow.layoutData.cur_vx : 0)))) * overviewRowsColumn.cardWidth)
-                                        y: Math.round((rowItem.height - overviewRowsColumn.cardHeight) / 2 + (winData.rel_y !== undefined ? winData.rel_y : winData.offset_y) * overviewRowsColumn.cardHeight)
-                                        width: Math.max(50, Math.round(winData.rel_w * overviewRowsColumn.cardWidth))
-                                        height: Math.max(35, Math.round(winData.rel_h * overviewRowsColumn.cardHeight))
-                                        z: winTileItem.isWinSelected ? 25 : 10
-                                        scale: winTileItem.isWinSelected ? 1.04 : 1.0
-                                        Behavior on scale { NumberAnimation { duration: 160; easing.bezierCurve: [0.2, 0.9, 0.3, 1.0] } }
-
-                                        Rectangle {
-                                            id: winTileMask
+                                        // ── Live GPU Screencopy Window Preview (Zero-copy DMA-BUF) ────
+                                        ScreencopyView {
+                                            id: liveStream
                                             anchors.fill: parent
-                                            radius: 16
-                                            color: "white"
-                                            visible: false
-                                            layer.enabled: true
+                                            captureSource: winTileItem.toplevelHandle
+                                            live: shell.overviewActive
+                                            paintCursor: false
+                                            visible: hasContent
+                                            z: 2
                                         }
 
-                                        // Window Frame
-                                        Rectangle {
-                                            id: winFrame
+                                        // Fallback cached screenshot if available
+                                        Image {
                                             anchors.fill: parent
-                                            radius: 16
-                                            color: "#E614161E"
-                                            z: 3
-                                            border.width: winTileItem.isWinSelected ? 2 : 0
-                                            border.color: winTileItem.isWinSelected ? (shell.cPrimary ? shell.cPrimary : "#7aa2f7") : "transparent"
-                                            Behavior on border.width { NumberAnimation { duration: 140 } }
-
-                                            layer.enabled: true
-                                            layer.smooth: true
-                                            layer.effect: MultiEffect {
-                                                maskEnabled: true
-                                                maskSource: winTileMask
-                                            }
-
-                                            // ── Live GPU Screencopy Window Preview (Zero-copy DMA-BUF) ────
-                                            ScreencopyView {
-                                                id: liveStream
-                                                anchors.fill: parent
-                                                captureSource: winTileItem.toplevelHandle
-                                                live: shell.overviewActive
-                                                paintCursor: false
-                                                visible: hasContent
-                                                z: 2
-                                            }
-
-                                            // Fallback cached screenshot if available
-                                            Image {
-                                                anchors.fill: parent
-                                                source: winData.screenshot ? "file://" + winData.screenshot : ""
-                                                visible: !liveStream.hasContent && winData.screenshot !== null && winData.screenshot !== ""
-                                                fillMode: Image.PreserveAspectCrop
-                                                smooth: true
-                                                asynchronous: true
-                                                z: 1
-                                            }
-
-                                            // Fallback when no stream or screenshot
-                                            Column {
-                                                anchors.centerIn: parent
-                                                spacing: 3
-                                                visible: !liveStream.hasContent && (!winData.screenshot || winData.screenshot === "")
-                                                width: parent.width - 10
-                                                z: 0
-
-                                                Text {
-                                                    anchors.horizontalCenter: parent.horizontalCenter
-                                                    text: {
-                                                        var cls = (winData.class || "").toLowerCase();
-                                                        if (cls.indexOf("brave") >= 0 || cls.indexOf("firefox") >= 0 || cls.indexOf("chrome") >= 0) return "󰖟";
-                                                        if (cls.indexOf("kitty") >= 0 || cls.indexOf("alacritty") >= 0 || cls.indexOf("terminal") >= 0) return "󰆍";
-                                                        if (cls.indexOf("nautilus") >= 0 || cls.indexOf("thunar") >= 0 || cls.indexOf("file") >= 0) return "󰉋";
-                                                        if (cls.indexOf("code") >= 0) return "󰨞";
-                                                        if (cls.indexOf("discord") >= 0) return "󰙯";
-                                                        if (cls.indexOf("spotify") >= 0) return "󰓇";
-                                                        if (cls.indexOf("obs") >= 0) return "󰑋";
-                                                        return "󰣇";
-                                                    }
-                                                    font.family: "Material Design Icons"
-                                                    font.pixelSize: 22
-                                                    color: "#DDFFFFFF"
-                                                }
-
-                                                Text {
-                                                    anchors.horizontalCenter: parent.horizontalCenter
-                                                    text: winData.title || winData.class || "App"
-                                                    font.pixelSize: 10
-                                                    color: "#BBFFFFFF"
-                                                    elide: Text.ElideRight
-                                                    width: parent.width
-                                                    horizontalAlignment: Text.AlignHCenter
-                                                }
-                                            }
+                                            source: winData.screenshot ? "file://" + winData.screenshot : ""
+                                            visible: !liveStream.hasContent && winData.screenshot !== null && winData.screenshot !== ""
+                                            fillMode: Image.PreserveAspectCrop
+                                            smooth: true
+                                            asynchronous: true
+                                            z: 1
                                         }
 
+                                        // Fallback when no stream or screenshot
+                                        Column {
+                                            anchors.centerIn: parent
+                                            spacing: 3
+                                            visible: !liveStream.hasContent && (!winData.screenshot || winData.screenshot === "")
+                                            width: parent.width - 10
+                                            z: 0
+
+                                            Text {
+                                                anchors.horizontalCenter: parent.horizontalCenter
+                                                text: {
+                                                    var cls = (winData.class || "").toLowerCase();
+                                                    if (cls.indexOf("brave") >= 0 || cls.indexOf("firefox") >= 0 || cls.indexOf("chrome") >= 0) return "󰖟";
+                                                    if (cls.indexOf("kitty") >= 0 || cls.indexOf("alacritty") >= 0 || cls.indexOf("terminal") >= 0) return "󰆍";
+                                                    if (cls.indexOf("nautilus") >= 0 || cls.indexOf("thunar") >= 0 || cls.indexOf("file") >= 0) return "󰉋";
+                                                    if (cls.indexOf("code") >= 0) return "󰨞";
+                                                    if (cls.indexOf("discord") >= 0) return "󰙯";
+                                                    if (cls.indexOf("spotify") >= 0) return "󰓇";
+                                                    if (cls.indexOf("obs") >= 0) return "󰑋";
+                                                    return "󰣇";
+                                                }
+                                                font.family: "Material Design Icons"
+                                                font.pixelSize: 22
+                                                color: "#DDFFFFFF"
+                                            }
+
+                                            Text {
+                                                anchors.horizontalCenter: parent.horizontalCenter
+                                                text: winData.title || winData.class || "App"
+                                                font.pixelSize: 10
+                                                color: "#BBFFFFFF"
+                                                elide: Text.ElideRight
+                                                width: parent.width
+                                                horizontalAlignment: Text.AlignHCenter
+                                            }
+                                        }
+                                    }
 
                                     // Click directly on this window to focus it and jump canvas
                                     MouseArea {
@@ -9664,12 +9742,7 @@ function getCurrentThemeStateKey() {
                                             overviewOverlayWindow.selectedRow = rowItem.rowIndex;
                                             overviewOverlayWindow.selectedCol = index;
                                         }
-                                        onClicked: {
-                                            overviewOverlayWindow.jumpPending = true;
-                                            shell.overviewActive = false;
-                                            overviewFocusProc.targetAddress = winData.address;
-                                            overviewFocusProc.running = true;
-                                        }
+                                        onClicked: overviewOverlayWindow.triggerFocus(winData.address, winData.vwx, winData.vwy)
                                     }
                                 }
                             }
