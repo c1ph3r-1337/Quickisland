@@ -234,37 +234,102 @@ Item {
                 }
             }
 
-            // --- LEFT SIDE: MEDIA ---
+            // =================================================================
+            // 1. CENTER: CIRCULAR STATUS COMPLICATIONS (WIFI/ETH & BATTERY)
+            // =================================================================
             Item {
-                id: mediaArea
-                anchors.right: parent.horizontalCenter
-                anchors.rightMargin: 30
-                anchors.top: parent.top
-                anchors.bottom: parent.bottom
-                width: 210
+                id: statusCenterArea
+                anchors.centerIn: parent
+                width: sr.batteryPercent >= 0 ? 100 : 50
+                height: parent.height
                 opacity: Math.max(0, (notchContainer.width - 250) / (500 - 250))
                 visible: opacity > 0
 
+                Row {
+                    anchors.centerIn: parent
+                    spacing: 8
 
-                // Album Art (Exactly 70x70, 24px padding from left)
+                    // Network Status Ring (Ethernet or Wi-Fi)
+                    CircularStatusRing {
+                        id: netRing
+                        value: {
+                            if (sr.ethConnected) return 1.0;
+                            if (sr.wifiConnected) {
+                                var sig = parseInt(sr.connectedWifiSignal || "100");
+                                return isNaN(sig) ? 0.75 : Math.max(0.1, sig / 100);
+                            }
+                            return 0.0;
+                        }
+                        activeDots: {
+                            if (sr.ethConnected) return 4;
+                            if (sr.wifiConnected) {
+                                var sig = parseInt(sr.connectedWifiSignal || "100");
+                                if (isNaN(sig)) return 3;
+                                return Math.max(1, Math.min(4, Math.round((sig / 100) * 4)));
+                            }
+                            return 0;
+                        }
+                        strokeColor: (sr.ethConnected || sr.wifiConnected) ? sr.accent : textMutedColor
+                        trackColor: Qt.rgba(1, 1, 1, 0.12)
+                        iconSource: sr.ethConnected ? "../../icons/ethernet.png" : "../../icons/wifi.png"
+                        iconColor: (sr.ethConnected || sr.wifiConnected) ? textColor : textMutedColor
+                        labelText: sr.ethConnected ? "ETH" : (sr.wifiConnected ? (sr.connectedWifiSignal + "%") : "OFF")
+                        labelColor: (sr.ethConnected || sr.wifiConnected) ? textColor : textMutedColor
+                        tooltipText: sr.ethConnected ? "Ethernet: Connected" : (sr.wifiConnected ? ("Wi-Fi: " + sr.wifiSSID) : "Disconnected")
+                        onClicked: sr.setState(8)
+                    }
+
+                    // Battery Status Ring
+                    CircularStatusRing {
+                        id: battRing
+                        visible: sr.batteryPercent >= 0
+                        value: Math.max(0.0, Math.min(1.0, sr.batteryPercent / 100))
+                        activeDots: Math.min(4, Math.floor((sr.batteryPercent / 100) * 4 + 0.05))
+                        strokeColor: sr.batteryPercent < 20 ? (sr.red || "#f38ba8") : (sr.batteryCharging ? (sr.green || "#a6e3a1") : sr.accent)
+                        trackColor: Qt.rgba(1, 1, 1, 0.12)
+                        iconGlyph: sr.batteryCharging ? "󰂄" : (sr.batteryPercent < 20 ? "󰂎" : (sr.batteryPercent < 50 ? "󰁾" : (sr.batteryPercent < 80 ? "󰂀" : "󰁹")))
+                        iconColor: strokeColor
+                        labelText: Math.round(sr.batteryPercent) + "%"
+                        labelColor: strokeColor
+                        tooltipText: Math.round(sr.batteryPercent) + "%" + (sr.batteryCharging ? " (Charging)" : "")
+                        onClicked: sr.setState(5)
+                    }
+                }
+            }
+
+            // =================================================================
+            // 2. LEFT SIDE: MEDIA
+            // =================================================================
+            Item {
+                id: mediaArea
+                anchors.left: parent.left
+                anchors.leftMargin: 16
+                anchors.right: statusCenterArea.left
+                anchors.rightMargin: 8
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                opacity: Math.max(0, (notchContainer.width - 250) / (500 - 250))
+                visible: opacity > 0
+
+                // Album Art
                 Item {
                     id: albumArtContainer
-                    width: 70; height: 70
+                    width: 64; height: 64
                     anchors.left: parent.left
-                    anchors.leftMargin: 24 // 24 + 16(mediaArea) = 40px from edge (24px from black edge)
+                    anchors.leftMargin: 8
                     anchors.verticalCenter: parent.verticalCenter
 
                     Rectangle {
                         id: albumMask; layer.enabled: true
                         anchors.fill: parent
-                        radius: 16
+                        radius: 14
                         visible: false
                     }
 
                     Rectangle {
                         anchors.fill: parent
                         color: sr.mediaArtUrl ? "transparent" : Qt.rgba(1, 1, 1, 0.08)
-                        radius: 16
+                        radius: 14
 
                         Image {
                             anchors.fill: parent
@@ -275,17 +340,16 @@ Item {
                         }
                         Text {
                             anchors.centerIn: parent; text: "♫"
-                            color: textMutedColor; font.pixelSize: 24
+                            color: textMutedColor; font.pixelSize: 22
                             visible: sr.mediaArtUrl === ""
                         }
                     }
                 }
 
-                // Text and Controls (16px gap from Album Art)
-                // Text and Controls (16px gap from Album Art)
+                // Text and Controls
                 Column {
                     anchors.left: albumArtContainer.right
-                    anchors.leftMargin: 16
+                    anchors.leftMargin: 12
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: 2
@@ -294,7 +358,7 @@ Item {
                         width: parent.width
                         text: sr.mediaTitle || "No media"
                         color: textColor
-                        font.pixelSize: 15
+                        font.pixelSize: 14
                         font.weight: Font.Bold
                         elide: Text.ElideRight
                         maximumLineCount: 1
@@ -304,18 +368,17 @@ Item {
                         width: parent.width
                         text: sr.mediaArtist || "—"
                         color: textDimColor
-                        font.pixelSize: 12
+                        font.pixelSize: 11
                         font.weight: Font.Medium
                         elide: Text.ElideRight
                         maximumLineCount: 1
                     }
                     
-                    // Spacer before controls
-                    Item { width: 1; height: 6 }
+                    Item { width: 1; height: 4 }
 
                     // Controls
                     Row {
-                        spacing: 16
+                        spacing: 12
                         Rectangle {
                             width: 24; height: 24; radius: 12; color: prevArea.containsMouse ? Qt.rgba(1, 1, 1, 0.15) : "transparent"
                             Image {
@@ -348,21 +411,22 @@ Item {
                 MouseArea { anchors.fill: parent; z: -1; cursorShape: Qt.PointingHandCursor; onClicked: sr.setState(10) }
             }
 
-// --- RIGHT SIDE: CLOCK & CALENDAR ---
+            // =================================================================
+            // 3. RIGHT SIDE: CLOCK & CALENDAR
+            // =================================================================
             Item {
                 id: clockArea
-                anchors.left: parent.horizontalCenter
-                anchors.leftMargin: 30
+                anchors.left: statusCenterArea.right
+                anchors.leftMargin: 8
+                anchors.right: parent.right
+                anchors.rightMargin: 16
                 anchors.top: parent.top
                 anchors.bottom: parent.bottom
-                width: 210
                 opacity: Math.max(0, (notchContainer.width - 250) / (500 - 250))
                 visible: opacity > 0
 
                 Column {
-                    anchors.verticalCenter: parent.verticalCenter
-                    anchors.right: parent.right
-                    anchors.rightMargin: 24
+                    anchors.centerIn: parent
                     spacing: 4
 
                     // Clock
@@ -370,7 +434,7 @@ Item {
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: sr.currentTime12h
                         color: textColor
-                        font.pixelSize: 32
+                        font.pixelSize: 28
                         font.weight: Font.Bold
                         font.letterSpacing: 0.5
                         font.family: "Varela Round"
@@ -379,7 +443,7 @@ Item {
                     // Mini Calendar Row
                     Row {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        spacing: 8
+                        spacing: 6
 
                         Repeater {
                             model: {
@@ -394,25 +458,25 @@ Item {
                             }
 
                             Item {
-                                width: 16; height: 32
+                                width: 14; height: 30
 
                                 Column {
                                     anchors.centerIn: parent
-                                    spacing: 4
+                                    spacing: 3
 
                                     Text {
                                         anchors.horizontalCenter: parent.horizontalCenter
                                         text: modelData.weekday
-                                        color: modelData.isToday ? textColor : Qt.rgba(1, 1, 1, 0.4)
-                                        font.pixelSize: modelData.isToday ? 10 : 8
-                                        font.weight: modelData.isToday ? Font.Bold : Font.Medium
+                                        color: modelData.isToday ? sr.accent : textMutedColor
+                                        font.pixelSize: 10
+                                        font.weight: Font.Medium
                                     }
 
                                     Text {
                                         anchors.horizontalCenter: parent.horizontalCenter
                                         text: modelData.day
                                         color: modelData.isToday ? textColor : Qt.rgba(1, 1, 1, 0.4)
-                                        font.pixelSize: modelData.isToday ? 14 : 10
+                                        font.pixelSize: modelData.isToday ? 13 : 9
                                         font.weight: modelData.isToday ? Font.Bold : Font.Medium
                                     }
                                 }
