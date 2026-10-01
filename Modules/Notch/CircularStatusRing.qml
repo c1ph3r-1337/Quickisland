@@ -4,31 +4,37 @@ import QtQuick.Effects
 Item {
     id: root
 
-    property real value: 0.0          // 0.0 to 1.0
-    property int activeDots: Math.round(value * 4) // 0 to 4 dots
-    property color strokeColor: "#5F9C74"
-    property color trackColor: Qt.rgba(1, 1, 1, 0.15)
-    property color iconColor: strokeColor
+    // Battery binds to outer ring arc
+    property real batteryRatio: 1.0
+    property bool isCharging: false
+    property color batteryColor: "#5F9C74"
+    property color trackColor: Qt.rgba(1, 1, 1, 0.14)
 
-    property string iconSource: ""
-    property string iconGlyph: ""
-    property string labelText: ""
-    property color labelColor: strokeColor
-    property string tooltipText: ""
+    // Network binds to center icon & bottom 4 dots
+    property int signalDots: 4       // 0 to 4 dots
+    property color dotsActiveColor: "#ffffff"
+    property string networkIcon: ""
+    property color networkIconColor: "#ffffff"
 
+    // Battery text label below ring
+    property string batteryLabel: ""
+
+    // Click signals
     signal clicked()
+    signal rightClicked()
 
-    width: 44
-    height: 58
+    width: 52
+    height: 68
 
-    property real animatedValue: value
-    Behavior on animatedValue {
+    property real animatedBatteryRatio: batteryRatio
+    Behavior on animatedBatteryRatio {
         NumberAnimation { duration: 300; easing.type: Easing.OutCubic }
     }
 
-    onAnimatedValueChanged: ringCanvas.requestPaint()
-    onStrokeColorChanged: ringCanvas.requestPaint()
-    onActiveDotsChanged: ringCanvas.requestPaint()
+    onAnimatedBatteryRatioChanged: ringCanvas.requestPaint()
+    onBatteryColorChanged: ringCanvas.requestPaint()
+    onSignalDotsChanged: ringCanvas.requestPaint()
+    onDotsActiveColorChanged: ringCanvas.requestPaint()
     onTrackColorChanged: ringCanvas.requestPaint()
 
     scale: ringMouse.containsMouse ? 1.08 : 1.0
@@ -39,8 +45,8 @@ Item {
     // Circular Ring Container
     Item {
         id: ringContainer
-        width: 42
-        height: 42
+        width: 46
+        height: 46
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
 
@@ -58,7 +64,7 @@ Item {
                 var h = height;
                 var cx = w / 2;
                 var cy = h / 2;
-                var strokeWidth = 3.0;
+                var strokeWidth = 3.5;
                 var r = (w - strokeWidth) / 2 - 2;
 
                 // Arc angles: Clockwise from bottom-left (122° / 0.68*PI) across the top to bottom-right (58° / 2.32*PI)
@@ -75,16 +81,16 @@ Item {
                 ctx.arc(cx, cy, r, startAngle, endAngle, false);
                 ctx.stroke();
 
-                // 2. Active progress arc
-                var val = Math.max(0.0, Math.min(1.0, root.animatedValue));
+                // 2. Active battery arc (0.0 to 1.0)
+                var val = Math.max(0.0, Math.min(1.0, root.animatedBatteryRatio));
                 if (val > 0.01) {
-                    ctx.strokeStyle = root.strokeColor;
+                    ctx.strokeStyle = root.batteryColor;
                     ctx.beginPath();
                     ctx.arc(cx, cy, r, startAngle, startAngle + totalSpan * val, false);
                     ctx.stroke();
                 }
 
-                // 3. Four discrete dots along the bottom opening (from 122° to 58°, centered at 90° = 0.5*PI)
+                // 3. Four discrete dots along the bottom opening (representing signal strength)
                 // Left-to-right: 0.63*PI, 0.54*PI, 0.46*PI, 0.37*PI
                 var dotAngles = [
                     Math.PI * 0.63,
@@ -92,7 +98,7 @@ Item {
                     Math.PI * 0.46,
                     Math.PI * 0.37
                 ];
-                var dotRadius = 1.6;
+                var dotRadius = 1.8;
 
                 for (var i = 0; i < 4; i++) {
                     var angle = dotAngles[i];
@@ -101,7 +107,7 @@ Item {
 
                     ctx.beginPath();
                     ctx.arc(dx, dy, dotRadius, 0, Math.PI * 2);
-                    ctx.fillStyle = (i < root.activeDots) ? root.strokeColor : root.trackColor;
+                    ctx.fillStyle = (i < root.signalDots) ? root.dotsActiveColor : root.trackColor;
                     ctx.fill();
                 }
             }
@@ -109,53 +115,63 @@ Item {
             Component.onCompleted: requestPaint()
         }
 
-        // Center Icon (Image or Glyph)
+        // Center Network Icon (Wi-Fi or Ethernet)
         Image {
             id: centerImg
             anchors.centerIn: parent
-            width: 16
-            height: 16
-            source: root.iconSource
+            width: 17
+            height: 17
+            source: root.networkIcon
             fillMode: Image.PreserveAspectFit
-            visible: root.iconSource !== ""
+            visible: root.networkIcon !== ""
             layer.enabled: true
             layer.effect: MultiEffect {
                 brightness: 1.0
                 colorization: 1.0
-                colorizationColor: root.iconColor
+                colorizationColor: root.networkIconColor
             }
-        }
-
-        Text {
-            id: centerText
-            anchors.centerIn: parent
-            anchors.verticalCenterOffset: -1
-            text: root.iconGlyph
-            font.family: "JetBrainsMono Nerd Font"
-            font.pixelSize: 16
-            color: root.iconColor
-            visible: root.iconGlyph !== "" && root.iconSource === ""
         }
     }
 
-    // Label Text (Below Ring)
-    Text {
+    // Battery Percentage Label (Below Ring)
+    Row {
         anchors.top: ringContainer.bottom
         anchors.topMargin: 2
         anchors.horizontalCenter: parent.horizontalCenter
-        text: root.labelText
-        color: root.labelColor
-        font.pixelSize: 9
-        font.weight: Font.DemiBold
-        font.letterSpacing: 0.5
-        visible: root.labelText !== ""
+        spacing: 2
+
+        Text {
+            text: "󰂄"
+            font.family: "JetBrainsMono Nerd Font"
+            font.pixelSize: 10
+            color: root.batteryColor
+            visible: root.isCharging
+            anchors.verticalCenter: parent.verticalCenter
+        }
+
+        Text {
+            text: root.batteryLabel
+            color: root.batteryColor
+            font.pixelSize: 10
+            font.weight: Font.Bold
+            font.letterSpacing: 0.3
+            anchors.verticalCenter: parent.verticalCenter
+            visible: root.batteryLabel !== ""
+        }
     }
 
     MouseArea {
         id: ringMouse
         anchors.fill: parent
         hoverEnabled: true
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
         cursorShape: Qt.PointingHandCursor
-        onClicked: root.clicked()
+        onClicked: mouse => {
+            if (mouse.button === Qt.RightButton) {
+                root.rightClicked();
+            } else {
+                root.clicked();
+            }
+        }
     }
 }

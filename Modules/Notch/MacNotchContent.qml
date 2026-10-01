@@ -16,63 +16,42 @@ Item {
     clip: true
 
     // =========================================================================
-    // 1. CENTER: CIRCULAR STATUS COMPLICATIONS (ETHERNET/WIFI & BATTERY)
+    // 1. CENTER: UNIFIED BATTERY & NETWORK STATUS COMPLICATION
     // =========================================================================
     Item {
         id: statusCenterArea
         anchors.centerIn: parent
-        width: sr.batteryPercent >= 0 ? 100 : 50
+        width: 56
         height: parent.height
 
-        Row {
+        CircularStatusRing {
+            id: unifiedRing
             anchors.centerIn: parent
-            spacing: 8
 
-            // Network Status Ring (Ethernet or Wi-Fi)
-            CircularStatusRing {
-                id: netRing
-                value: {
-                    if (sr.ethConnected) return 1.0;
-                    if (sr.wifiConnected) {
-                        var sig = parseInt(sr.connectedWifiSignal || "100");
-                        return isNaN(sig) ? 0.75 : Math.max(0.1, sig / 100);
-                    }
-                    return 0.0;
-                }
-                activeDots: {
-                    if (sr.ethConnected) return 4;
-                    if (sr.wifiConnected) {
-                        var sig = parseInt(sr.connectedWifiSignal || "100");
-                        if (isNaN(sig)) return 3;
-                        return Math.max(1, Math.min(4, Math.round((sig / 100) * 4)));
-                    }
-                    return 0;
-                }
-                strokeColor: (sr.ethConnected || sr.wifiConnected) ? sr.accent : textMutedColor
-                trackColor: Qt.rgba(1, 1, 1, 0.12)
-                iconSource: sr.ethConnected ? "../../icons/ethernet.png" : "../../icons/wifi.png"
-                iconColor: (sr.ethConnected || sr.wifiConnected) ? textColor : textMutedColor
-                labelText: sr.ethConnected ? "ETH" : (sr.wifiConnected ? (sr.connectedWifiSignal + "%") : "OFF")
-                labelColor: (sr.ethConnected || sr.wifiConnected) ? textColor : textMutedColor
-                tooltipText: sr.ethConnected ? "Ethernet: Connected" : (sr.wifiConnected ? ("Wi-Fi: " + sr.wifiSSID) : "Disconnected")
-                onClicked: sr.setState(8)
-            }
+            // Battery (Outer Ring Arc & Label)
+            batteryRatio: sr.batteryPercent >= 0 ? Math.max(0.0, Math.min(1.0, sr.batteryPercent / 100)) : 1.0
+            isCharging: sr.batteryCharging
+            batteryColor: sr.batteryPercent < 20 ? (sr.red || "#f38ba8") : (sr.batteryCharging ? (sr.green || "#a6e3a1") : sr.accent)
+            batteryLabel: sr.batteryPercent >= 0 ? (Math.round(sr.batteryPercent) + "%") : ""
+            trackColor: Qt.rgba(1, 1, 1, 0.12)
 
-            // Battery Status Ring
-            CircularStatusRing {
-                id: battRing
-                visible: sr.batteryPercent >= 0
-                value: Math.max(0.0, Math.min(1.0, sr.batteryPercent / 100))
-                activeDots: Math.min(4, Math.floor((sr.batteryPercent / 100) * 4 + 0.05))
-                strokeColor: sr.batteryPercent < 20 ? (sr.red || "#f38ba8") : (sr.batteryCharging ? (sr.green || "#a6e3a1") : sr.accent)
-                trackColor: Qt.rgba(1, 1, 1, 0.12)
-                iconGlyph: sr.batteryCharging ? "󰂄" : (sr.batteryPercent < 20 ? "󰂎" : (sr.batteryPercent < 50 ? "󰁾" : (sr.batteryPercent < 80 ? "󰂀" : "󰁹")))
-                iconColor: strokeColor
-                labelText: Math.round(sr.batteryPercent) + "%"
-                labelColor: strokeColor
-                tooltipText: Math.round(sr.batteryPercent) + "%" + (sr.batteryCharging ? " (Charging)" : "")
-                onClicked: sr.setState(5)
+            // Network (Center Icon & Bottom Strength Dots)
+            signalDots: {
+                if (sr.ethConnected) return 4;
+                if (sr.wifiConnected) {
+                    var sig = parseInt(sr.connectedWifiSignal || "100");
+                    if (isNaN(sig)) return 3;
+                    return Math.max(1, Math.min(4, Math.round((sig / 100) * 4)));
+                }
+                return 0;
             }
+            dotsActiveColor: (sr.ethConnected || sr.wifiConnected) ? textColor : textMutedColor
+            networkIcon: sr.ethConnected ? "../../icons/ethernet.png" : "../../icons/wifi.png"
+            networkIconColor: (sr.ethConnected || sr.wifiConnected) ? textColor : textMutedColor
+
+            // Left-click opens Wi-Fi, Right-click opens Control Center
+            onClicked: sr.setState(8)
+            onRightClicked: sr.setState(5)
         }
     }
 
@@ -82,18 +61,17 @@ Item {
     Item {
         id: mediaArea
         anchors.left: parent.left
-        anchors.leftMargin: 16
+        anchors.leftMargin: 20
         anchors.right: statusCenterArea.left
-        anchors.rightMargin: 8
+        anchors.rightMargin: 12
         anchors.top: parent.top
         anchors.bottom: parent.bottom
 
         // Album Art
         Item {
             id: albumArtContainer
-            width: 64; height: 64
+            width: 66; height: 66
             anchors.left: parent.left
-            anchors.leftMargin: 8
             anchors.verticalCenter: parent.verticalCenter
 
             Rectangle {
@@ -194,9 +172,9 @@ Item {
     Item {
         id: clockArea
         anchors.left: statusCenterArea.right
-        anchors.leftMargin: 8
+        anchors.leftMargin: 12
         anchors.right: parent.right
-        anchors.rightMargin: 16
+        anchors.rightMargin: 20
         anchors.top: parent.top
         anchors.bottom: parent.bottom
 
