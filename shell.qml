@@ -9275,27 +9275,6 @@ function getCurrentThemeStateKey() {
                     }
                 }
 
-                WheelHandler {
-                    id: overviewWheel
-                    target: overviewRoot
-                    orientation: Qt.Vertical
-                    acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
-                    onWheel: (event) => {
-                        var d = overviewOverlayWindow.layoutData;
-                        if (!d || !d.rows || d.rows.length <= 1) return;
-                        if (event.angleDelta.y < -20) {
-                            if (overviewOverlayWindow.selectedRow < d.rows.length - 1) {
-                                overviewOverlayWindow.selectedRow++;
-                                overviewRoot.clampCol();
-                            }
-                        } else if (event.angleDelta.y > 20) {
-                            if (overviewOverlayWindow.selectedRow > 0) {
-                                overviewOverlayWindow.selectedRow--;
-                                overviewRoot.clampCol();
-                            }
-                        }
-                    }
-                }
 
                 // ── Keyboard Navigation (Material Shell Spatial Rows) ──────────
                 Keys.onPressed: (event) => {
@@ -9628,9 +9607,7 @@ function getCurrentThemeStateKey() {
                                         radius: 16
                                         color: "#E614161E"
                                         z: 3
-                                        border.width: winTileItem.isWinSelected ? 2 : 0
-                                        border.color: winTileItem.isWinSelected ? (shell.cPrimary ? shell.cPrimary : "#7aa2f7") : "transparent"
-                                        Behavior on border.width { NumberAnimation { duration: 140 } }
+                                        border.width: 0
 
                                         layer.enabled: true
                                         layer.smooth: true
