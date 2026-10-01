@@ -26,6 +26,7 @@ ShellRoot {
     property int virtualWorkspaceX: 0
     property int virtualWorkspaceY: 0
     property bool overviewActive: false
+    property bool wsOverviewActive: false
     Connections {
         target: Settings.data.colorSchemes
         function onHyprglassChanged() {
@@ -920,6 +921,13 @@ function getCurrentThemeStateKey() {
         target: "overview"
         function toggle() {
             shell.overviewActive = !shell.overviewActive;
+        }
+    }
+
+    IpcHandler {
+        target: "wsoverview"
+        function toggle() {
+            shell.wsOverviewActive = !shell.wsOverviewActive;
         }
     }
 
@@ -9696,4 +9704,318 @@ function getCurrentThemeStateKey() {
             }
         }
     }
-}
+
+    // =============================================================================
+    // PHYSICAL WORKSPACE HORIZONTAL OVERVIEW
+    // Live horizontal strip of Hyprland workspaces with ScreencopyView previews.
+    // Toggle via: quickshell ipc -p ... call wsoverview toggle
+    // =============================================================================
+    Variants {
+    model: Quickshell.screens
+
+    PanelWindow {
+        id: wsOvWindow
+        required property ShellScreen modelData
+        screen: modelData
+        color: "transparent"
+
+        Region { id: wsOvMaskRegion }
+        mask: shell.wsOverviewActive ? null : wsOvMaskRegion
+
+        WlrLayershell.namespace: "quickisland-wsoverview"
+        WlrLayershell.layer: WlrLayer.Overlay
+        WlrLayershell.exclusionMode: ExclusionMode.Ignore
+        WlrLayershell.keyboardFocus: shell.wsOverviewActive ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+
+        anchors { top: true; bottom: true; left: true; right: true }
+
+        // ── Sorted physical workspaces (live from Hyprland) ────────────────
+        property var sortedWorkspaces: {
+            if (!Hyprland.workspaces) return [];
+            var arr = Hyprland.workspaces.values.slice().sort(function(a, b) { return a.id - b.id; });
+            return arr;
+        }
+
+        // ── Selected index (which workspace card is focused) ────────────────
+        property int selectedWsIdx: 0
+
+        // Keep selection in range when workspaces change
+        onSortedWorkspacesChanged: {
+            if (selectedWsIdx >= sortedWorkspaces.length && sortedWorkspaces.length > 0)
+                selectedWsIdx = sortedWorkspaces.length - 1;
+        }
+
+        // ── On activate: focus the currently active workspace ───────────────
+        Connections {
+            target: shell
+            function onWsOverviewActiveChanged() {
+                if (shell.wsOverviewActive) {
+                    wsOvRoot.forceActiveFocus();
+                    // Find the currently active/focused workspace
+                    var ws = Hyprland.focusedWorkspace;
+                    if (ws) {
+                        for (var i = 0; i < wsOvWindow.sortedWorkspaces.length; i++) {
+                            if (wsOvWindow.sortedWorkspaces[i].id === ws.id) {
+                                wsOvWindow.selectedWsIdx = i;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // ── Dispatch to workspace and close overview ────────────────────────
+        function switchToWorkspace(wsId) {
+            shell.wsOverviewActive = false;
+            Hyprland.dispatch("workspace " + wsId);
+        }
+
+        // ── FocusScope (visual root + keyboard handler) ─────────────────────
+        FocusScope {
+            id: wsOvRoot
+            anchors.fill: parent
+            focus: shell.wsOverviewActive
+
+            opacity: shell.wsOverviewActive ? 1.0 : 0.0
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: shell.wsOverviewActive ? 220 : 160
+                    easing.type: Easing.OutQuad
+                }
+            }
+
+            // ── Arrow key + Enter + Escape navigation ─────────────────────
+            Keys.onPressed: (event) => {
+                var total = wsOvWindow.sortedWorkspaces.length;
+                if (total === 0) { event.accepted = true; return; }
+
+                if (event.key === Qt.Key_Left) {
+                    if (wsOvWindow.selectedWsIdx > 0)
+                        wsOvWindow.selectedWsIdx--;
+                    event.accepted = true;
+                } else if (event.key === Qt.Key_Right) {
+                    if (wsOvWindow.selectedWsIdx < total - 1)
+                        wsOvWindow.selectedWsIdx++;
+                    event.accepted = true;
+                } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                    var selWs = wsOvWindow.sortedWorkspaces[wsOvWindow.selectedWsIdx];
+                    if (selWs) wsOvWindow.switchToWorkspace(selWs.id);
+                    event.accepted = true;
+                } else if (event.key === Qt.Key_Escape) {
+                    shell.wsOverviewActive = false;
+                    event.accepted = true;
+                }
+            }
+
+            // ── Blurred wallpaper backdrop ────────────────────────────────
+            Item {
+                anchors.fill: parent
+
+                Image {
+                    id: wsOvWallpaperBg
+                    anchors.fill: parent
+                    source: "file:///home/c1ph3r/.cache/wal/current-wallpaper"
+                    fillMode: Image.PreserveAspectCrop
+                    smooth: true
+                    asynchronous: true
+                    visible: false
+                }
+
+                MultiEffect {
+                    source: wsOvWallpaperBg
+                    anchors.fill: wsOvWallpaperBg
+                    blurEnabled: true
+                    blur: 0.88
+                    blurMax: 36
+                    brightness: -0.15
+                    contrast: 0.05
+                }
+
+                Rectangle {
+                    anchors.fill: parent
+                    color: "#38000000"
+                }
+            }
+
+            // ── Dismiss click anywhere on bg ──────────────────────────────
+            MouseArea {
+                anchors.fill: parent
+                onClicked: shell.wsOverviewActive = false
+            }
+
+            // ── Main horizontal card strip ────────────────────────────────
+            Item {
+                id: wsOvStrip
+
+                readonly property real cardH: 236
+                readonly property real cardW: Math.round(cardH * 16.0 / 9.0)
+                readonly property real cardGap: 28
+
+                // Total strip width (all cards + gaps)
+                readonly property real totalW: wsOvWindow.sortedWorkspaces.length * cardW + Math.max(0, wsOvWindow.sortedWorkspaces.length - 1) * cardGap
+
+                // Pan so selected card is centered
+                property real panX: {
+                    var selCardCenter = wsOvWindow.selectedWsIdx * (cardW + cardGap) + cardW / 2;
+                    return Math.round(parent.width / 2 - selCardCenter);
+                }
+                Behavior on panX {
+                    NumberAnimation { duration: 220; easing.bezierCurve: [0.22, 1.0, 0.36, 1.0] }
+                }
+
+                // Zoom in from center on open
+                anchors.verticalCenter: parent.verticalCenter
+                width: parent.width
+                height: wsOvStrip.cardH
+
+                transformOrigin: Item.Center
+                scale: shell.wsOverviewActive ? 1.0 : 1.4
+                Behavior on scale {
+                    NumberAnimation {
+                        duration: shell.wsOverviewActive ? 280 : 200
+                        easing.bezierCurve: shell.wsOverviewActive ? [0.16, 1.0, 0.3, 1.0] : [0.4, 0.0, 0.7, 0.2]
+                    }
+                }
+
+                Repeater {
+                    model: wsOvWindow.sortedWorkspaces
+
+                    Item {
+                        id: wsCardItem
+                        required property var modelData
+                        required property int index
+
+                        property var wsData: modelData
+                        property bool isSelected: index === wsOvWindow.selectedWsIdx
+                        property bool isFocused: Hyprland.focusedWorkspace && wsData.id === Hyprland.focusedWorkspace.id
+
+                        x: Math.round(wsOvStrip.panX + index * (wsOvStrip.cardW + wsOvStrip.cardGap))
+                        y: 0
+                        width: wsOvStrip.cardW
+                        height: wsOvStrip.cardH
+
+                        // Bounce scale on selection (no border)
+                        scale: isSelected ? 1.05 : 1.0
+                        Behavior on scale {
+                            NumberAnimation { duration: 160; easing.bezierCurve: [0.2, 0.9, 0.3, 1.0] }
+                        }
+                        z: isSelected ? 10 : 1
+
+                        // ── Clip mask for rounded corners ─────────────────
+                        Rectangle {
+                            id: wsCardMask
+                            anchors.fill: parent
+                            radius: 20
+                            color: "white"
+                            visible: false
+                            layer.enabled: true
+                        }
+
+                        // ── Card background + live screencopy ─────────────
+                        Rectangle {
+                            id: wsCard
+                            anchors.fill: parent
+                            radius: 20
+                            color: "#1A1B26"
+                            border.width: 0
+
+                            layer.enabled: true
+                            layer.smooth: true
+                            layer.effect: MultiEffect {
+                                maskEnabled: true
+                                maskSource: wsCardMask
+                            }
+
+                            // Wallpaper as fallback background
+                            Image {
+                                anchors.fill: parent
+                                source: "file:///home/c1ph3r/.cache/wal/current-wallpaper"
+                                fillMode: Image.PreserveAspectCrop
+                                smooth: true
+                                asynchronous: true
+                                z: 1
+                            }
+
+                            // Live workspace screencopy (DMA-BUF zero-copy)
+                            ScreencopyView {
+                                id: wsLiveStream
+                                anchors.fill: parent
+                                captureSource: wsCardItem.wsData
+                                live: shell.wsOverviewActive
+                                paintCursor: false
+                                visible: hasContent
+                                z: 2
+                            }
+
+                            // Active workspace indicator dot (top-right corner)
+                            Rectangle {
+                                visible: wsCardItem.isFocused
+                                width: 10; height: 10; radius: 5
+                                color: shell.cPrimary ? shell.cPrimary : "#7aa2f7"
+                                anchors { top: parent.top; right: parent.right; margins: 10 }
+                                z: 4
+
+                                SequentialAnimation on opacity {
+                                    running: wsCardItem.isFocused && shell.wsOverviewActive
+                                    loops: Animation.Infinite
+                                    NumberAnimation { to: 0.5; duration: 900 }
+                                    NumberAnimation { to: 1.0; duration: 900 }
+                                }
+                            }
+
+                            // Workspace number label at bottom-left
+                            Rectangle {
+                                anchors { left: parent.left; bottom: parent.bottom; margins: 10 }
+                                width: wsLabel.implicitWidth + 14
+                                height: wsLabel.implicitHeight + 8
+                                radius: 8
+                                color: "#AA000000"
+                                z: 4
+
+                                Text {
+                                    id: wsLabel
+                                    anchors.centerIn: parent
+                                    text: wsCardItem.wsData.name !== "" ? wsCardItem.wsData.name : wsCardItem.wsData.id
+                                    color: "white"
+                                    font.pixelSize: 13
+                                    font.family: "Inter"
+                                    font.weight: Font.Medium
+                                }
+                            }
+
+                            // Dim overlay for non-selected cards
+                            Rectangle {
+                                anchors.fill: parent
+                                radius: 20
+                                color: wsCardItem.isSelected ? "transparent" : "#2A000000"
+                                z: 3
+                                Behavior on color { ColorAnimation { duration: 160 } }
+                            }
+                        }
+
+                        // ── Click to switch ───────────────────────────────
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: wsOvWindow.switchToWorkspace(wsCardItem.wsData.id)
+                            onEntered: wsOvWindow.selectedWsIdx = wsCardItem.index
+                        }
+                    }
+                }
+            }
+
+            // ── Hint label at bottom ──────────────────────────────────────
+            Text {
+                anchors { bottom: parent.bottom; horizontalCenter: parent.horizontalCenter; bottomMargin: 32 }
+                text: "← → navigate   Enter switch   Esc dismiss"
+                color: "#99ffffff"
+                font.pixelSize: 12
+                font.family: "Inter"
+                opacity: shell.wsOverviewActive ? 0.7 : 0.0
+                Behavior on opacity { NumberAnimation { duration: 200 } }
+            }
+            }
+        }
+    }
+} // ShellRoot
