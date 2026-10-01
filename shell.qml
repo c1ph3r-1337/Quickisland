@@ -9346,16 +9346,13 @@ function getCurrentThemeStateKey() {
                             height: overviewRowsColumn.cardHeight
 
                             // ── Central Desktop Wallpaper Viewport Card ──────────────
-                            // Soft ambient drop shadow behind card
                             Rectangle {
+                                id: rowCardMask
                                 anchors.fill: rowMonitorCard
-                                anchors.topMargin: 4
-                                anchors.bottomMargin: -8
-                                anchors.leftMargin: -3
-                                anchors.rightMargin: -3
-                                radius: 14
-                                color: "#45000000"
-                                z: 0
+                                radius: 20
+                                color: "white"
+                                visible: false
+                                layer.enabled: true
                             }
 
                             Rectangle {
@@ -9364,10 +9361,16 @@ function getCurrentThemeStateKey() {
                                 y: Math.round((parent.height - height) / 2)
                                 width: overviewRowsColumn.cardWidth
                                 height: overviewRowsColumn.cardHeight
-                                radius: 12
-                                clip: true
-                                color: "#1A000000"
+                                radius: 20
+                                color: "transparent"
                                 z: 1
+
+                                layer.enabled: true
+                                layer.smooth: true
+                                layer.effect: MultiEffect {
+                                    maskEnabled: true
+                                    maskSource: rowCardMask
+                                }
 
                                 // Desktop Wallpaper Image (matches user reference desktop view)
                                 Image {
@@ -9376,19 +9379,6 @@ function getCurrentThemeStateKey() {
                                     fillMode: Image.PreserveAspectCrop
                                     smooth: true
                                     asynchronous: true
-                                }
-
-                                // Glass overlay + subtle selection border
-                                Rectangle {
-                                    anchors.fill: parent
-                                    radius: 12
-                                    color: rowCardMouse.containsMouse ? "#12FFFFFF" : "transparent"
-                                    border.width: rowItem.isRowSelected ? 1.5 : (rowItem.isRowActive ? 1.0 : 1.0)
-                                    border.color: rowItem.isRowSelected ? shell.accent
-                                                : (rowItem.isRowActive ? Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.45) : "#1EFFFFFF")
-
-                                    Behavior on border.color { ColorAnimation { duration: 150 } }
-                                    Behavior on color { ColorAnimation { duration: 150 } }
                                 }
 
                                 // Click card to jump to this workspace row
@@ -9455,44 +9445,31 @@ function getCurrentThemeStateKey() {
                                         width: Math.max(50, Math.round(winData.rel_w * overviewRowsColumn.cardWidth))
                                         height: Math.max(35, Math.round(winData.rel_h * overviewRowsColumn.cardHeight))
                                         z: 10
-                                        scale: winTileMouse.containsMouse || winTileItem.isWinSelected ? 1.025 : 1.0
-                                        Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutQuad } }
 
-                                        // Multi-layer realistic floating drop shadow
                                         Rectangle {
-                                            anchors.fill: winFrame
-                                            anchors.topMargin: 6
-                                            anchors.bottomMargin: -11
-                                            anchors.leftMargin: -5
-                                            anchors.rightMargin: -5
-                                            radius: 15
-                                            color: "#40000000"
-                                            z: 1
-                                        }
-                                        Rectangle {
-                                            anchors.fill: winFrame
-                                            anchors.topMargin: 3
-                                            anchors.bottomMargin: -6
-                                            anchors.leftMargin: -2
-                                            anchors.rightMargin: -2
-                                            radius: 13
-                                            color: "#55000000"
-                                            z: 2
+                                            id: winTileMask
+                                            anchors.fill: parent
+                                            radius: 16
+                                            color: "white"
+                                            visible: false
+                                            layer.enabled: true
                                         }
 
                                         // Window Frame
                                         Rectangle {
                                             id: winFrame
                                             anchors.fill: parent
-                                            radius: 11
-                                            clip: true
+                                            radius: 16
                                             color: "#E614161E"
                                             z: 3
-                                            border.width: winTileMouse.containsMouse || winTileItem.isWinSelected ? 1.5 : (winData.focused ? 1.5 : 1.0)
-                                            border.color: winTileMouse.containsMouse || winTileItem.isWinSelected ? shell.accent
-                                                        : (winData.focused ? Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.8) : "#28FFFFFF")
+                                            border.width: 0
 
-                                            Behavior on border.color { ColorAnimation { duration: 140 } }
+                                            layer.enabled: true
+                                            layer.smooth: true
+                                            layer.effect: MultiEffect {
+                                                maskEnabled: true
+                                                maskSource: winTileMask
+                                            }
 
                                             // ── Live GPU Screencopy Window Preview (Zero-copy DMA-BUF) ────
                                             ScreencopyView {
@@ -9505,55 +9482,55 @@ function getCurrentThemeStateKey() {
                                                 z: 2
                                             }
 
+                                            // Fallback cached screenshot if available
+                                            Image {
+                                                anchors.fill: parent
+                                                source: winData.screenshot ? "file://" + winData.screenshot : ""
+                                                visible: !liveStream.hasContent && winData.screenshot !== null && winData.screenshot !== ""
+                                                fillMode: Image.PreserveAspectCrop
+                                                smooth: true
+                                                asynchronous: true
+                                                z: 1
+                                            }
 
-                                        // Fallback cached screenshot if available
-                                        Image {
-                                            anchors.fill: parent
-                                            source: winData.screenshot ? "file://" + winData.screenshot : ""
-                                            visible: !liveStream.hasContent && winData.screenshot !== null && winData.screenshot !== ""
-                                            fillMode: Image.PreserveAspectCrop
-                                            smooth: true
-                                            asynchronous: true
-                                            z: 1
-                                        }
+                                            // Fallback when no stream or screenshot
+                                            Column {
+                                                anchors.centerIn: parent
+                                                spacing: 3
+                                                visible: !liveStream.hasContent && (!winData.screenshot || winData.screenshot === "")
+                                                width: parent.width - 10
+                                                z: 0
 
-                                        // Fallback when no stream or screenshot
-                                        Column {
-                                            anchors.centerIn: parent
-                                            spacing: 3
-                                            visible: !liveStream.hasContent && (!winData.screenshot || winData.screenshot === "")
-                                            width: parent.width - 10
-                                            z: 0
-
-                                            Text {
-                                                anchors.horizontalCenter: parent.horizontalCenter
-                                                text: {
-                                                    var cls = (winData.class || "").toLowerCase();
-                                                    if (cls.indexOf("brave") >= 0 || cls.indexOf("firefox") >= 0 || cls.indexOf("chrome") >= 0) return "󰖟";
-                                                    if (cls.indexOf("kitty") >= 0 || cls.indexOf("alacritty") >= 0 || cls.indexOf("terminal") >= 0) return "󰆍";
-                                                    if (cls.indexOf("nautilus") >= 0 || cls.indexOf("thunar") >= 0 || cls.indexOf("file") >= 0) return "󰉋";
-                                                    if (cls.indexOf("code") >= 0) return "󰨞";
-                                                    if (cls.indexOf("discord") >= 0) return "󰙯";
-                                                    if (cls.indexOf("spotify") >= 0) return "󰓇";
-                                                    if (cls.indexOf("obs") >= 0) return "󰑋";
-                                                    return "󰣇";
+                                                Text {
+                                                    anchors.horizontalCenter: parent.horizontalCenter
+                                                    text: {
+                                                        var cls = (winData.class || "").toLowerCase();
+                                                        if (cls.indexOf("brave") >= 0 || cls.indexOf("firefox") >= 0 || cls.indexOf("chrome") >= 0) return "󰖟";
+                                                        if (cls.indexOf("kitty") >= 0 || cls.indexOf("alacritty") >= 0 || cls.indexOf("terminal") >= 0) return "󰆍";
+                                                        if (cls.indexOf("nautilus") >= 0 || cls.indexOf("thunar") >= 0 || cls.indexOf("file") >= 0) return "󰉋";
+                                                        if (cls.indexOf("code") >= 0) return "󰨞";
+                                                        if (cls.indexOf("discord") >= 0) return "󰙯";
+                                                        if (cls.indexOf("spotify") >= 0) return "󰓇";
+                                                        if (cls.indexOf("obs") >= 0) return "󰑋";
+                                                        return "󰣇";
+                                                    }
+                                                    font.family: "Material Design Icons"
+                                                    font.pixelSize: 22
+                                                    color: "#DDFFFFFF"
                                                 }
-                                                font.family: "Material Design Icons"
-                                                font.pixelSize: 22
-                                                color: winData.focused ? shell.accent : "#DDFFFFFF"
-                                            }
 
-                                            Text {
-                                                anchors.horizontalCenter: parent.horizontalCenter
-                                                text: winData.title || winData.class || "App"
-                                                font.pixelSize: 10
-                                                color: "#BBFFFFFF"
-                                                elide: Text.ElideRight
-                                                width: parent.width
-                                                horizontalAlignment: Text.AlignHCenter
+                                                Text {
+                                                    anchors.horizontalCenter: parent.horizontalCenter
+                                                    text: winData.title || winData.class || "App"
+                                                    font.pixelSize: 10
+                                                    color: "#BBFFFFFF"
+                                                    elide: Text.ElideRight
+                                                    width: parent.width
+                                                    horizontalAlignment: Text.AlignHCenter
+                                                }
                                             }
                                         }
-                                    }
+
 
                                     // Click directly on this window to focus it and jump canvas
                                     MouseArea {
