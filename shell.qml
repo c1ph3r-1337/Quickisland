@@ -9106,7 +9106,7 @@ function getCurrentThemeStateKey() {
             mask: shell.overviewActive ? null : overviewMaskRegion
 
             WlrLayershell.namespace: "quickisland-overview"
-            WlrLayershell.layer: WlrLayer.Top
+            WlrLayershell.layer: WlrLayer.Overlay
             WlrLayershell.exclusionMode: ExclusionMode.Ignore
             WlrLayershell.keyboardFocus: shell.overviewActive ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
@@ -9191,12 +9191,21 @@ function getCurrentThemeStateKey() {
                 }
             }
 
-            // ── Visual Root ────────────────────────────────────────────
-            Item {
+            // ── Visual Root (FocusScope ensures reliable keyboard capture) ─────────────────
+            FocusScope {
                 id: overviewRoot
                 anchors.fill: parent
                 focus: shell.overviewActive
-                visible: shell.overviewActive || overviewDimBg.opacity > 0
+                visible: shell.overviewActive || overviewRoot.opacity > 0
+
+                Component.onCompleted: {
+                    if (shell.overviewActive) overviewRoot.forceActiveFocus();
+                }
+                onActiveFocusChanged: {
+                    if (!activeFocus && shell.overviewActive) {
+                        overviewRoot.forceActiveFocus();
+                    }
+                }
 
                 opacity: shell.overviewActive ? 1.0 : 0.0
                 scale: shell.overviewActive ? 1.0 : 0.96
@@ -9209,7 +9218,7 @@ function getCurrentThemeStateKey() {
                     if (!d || !d.rows) return;
                     var rowCount = d.rows.length;
 
-                    if (event.key === Qt.Key_Escape || event.key === Qt.Key_Space) {
+                    if (event.key === Qt.Key_Escape || event.key === Qt.Key_Space || event.key === Qt.Key_QuoteLeft || event.key === Qt.Key_AsciiTilde) {
                         shell.overviewActive = false;
                         event.accepted = true;
                     } else if (event.key === Qt.Key_Up || event.key === Qt.Key_K) {
@@ -9234,6 +9243,13 @@ function getCurrentThemeStateKey() {
                             overviewOverlayWindow.selectedCol = Math.min(winCount - 1, overviewOverlayWindow.selectedCol + 1);
                         }
                         event.accepted = true;
+                    } else if (event.key >= Qt.Key_1 && event.key <= Qt.Key_9) {
+                        var rowIdx = event.key - Qt.Key_1;
+                        if (rowIdx < rowCount) {
+                            overviewOverlayWindow.selectedRow = rowIdx;
+                            overviewOverlayWindow.selectedCol = 0;
+                            event.accepted = true;
+                        }
                     } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
                         var currRow = d.rows[overviewOverlayWindow.selectedRow];
                         if (currRow) {
@@ -9252,20 +9268,33 @@ function getCurrentThemeStateKey() {
                 }
 
                 // ── Dimmed Wallpaper Backdrop (Matches Material Shell Overview) ─────────
-                Image {
-                    id: overviewWallpaperBg
+                Item {
+                    id: overviewWallpaperWrap
                     anchors.fill: parent
-                    source: "file://" + (overviewOverlayWindow.layoutData && overviewOverlayWindow.layoutData.wallpaper ? overviewOverlayWindow.layoutData.wallpaper : "/home/c1ph3r/.cache/wal/current-wallpaper")
-                    fillMode: Image.PreserveAspectCrop
-                    smooth: true
-                    asynchronous: true
-                    opacity: shell.overviewActive ? 1.0 : 0.0
-                    Behavior on opacity { NumberAnimation { duration: 180 } }
 
-                    // Dark scrim overlay giving the deep blurred wallpaper appearance
+                    Image {
+                        id: overviewWallpaperBg
+                        anchors.fill: parent
+                        source: "file://" + (overviewOverlayWindow.layoutData && overviewOverlayWindow.layoutData.wallpaper ? overviewOverlayWindow.layoutData.wallpaper : "/home/c1ph3r/.cache/wal/current-wallpaper")
+                        fillMode: Image.PreserveAspectCrop
+                        smooth: true
+                        asynchronous: true
+                        visible: false
+                    }
+
+                    MultiEffect {
+                        source: overviewWallpaperBg
+                        anchors.fill: overviewWallpaperBg
+                        blurEnabled: true
+                        blur: 0.88
+                        blurMax: 36
+                        brightness: -0.15
+                        contrast: 0.05
+                    }
+
                     Rectangle {
                         anchors.fill: parent
-                        color: "#B8080B10"
+                        color: "#35000000"
                     }
                 }
 
@@ -9279,11 +9308,13 @@ function getCurrentThemeStateKey() {
                 // ── Material Shell Stacked Rows (Infinite Canvas) ──────────────────────
                 Column {
                     id: overviewRowsColumn
-                    anchors.centerIn: parent
-                    spacing: 18
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    y: Math.round((parent.height - cardHeight) / 2 - overviewOverlayWindow.selectedRow * (cardHeight + spacing))
+                    Behavior on y { NumberAnimation { duration: 220; easing.bezierCurve: [0.22, 1.0, 0.36, 1.0] } }
+                    spacing: 16
                     visible: overviewOverlayWindow.layoutData !== null
 
-                    readonly property real cardHeight: 220
+                    readonly property real cardHeight: 236
                     readonly property real cardWidth: Math.round(cardHeight * 16.0 / 9.0)
 
                     Repeater {
@@ -9300,6 +9331,18 @@ function getCurrentThemeStateKey() {
                             height: overviewRowsColumn.cardHeight
 
                             // ── Central Desktop Wallpaper Viewport Card ──────────────
+                            // Soft ambient drop shadow behind card
+                            Rectangle {
+                                anchors.fill: rowMonitorCard
+                                anchors.topMargin: 4
+                                anchors.bottomMargin: -8
+                                anchors.leftMargin: -3
+                                anchors.rightMargin: -3
+                                radius: 14
+                                color: "#45000000"
+                                z: 0
+                            }
+
                             Rectangle {
                                 id: rowMonitorCard
                                 x: Math.round((parent.width - width) / 2)
@@ -9309,6 +9352,7 @@ function getCurrentThemeStateKey() {
                                 radius: 12
                                 clip: true
                                 color: "#1A000000"
+                                z: 1
 
                                 // Desktop Wallpaper Image (matches user reference desktop view)
                                 Image {
@@ -9319,14 +9363,14 @@ function getCurrentThemeStateKey() {
                                     asynchronous: true
                                 }
 
-                                // Glass overlay + selection border
+                                // Glass overlay + subtle selection border
                                 Rectangle {
                                     anchors.fill: parent
                                     radius: 12
-                                    color: rowCardMouse.containsMouse ? "#18FFFFFF" : "transparent"
-                                    border.width: rowItem.isRowSelected ? 2.5 : (rowItem.isRowActive ? 1.5 : 1)
+                                    color: rowCardMouse.containsMouse ? "#12FFFFFF" : "transparent"
+                                    border.width: rowItem.isRowSelected ? 1.5 : (rowItem.isRowActive ? 1.0 : 1.0)
                                     border.color: rowItem.isRowSelected ? shell.accent
-                                                : (rowItem.isRowActive ? Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.7) : "#20FFFFFF")
+                                                : (rowItem.isRowActive ? Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.45) : "#1EFFFFFF")
 
                                     Behavior on border.color { ColorAnimation { duration: 150 } }
                                     Behavior on color { ColorAnimation { duration: 150 } }
@@ -9363,16 +9407,42 @@ function getCurrentThemeStateKey() {
                                     width: Math.max(50, Math.round(winData.rel_w * overviewRowsColumn.cardWidth))
                                     height: Math.max(35, Math.round(winData.rel_h * overviewRowsColumn.cardHeight))
                                     z: 10
+                                    scale: winTileMouse.containsMouse || winTileItem.isWinSelected ? 1.025 : 1.0
+                                    Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutQuad } }
 
-                                    // Window Frame with drop shadow effect
+                                    // Multi-layer realistic floating drop shadow
                                     Rectangle {
+                                        anchors.fill: winFrame
+                                        anchors.topMargin: 6
+                                        anchors.bottomMargin: -11
+                                        anchors.leftMargin: -5
+                                        anchors.rightMargin: -5
+                                        radius: 15
+                                        color: "#40000000"
+                                        z: 1
+                                    }
+                                    Rectangle {
+                                        anchors.fill: winFrame
+                                        anchors.topMargin: 3
+                                        anchors.bottomMargin: -6
+                                        anchors.leftMargin: -2
+                                        anchors.rightMargin: -2
+                                        radius: 13
+                                        color: "#55000000"
+                                        z: 2
+                                    }
+
+                                    // Window Frame
+                                    Rectangle {
+                                        id: winFrame
                                         anchors.fill: parent
-                                        radius: 8
+                                        radius: 11
                                         clip: true
-                                        color: "#E0181A22"
-                                        border.width: winTileMouse.containsMouse || winTileItem.isWinSelected ? 2 : (winData.focused ? 1.5 : 1)
+                                        color: "#E614161E"
+                                        z: 3
+                                        border.width: winTileMouse.containsMouse || winTileItem.isWinSelected ? 1.5 : (winData.focused ? 1.5 : 1.0)
                                         border.color: winTileMouse.containsMouse || winTileItem.isWinSelected ? shell.accent
-                                                    : (winData.focused ? Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.8) : "#35FFFFFF")
+                                                    : (winData.focused ? Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.8) : "#28FFFFFF")
 
                                         Behavior on border.color { ColorAnimation { duration: 140 } }
 

@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Coordinate-aware Material Shell spatial overview manager for QuickIsland.
+Coordinate-Locked Material Shell Spatial Overview Manager for QuickIsland.
 
 Manages the Infinite Canvas (Virtual Spatial Workspaces) on Hyprland:
-- Every virtual workspace cell is defined by (vx, vy) coordinates.
-- Workspaces are structured in a 2D coordinate grid (rows = vy, columns = vx).
-- Windows are positioned in their exact coordinate cells with live screenshots.
-- Selecting any cell or window navigates the canvas to that exact (vx, vy) coordinate.
+- Reads the authoritative infinite_canvas_state.json.
+- Positions windows in their exact virtual coordinate cells with live screenshots.
+- Zero coordinate drift or missing windows.
+- Selecting any window or cell navigates directly to that exact (vx, vy) coordinate.
 """
 
 import json
@@ -17,6 +17,7 @@ import math
 import time
 
 STATE_DIR = os.path.expanduser("~/.cache/quickisland")
+STATE_FILE = os.path.join(STATE_DIR, "infinite_canvas_state.json")
 LAYOUT_FILE = os.path.join(STATE_DIR, "overview_layout.json")
 COORD_FILE = os.path.join(STATE_DIR, "infinite_canvas_coords")
 CAPTURES_DIR = os.path.join(STATE_DIR, "overview_captures")
@@ -48,16 +49,31 @@ def run_json(cmd, env=None):
         return None
 
 
-def get_virtual_coords():
-    try:
-        if os.path.exists(COORD_FILE):
-            with open(COORD_FILE) as f:
+def load_state():
+    if os.path.exists(STATE_FILE):
+        try:
+            with open(STATE_FILE, "r") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    cur_vx, cur_vy = 0, 0
+    if os.path.exists(COORD_FILE):
+        try:
+            with open(COORD_FILE, "r") as f:
                 parts = f.read().strip().split()
                 if len(parts) >= 2:
-                    return int(parts[0]), int(parts[1])
-    except Exception:
-        pass
-    return 0, 0
+                    cur_vx, cur_vy = int(parts[0]), int(parts[1])
+        except Exception:
+            pass
+    return {"cur_vx": cur_vx, "cur_vy": cur_vy, "windows": {}}
+
+
+def save_state(state):
+    os.makedirs(STATE_DIR, exist_ok=True)
+    with open(STATE_FILE, "w") as f:
+        json.dump(state, f, indent=2)
+    with open(COORD_FILE, "w") as f:
+        f.write(f"{state['cur_vx']} {state['cur_vy']}\n")
 
 
 def enter_overview():
@@ -76,43 +92,116 @@ def enter_overview():
     mon_w = int(mon["width"] / scale)
     mon_h = int(mon["height"] / scale)
 
-    cur_vx, cur_vy = get_virtual_coords()
-
     active_ws_info = run_json("hyprctl activeworkspace -j", env=env) or {}
     active_ws_id = active_ws_info.get("id", 1)
 
     clients = run_json("hyprctl clients -j", env=env) or []
-    # Filter clients: mapped and on the current active Hyprland workspace
-    ws_clients = [c for c in clients if c.get("mapped") and c.get("workspace", {}).get("id") == active_ws_id]
+    all_clients = {c["address"]: c for c in clients}
+    all_mapped = {c["address"]: c for c in clients if c.get("mapped")}
+    ws_clients = {addr: c for addr, c in all_clients.items() if c.get("workspace", {}).get("id") == active_ws_id}
+
+    ws_key = str(active_ws_id)
+    state = load_state()
+    workspaces = state.setdefault("workspaces", {})
+    if ws_key not in workspaces:
+        workspaces[ws_key] = {
+            "cur_vx": state.get("cur_vx", 0),
+            "cur_vy": state.get("cur_vy", 0)
+        }
+    cur_vx = workspaces[ws_key].get("cur_vx", 0)
+    cur_vy = workspaces[ws_key].get("cur_vy", 0)
+    windows = state.get("windows", {})
+
+    # Clean up closed windows
+    windows = {addr: win for addr, win in windows.items() if addr in all_clients}
 
     os.makedirs(CAPTURES_DIR, exist_ok=True)
 
-    # Map windows to their virtual coordinate cells (vwx, vwy) and row offsets
-    all_windows = []
-    occupied_vys = set([cur_vy])
-    for c in ws_clients:
+    # Synchronize any windows on active workspace
+    state_changed = False
+    for addr, c in ws_clients.items():
         cx, cy = c["at"]
         cw, ch = c["size"]
-        center_x = cx + cw / 2
-        center_y = cy + ch / 2
+        app_class = c.get("class", "")
+        if addr not in windows:
+            is_on_screen = (cx >= mon_x - 50 and cx < mon_x + mon_w + 50 and
+                            cy >= mon_y - 50 and cy < mon_y + mon_h + 50)
+            if is_on_screen:
+                local_x = max(0, min(mon_w - 50, cx - mon_x))
+                local_y = max(0, min(mon_h - 50, cy - mon_y))
+                win_vx = cur_vx
+                win_vy = cur_vy
+            else:
+                win_vx = cur_vx + int(math.floor((cx + cw / 2 - mon_x) / mon_w))
+                win_vy = cur_vy - int(math.floor((cy + ch / 2 - mon_y) / mon_h))
+                row_origin_y = mon_y - (win_vy - cur_vy) * mon_h
+                local_x = cx - (mon_x + (win_vx - cur_vx) * mon_w)
+                local_y = cy - row_origin_y
 
-        vwx = cur_vx + int(math.floor((center_x - mon_x) / mon_w))
-        vwy = cur_vy - int(math.floor((center_y - mon_y) / mon_h))
+            windows[addr] = {
+                "ws": active_ws_id,
+                "vx": win_vx,
+                "vy": win_vy,
+                "local_x": round(local_x),
+                "local_y": round(local_y),
+                "w": cw,
+                "h": ch,
+                "class": app_class
+            }
+            state_changed = True
+        else:
+            win = windows[addr]
+            win["ws"] = active_ws_id
+            if app_class:
+                win["class"] = app_class
+            # If window is on the current viewport and stationary on screen, capture latest local offset
+            if win.get("vx") == cur_vx and win.get("vy") == cur_vy:
+                is_on_screen = (cx >= mon_x - 50 and cx < mon_x + mon_w + 50 and
+                                cy >= mon_y - 50 and cy < mon_y + mon_h + 50)
+                if is_on_screen:
+                    win["local_x"] = max(0, min(mon_w - 50, cx - mon_x))
+                    win["local_y"] = max(0, min(mon_h - 50, cy - mon_y))
+                    win["w"] = cw
+                    win["h"] = ch
+                    state_changed = True
+
+    if state_changed:
+        state["windows"] = windows
+        state["workspaces"] = workspaces
+        save_state(state)
+
+    # Process all windows on this active workspace
+    all_windows = []
+    occupied_vys = {cur_vy}
+
+    for addr, win in windows.items():
+        c = ws_clients.get(addr)
+        if not c:
+            continue
+
+        vwx = win.get("vx", cur_vx)
+        vwy = win.get("vy", cur_vy)
         occupied_vys.add(vwy)
 
-        # Offset relative to center monitor viewport (0..1 = inside card, <0 = left, >1 = right)
-        offset_x = (cx - mon_x) / mon_w
-        # Offset relative to row vertical boundaries
-        row_origin_y = mon_y - (vwy - cur_vy) * mon_h
-        offset_y = max(0.0, min(1.0, (cy - row_origin_y) / mon_h))
-        rel_w = max(0.08, min(1.0, cw / mon_w))
-        rel_h = max(0.08, min(1.0, ch / mon_h))
+        local_x = win.get("local_x", 0)
+        local_y = win.get("local_y", 0)
+        win_w = win.get("w", c["size"][0])
+        win_h = win.get("h", c["size"][1])
 
-        clean_addr = c["address"].replace("0x", "")
+        # Offset relative to center monitor viewport (0..1 = inside card, <0 = left, >1 = right)
+        offset_x = (vwx - cur_vx) + (local_x / mon_w)
+        offset_y = max(0.0, min(1.0, local_y / mon_h))
+        rel_w = max(0.08, min(1.0, win_w / mon_w))
+        rel_h = max(0.08, min(1.0, win_h / mon_h))
+
+        clean_addr = addr.replace("0x", "")
         shot_file = os.path.join(CAPTURES_DIR, f"win_{clean_addr}.png")
         screenshot_path = None
 
+        cx, cy = c["at"]
+        cw, ch = c["size"]
         is_visible_on_screen = (
+            vwx == cur_vx and vwy == cur_vy and
             cx >= mon_x and (cx + cw) <= (mon_x + mon_w) and
             cy >= mon_y and (cy + ch) <= (mon_y + mon_h) and
             not c.get("hidden", False)
@@ -134,7 +223,7 @@ def enter_overview():
             screenshot_path = shot_file
 
         win_obj = {
-            "address": c["address"],
+            "address": addr,
             "class": c.get("class", ""),
             "title": c.get("title", ""),
             "focused": (c.get("focusHistoryID") == 0),
@@ -148,8 +237,10 @@ def enter_overview():
         }
         all_windows.append(win_obj)
 
-    # Exactly 3 vertical rows: cur_vy + 1 (top), cur_vy (current), cur_vy - 1 (bottom)
-    display_vys = [cur_vy + 1, cur_vy, cur_vy - 1]
+    # Dynamic row stack: show all rows with windows, plus 1 empty row above and below
+    min_vy = min(occupied_vys) - 1
+    max_vy = max(occupied_vys) + 1
+    display_vys = list(range(max_vy, min_vy - 1, -1))
 
     # Build rows (descending vy: top-to-bottom, matching Material Shell)
     rows = []
@@ -199,7 +290,16 @@ def jump_to(target_arg):
         log(f"Canvas script not found: {canvas_script}")
         return
 
-    cur_vx, cur_vy = get_virtual_coords()
+    env = get_hypr_env()
+    active_ws_info = run_json("hyprctl activeworkspace -j", env=env) or {}
+    active_ws_id = active_ws_info.get("id", 1)
+    ws_key = str(active_ws_id)
+
+    state = load_state()
+    workspaces = state.get("workspaces", {})
+    ws_coords = workspaces.get(ws_key, {})
+    cur_vx = ws_coords.get("cur_vx", state.get("cur_vx", 0))
+    cur_vy = ws_coords.get("cur_vy", state.get("cur_vy", 0))
     target_vx = cur_vx
     target_vy = cur_vy
 
@@ -230,32 +330,27 @@ def jump_to(target_arg):
 
 
 def focus_window(addr):
-    """Focus a window, jumping the canvas to its virtual cell first if needed."""
+    """Focus a window, jumping the canvas to its exact virtual cell first if needed."""
     env = get_hypr_env()
     canvas_script = os.path.expanduser("~/.config/quickshell/quickisland/scripts/infinite_canvas.sh")
 
-    monitors = run_json("hyprctl monitors -j", env=env) or [{}]
-    mon = next((m for m in monitors if m.get("focused")), monitors[0])
-    scale = mon.get("scale", 1.0)
-    mon_x = mon.get("x", 0)
-    mon_y = mon.get("y", 0)
-    mon_w = int(mon.get("width", 1600) / scale)
-    mon_h = int(mon.get("height", 900) / scale)
+    active_ws_info = run_json("hyprctl activeworkspace -j", env=env) or {}
+    active_ws_id = active_ws_info.get("id", 1)
+    ws_key = str(active_ws_id)
 
-    cur_vx, cur_vy = get_virtual_coords()
+    state = load_state()
+    workspaces = state.get("workspaces", {})
+    ws_coords = workspaces.get(ws_key, {})
+    cur_vx = ws_coords.get("cur_vx", state.get("cur_vx", 0))
+    cur_vy = ws_coords.get("cur_vy", state.get("cur_vy", 0))
+    win_state = state.get("windows", {}).get(addr)
 
-    clients = run_json("hyprctl clients -j", env=env) or []
-    target_win = next((c for c in clients if c.get("address") == addr), None)
-
-    if target_win and os.path.exists(canvas_script):
-        cx, cy = target_win["at"]
-        cw, ch = target_win["size"]
-        vwx = cur_vx + int(math.floor(((cx + cw / 2) - mon_x) / mon_w))
-        vwy = cur_vy - int(math.floor(((cy + ch / 2) - mon_y) / mon_h))
-
-        if vwx != cur_vx or vwy != cur_vy:
-            log(f"window at virtual ({vwx}, {vwy}) -> jumping canvas")
-            subprocess.run([canvas_script, "jump", str(vwx), str(vwy)], timeout=2)
+    if win_state:
+        target_vx = win_state.get("vx", cur_vx)
+        target_vy = win_state.get("vy", cur_vy)
+        if target_vx != cur_vx or target_vy != cur_vy:
+            log(f"window {addr} at virtual ({target_vx}, {target_vy}) -> jumping canvas")
+            subprocess.run([canvas_script, "jump", str(target_vx), str(target_vy)], timeout=2)
 
     try:
         subprocess.run(["hyprctl", "dispatch", "focuswindow", f"address:{addr}"], env=env, timeout=2)
