@@ -7852,20 +7852,22 @@ function getCurrentThemeStateKey() {
 
                             Repeater {
                                 model: [
-                                    { keys: "Super + A", desc: "Toggle App Launcher" },
-                                    { keys: "Super + N", desc: "Toggle Control Center" },
-                                    { keys: "Super + V", desc: "Toggle Clipboard" },
-                                    { keys: "Super + .", desc: "Toggle Emoji Board" },
-                                    { keys: "Super + Shift + T", desc: "Toggle Theme Switcher" },
-                                    { keys: "Super + /", desc: "Toggle Keybindings" },
-                                    { keys: "Super + M", desc: "Toggle Settings" },
+                                    { keys: "Super + A", desc: "App Launcher" },
+                                    { keys: "Super + N", desc: "Control Center" },
+                                    { keys: "Super + Tab", desc: "Workspaces Strip (Live)" },
+                                    { keys: "Super + `", desc: "Overview Toggle" },
+                                    { keys: "Super + Arrows", desc: "Pan Spatial WS" },
+                                    { keys: "Super + Alt + 1..9", desc: "Jump Spatial WS" },
+                                    { keys: "Super + V", desc: "Clipboard History" },
+                                    { keys: "Super + .", desc: "Emoji Board" },
+                                    { keys: "Super + Shift + T", desc: "Theme Switcher" },
+                                    { keys: "Super + Shift + W", desc: "Wallpaper Selector" },
+                                    { keys: "Super + /", desc: "Keyboard Shortcuts" },
+                                    { keys: "Super + M", desc: "Quick Settings" },
                                     { keys: "Super + L", desc: "Lock Screen" },
-                                    { keys: "Ctrl + Alt + Del", desc: "Logout / Power Menu" },
-                                    { keys: "Swipe Left/Right", desc: "Switch CC/Launcher/Power" },
-                                    { keys: "Ctrl+Super+Space", desc: "Overview (Spatial / Workspaces)" },
-                                    { keys: "Super + Arrows", desc: "Pan Spatial Workspace" },
-                                    { keys: "Super + 1..9", desc: "Jump Spatial Workspace" },
-                                    { keys: "Ctrl+Super+Arrows", desc: "Shift Actual Workspace" }
+                                    { keys: "Super + Shift + S", desc: "Screen Annotate" },
+                                    { keys: "Super + Shift + C", desc: "Color Picker" },
+                                    { keys: "Ctrl + Alt + Del", desc: "Power / Session Menu" }
                                 ]
                                 delegate: Rectangle {
                                     width: (keybindCol.width - 8) / 2
