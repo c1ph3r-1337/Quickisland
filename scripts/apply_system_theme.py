@@ -1292,7 +1292,12 @@ theme[process_end]="{red}"
             accent_s = round(s_val * 100)
             accent_l = round(l_val * 100)
 
-            obsidian_css = f"""/* QuickIsland Live Theme for Obsidian: {name} */
+            # Defeat Obsidian file watcher deduplication cache:
+            # Obsidian skips reload if r.mtime === Math.round(n.mtimeMs) && r.size === n.size.
+            # Varying revision and whitespace ensures size & content are unique on every write.
+            rev_token = f"{time.time_ns()}-{os.getpid()}"
+            cache_bust_pad = " " * (time.time_ns() % 24)
+            obsidian_css = f"""/* QuickIsland Live Theme for Obsidian: {name} (rev {rev_token}){cache_bust_pad} */
 body.theme-dark {{
     /* Accent HSL values (eliminates Obsidian default 258 purple fallback) */
     --accent-h: {accent_h};
@@ -1603,21 +1608,26 @@ svg.lucide-pin,
     color: var(--color-accent) !important;
 }}
 """
+            def atomic_write(target_file: Path, text_content: str):
+                tmp_file = target_file.with_name(f".{target_file.name}.tmp.{os.getpid()}")
+                tmp_file.write_text(text_content, encoding="utf-8")
+                os.replace(tmp_file, target_file)
+
             for v_dir in obsidian_vaults:
                 try:
                     snip_dir = v_dir / ".obsidian/snippets"
                     snip_dir.mkdir(parents=True, exist_ok=True)
-                    (snip_dir / "quickisland-theme.css").write_text(obsidian_css)
+                    atomic_write(snip_dir / "quickisland-theme.css", obsidian_css)
                     # Also update purple-glass-bg.css if present
                     if (snip_dir / "purple-glass-bg.css").exists():
-                        (snip_dir / "purple-glass-bg.css").write_text(obsidian_css)
+                        atomic_write(snip_dir / "purple-glass-bg.css", obsidian_css)
 
                     # Ensure snippet is enabled in appearance.json and accentColor is set
                     app_json = v_dir / ".obsidian/appearance.json"
                     app_data = {}
                     if app_json.exists():
                         try:
-                            with open(app_json, "r") as f:
+                            with open(app_json, "r", encoding="utf-8") as f:
                                 app_data = json.load(f)
                         except Exception:
                             app_data = {}
@@ -1626,14 +1636,13 @@ svg.lucide-pin,
                         en.append("quickisland-theme")
                     app_data["enabledCssSnippets"] = en
                     app_data["accentColor"] = accent
-                    with open(app_json, "w") as f:
-                        json.dump(app_data, f, indent=2)
+                    atomic_write(app_json, json.dumps(app_data, indent=2))
 
                     # Update editing-toolbar config if present to remove leftover purple
                     et_json = v_dir / ".obsidian/plugins/editing-toolbar/data.json"
                     if et_json.exists():
                         try:
-                            with open(et_json, "r") as f:
+                            with open(et_json, "r", encoding="utf-8") as f:
                                 et_data = json.load(f)
                             et_data["cMenuFontColor"] = accent
                             et_data["custom_fc1"] = accent
@@ -1641,8 +1650,7 @@ svg.lucide-pin,
                             if "appearanceByStyle" in et_data and "top" in et_data["appearanceByStyle"]:
                                 et_data["appearanceByStyle"]["top"]["toolbarBackgroundColor"] = "rgba(255, 255, 255, 0.05)"
                             et_data["toolbarBackgroundColor"] = "rgba(255, 255, 255, 0.05)"
-                            with open(et_json, "w") as f:
-                                json.dump(et_data, f, indent=2)
+                            atomic_write(et_json, json.dumps(et_data, indent=2))
                         except Exception:
                             pass
                 except Exception as e:
