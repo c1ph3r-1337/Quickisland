@@ -2452,7 +2452,7 @@ function getCurrentThemeStateKey() {
             id: panelWindow
             required property ShellScreen modelData
             screen: modelData
-            visible: !(typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) || panelWindow.activeState > 0 || shell.notchMenuClosing
+            visible: true
             color: "transparent"
             property var shellRootObj: shell
 
@@ -2596,16 +2596,22 @@ function getCurrentThemeStateKey() {
             WlrLayershell.namespace: "morphing-island"
             WlrLayershell.layer: WlrLayer.Overlay
             WlrLayershell.exclusionMode: ExclusionMode.Ignore
-            WlrLayershell.keyboardFocus: (panelWindow.activeState === 13) ? WlrKeyboardFocus.Exclusive : ((panelWindow.activeState !== 0 && panelWindow.activeState !== 1 && panelWindow.activeState !== 2 && panelWindow.activeState !== 3) ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None)
+            WlrLayershell.keyboardFocus: {
+                if (panelWindow.activeState === 13) return WlrKeyboardFocus.Exclusive;
+                if (panelWindow.activeState === 0) return WlrKeyboardFocus.None;
+                var isNotch = typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode;
+                if (isNotch && panelWindow.activeState === 1) return WlrKeyboardFocus.OnDemand;
+                return (panelWindow.activeState !== 1 && panelWindow.activeState !== 2 && panelWindow.activeState !== 3) ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None;
+            }
             BackgroundEffect.blurRegion: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass && Settings.data.colorSchemes.hyprglassStyle === "frosted") ? animatedBlurRegion : null
             anchors { top: true; left: true; right: true }
             implicitHeight: 720
 
-            property real targetMaskWidth: island ? (island.islandWidth + (workspaceCircleActive ? (30 + 8) : 0)) : ((Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 500 : 110)
-            property real targetMaskHeight: island ? Math.max(island.islandHeight, workspaceCircleActive ? 30 : 0) : ((Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 110 : 30)
+            property real targetMaskWidth: island ? (island.islandWidth + (workspaceCircleActive ? (30 + 8) : 0)) : ((Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 150 : 110)
+            property real targetMaskHeight: island ? Math.max(island.islandHeight, workspaceCircleActive ? 30 : 0) : ((Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 28 : 30)
 
-            property real maskWidth: (Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 500 : 110
-            property real maskHeight: (Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 110 : 30
+            property real maskWidth: (Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 150 : 110
+            property real maskHeight: (Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 28 : 30
 
             Timer {
                 id: maskDelayTimer
@@ -2786,14 +2792,20 @@ function getCurrentThemeStateKey() {
                 Behavior on shadowVerticalOffset { NumberAnimation { duration: shell.animFast } }
             }
 
+            property real currentFlareRadius: {
+                if (!(typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode)) return 12;
+                return (panelWindow.activeState === 0) ? 5 : ((Settings.data.islandConfig.notchFlare) ? Settings.data.islandConfig.notchFlare : 12);
+            }
+            Behavior on currentFlareRadius { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
+
             // Left Notch Flare
             Item {
                 id: leftFlare
                 anchors.right: island.left
                 anchors.top: island.top
-                width: (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchFlare) ? Settings.data.islandConfig.notchFlare : 12
+                width: panelWindow.currentFlareRadius
                 height: width
-                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode && (panelWindow.activeState > 0 || shell.notchMenuClosing)
+                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode
                 clip: true
 
                 Shape {
@@ -2814,9 +2826,9 @@ function getCurrentThemeStateKey() {
                 id: rightFlare
                 anchors.left: island.right
                 anchors.top: island.top
-                width: (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchFlare) ? Settings.data.islandConfig.notchFlare : 12
+                width: panelWindow.currentFlareRadius
                 height: width
-                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode && (panelWindow.activeState > 0 || shell.notchMenuClosing)
+                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode
                 clip: true
 
                 Shape {
@@ -2872,22 +2884,40 @@ function getCurrentThemeStateKey() {
                 focus: true
                 Component.onCompleted: {
                     panelWindow.activeStateChanged.connect(function() {
-                        if (panelWindow.activeState > 1 && panelWindow.activeState !== 4 && panelWindow.activeState !== 15 && panelWindow.activeState !== 16 && panelWindow.activeState !== 20) {
+                        var isNotch = typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode;
+                        if ((panelWindow.activeState > 1 || (isNotch && panelWindow.activeState === 1)) && panelWindow.activeState !== 4 && panelWindow.activeState !== 15 && panelWindow.activeState !== 16 && panelWindow.activeState !== 20) {
                             island.forceActiveFocus();
                         }
                     });
                 }
                 Keys.onPressed: event => {
+                    var isNotch = typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode;
                     if (event.key === Qt.Key_Right || event.key === Qt.Key_Down) {
-                        if (panelWindow.activeState === 5) { shell.setState(4); event.accepted = true; }
-                        else if (panelWindow.activeState === 4) { shell.setState(6); event.accepted = true; }
-                        else if (panelWindow.activeState === 6) { shell.setState(5); event.accepted = true; }
-                        else if (panelWindow.activeState <= 1) { shell.setState(5); event.accepted = true; }
+                        if (isNotch) {
+                            if (panelWindow.activeState === 1 || panelWindow.activeState === 0) { shell.setState(5); event.accepted = true; }
+                            else if (panelWindow.activeState === 5) { shell.setState(4); event.accepted = true; }
+                            else if (panelWindow.activeState === 4) { shell.setState(6); event.accepted = true; }
+                            else if (panelWindow.activeState === 6) { shell.setState(1); event.accepted = true; }
+                            else { shell.setState(5); event.accepted = true; }
+                        } else {
+                            if (panelWindow.activeState === 5) { shell.setState(4); event.accepted = true; }
+                            else if (panelWindow.activeState === 4) { shell.setState(6); event.accepted = true; }
+                            else if (panelWindow.activeState === 6) { shell.setState(5); event.accepted = true; }
+                            else if (panelWindow.activeState <= 1) { shell.setState(5); event.accepted = true; }
+                        }
                     } else if (event.key === Qt.Key_Left || event.key === Qt.Key_Up) {
-                        if (panelWindow.activeState === 5) { shell.setState(6); event.accepted = true; }
-                        else if (panelWindow.activeState === 6) { shell.setState(4); event.accepted = true; }
-                        else if (panelWindow.activeState === 4) { shell.setState(5); event.accepted = true; }
-                        else if (panelWindow.activeState <= 1) { shell.setState(6); event.accepted = true; }
+                        if (isNotch) {
+                            if (panelWindow.activeState === 1 || panelWindow.activeState === 0) { shell.setState(6); event.accepted = true; }
+                            else if (panelWindow.activeState === 6) { shell.setState(4); event.accepted = true; }
+                            else if (panelWindow.activeState === 4) { shell.setState(5); event.accepted = true; }
+                            else if (panelWindow.activeState === 5) { shell.setState(1); event.accepted = true; }
+                            else { shell.setState(6); event.accepted = true; }
+                        } else {
+                            if (panelWindow.activeState === 5) { shell.setState(6); event.accepted = true; }
+                            else if (panelWindow.activeState === 6) { shell.setState(4); event.accepted = true; }
+                            else if (panelWindow.activeState === 4) { shell.setState(5); event.accepted = true; }
+                            else if (panelWindow.activeState <= 1) { shell.setState(6); event.accepted = true; }
+                        }
                     } else if (event.key === Qt.Key_Escape) {
                         shell.setState(0);
                         event.accepted = true;
@@ -2896,9 +2926,10 @@ function getCurrentThemeStateKey() {
 
                 property real islandWidth: {
                     var notchFlareW = (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchFlare) ? Settings.data.islandConfig.notchFlare : 12;
+                    var isNotch = typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode;
                     switch (panelWindow.activeState) {
-                        case 0: return (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) ? (500 - 2 * notchFlareW) : 110;
-                        case 1: return (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) ? (500 - 2 * notchFlareW) : 380;
+                        case 0: return isNotch ? (160 - 2 * 5) : 110;
+                        case 1: return isNotch ? (500 - 2 * notchFlareW) : 380;
                         case 2: return 230;
                         case 3: return 400;
                         case 4: return 445;
@@ -2918,13 +2949,14 @@ function getCurrentThemeStateKey() {
                         case 18: return 440;
                         case 19: return 440;
                         case 20: return 510;
-                        default: return (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) ? (500 - 2 * notchFlareW) : 110;
+                        default: return isNotch ? (500 - 2 * notchFlareW) : 110;
                     }
                 }
                 property real islandHeight: {
+                    var isNotch = typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode;
                     switch (panelWindow.activeState) {
-                        case 0: return (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 110 : 30;
-                        case 1: return (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 110 : 44;
+                        case 0: return isNotch ? 28 : 30;
+                        case 1: return isNotch ? 110 : 44;
                         case 2: return 34;
                         case 3: return 76;
                         case 4: return 445;
@@ -2944,7 +2976,7 @@ function getCurrentThemeStateKey() {
                         case 18: return Math.min(680, (typeof settingsContent !== "undefined" ? settingsContent.height + 80 : 380));
                         case 19: return Math.min(680, (typeof barIslandCol !== "undefined" ? barIslandCol.height + 28 : 350));
                         case 20: return 176;
-                        default: return (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 110 : 30;
+                        default: return isNotch ? 110 : 30;
                     }
                 }
 
@@ -3017,6 +3049,26 @@ function getCurrentThemeStateKey() {
                             color: shell.textPrimary; font.pixelSize: 13; font.weight: Font.Bold; font.letterSpacing: 0.5; font.family: "Varela Round"
                             anchors.verticalCenter: parent.verticalCenter
                         }
+                    }
+                }
+
+                // State 0 Notch Mode: Resting Notch Clock
+                Item {
+                    anchors.fill: parent
+                    opacity: (panelWindow.activeState === 0 && (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode)) ? 1 : 0
+                    scale: panelWindow.activeState === 0 ? 1 : 0.92
+                    visible: opacity > 0.01
+                    Behavior on opacity { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
+                    Behavior on scale   { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: shell.currentTime12h
+                        color: shell.textPrimary
+                        font.pixelSize: 13
+                        font.weight: Font.Bold
+                        font.letterSpacing: 0.5
+                        font.family: "Varela Round"
                     }
                 }
 
@@ -3156,6 +3208,21 @@ function getCurrentThemeStateKey() {
                                 }
                             }
                         }
+                    }
+                }
+
+                // State 1 Notch Mode: Expanded Notch (Media + Calendar)
+                Item {
+                    anchors.fill: parent
+                    opacity: (panelWindow.activeState === 1 && (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode)) ? 1 : 0
+                    scale: panelWindow.activeState === 1 ? 1 : 0.92
+                    visible: opacity > 0.01
+                    Behavior on opacity { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
+                    Behavior on scale   { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
+
+                    Notch.MacNotchContent {
+                        anchors.fill: parent
+                        shellRoot: shell
                     }
                 }
 
@@ -8768,7 +8835,12 @@ function getCurrentThemeStateKey() {
                 MouseArea {
                     id: mainHoverArea
                     anchors.fill: parent; hoverEnabled: panelWindow.activeState === 0 || panelWindow.activeState === 1
-                    acceptedButtons: (panelWindow.activeState <= 1) ? Qt.LeftButton : Qt.NoButton
+                    acceptedButtons: {
+                        if (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode && panelWindow.activeState === 1) {
+                            return Qt.NoButton;
+                        }
+                        return (panelWindow.activeState <= 1) ? Qt.LeftButton : Qt.NoButton;
+                    }
                     enabled: panelWindow.activeState === 0 || panelWindow.activeState === 1 || panelWindow.activeState === 4 || panelWindow.activeState === 5 || panelWindow.activeState === 6
 
                     property bool swipeCooldown: false
@@ -8779,7 +8851,10 @@ function getCurrentThemeStateKey() {
                         onTriggered: mainHoverArea.swipeCooldown = false
                     }
 
-                    onEntered: { if (panelWindow.activeState === 0 && !shell.hoverCooldown) shell.setState(1); }
+                    onEntered: {
+                        if (panelWindow.activeState === 0 && !shell.hoverCooldown) shell.setState(1);
+                        island.forceActiveFocus();
+                    }
                     onExited:  {
                         var elapsed = Date.now() - shell.lastState1Time;
                         if (elapsed > 50) {
@@ -8794,29 +8869,33 @@ function getCurrentThemeStateKey() {
                         var angleX = wheel.angleDelta.x;
                         var angleY = wheel.angleDelta.y;
 
-                        // Check if it's primarily a horizontal scroll/swipe
                         var isHorizontal = Math.abs(angleX) > Math.abs(angleY);
+                        var isNotch = typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode;
+                        var states = isNotch ? [1, 5, 4, 6] : [5, 4, 6];
+                        var curr = panelWindow.activeState;
+                        var idx = states.indexOf(curr);
 
                         if (isHorizontal) {
-                            // Horizontal scroll: always handle state switching
                             var delta = angleX;
                             if (delta !== 0 && Math.abs(delta) >= 40 && !swipeCooldown) {
                                 swipeCooldown = true;
                                 swipeCooldownTimer.start();
 
-                                var states = [5, 4, 6];
-                                var curr = panelWindow.activeState;
-                                var idx = states.indexOf(curr);
-
                                 if (delta > 0) { // Swipe left -> Move forward
                                     if (idx === -1) {
-                                        shell.setState(5);
+                                        shell.setState(isNotch ? 1 : 5);
+                                    } else if (isNotch) {
+                                        var nextIdx = (idx + 1) % states.length;
+                                        shell.setState(states[nextIdx]);
                                     } else if (idx < states.length - 1) {
                                         shell.setState(states[idx + 1]);
                                     }
                                 } else if (delta < 0) { // Swipe right -> Move backward
                                     if (idx !== -1) {
-                                        if (idx > 0) {
+                                        if (isNotch) {
+                                            var prevIdx = (idx - 1 + states.length) % states.length;
+                                            shell.setState(states[prevIdx]);
+                                        } else if (idx > 0) {
                                             shell.setState(states[idx - 1]);
                                         } else {
                                             shell.setState(0);
@@ -8826,31 +8905,29 @@ function getCurrentThemeStateKey() {
                                 wheel.accepted = true;
                             }
                         } else {
-                            // Vertical scroll:
-                            // If we are in the App Launcher (4) or Control Center (5),
-                            // we want to scroll the menus, so let the event pass through.
                             if (panelWindow.activeState === 4 || panelWindow.activeState === 5) {
-                                wheel.accepted = false; // Propagate to Flickable underneath
+                                wheel.accepted = false;
                             } else {
-                                // In other states (idle/hovered 0 or 1, or power menu 6), we can switch states
                                 var delta = angleY;
                                 if (delta !== 0 && Math.abs(delta) >= 40 && !swipeCooldown) {
                                     swipeCooldown = true;
                                     swipeCooldownTimer.start();
 
-                                    var states = [5, 4, 6];
-                                    var curr = panelWindow.activeState;
-                                    var idx = states.indexOf(curr);
-
-                                    if (delta < 0) { // Scroll up (inverted delta) -> Move forward
+                                    if (delta < 0) { // Scroll up -> Move forward
                                         if (idx === -1) {
-                                            shell.setState(5);
+                                            shell.setState(isNotch ? 1 : 5);
+                                        } else if (isNotch) {
+                                            var nextIdx = (idx + 1) % states.length;
+                                            shell.setState(states[nextIdx]);
                                         } else if (idx < states.length - 1) {
                                             shell.setState(states[idx + 1]);
                                         }
-                                    } else if (delta > 0) { // Scroll down (inverted delta) -> Move backward
+                                    } else if (delta > 0) { // Scroll down -> Move backward
                                         if (idx !== -1) {
-                                            if (idx > 0) {
+                                            if (isNotch) {
+                                                var prevIdx = (idx - 1 + states.length) % states.length;
+                                                shell.setState(states[prevIdx]);
+                                            } else if (idx > 0) {
                                                 shell.setState(states[idx - 1]);
                                             } else {
                                                 shell.setState(0);
@@ -9039,7 +9116,7 @@ function getCurrentThemeStateKey() {
             id: notchPanelWindow
             required property ShellScreen modelData
             screen: modelData
-            visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode && (shell.currentState === 0 && !shell.notchMenuClosing)
+            visible: false
             color: "transparent"
 
             WlrLayershell.namespace: "macnotch-bar"

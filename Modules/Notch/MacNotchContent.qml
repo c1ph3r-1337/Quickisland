@@ -1,0 +1,197 @@
+import QtQuick
+import QtQuick.Effects
+import QtQuick.Shapes
+import "../../Commons"
+
+Item {
+    id: notchContent
+    required property var shellRoot
+    readonly property var sr: shellRoot
+
+    readonly property color textColor: sr.textPrimary
+    readonly property color textDimColor: sr.textSecondary
+    readonly property color textMutedColor: sr.textMuted
+
+    anchors.fill: parent
+    clip: true
+
+    // --- LEFT SIDE: MEDIA ---
+    Item {
+        id: mediaArea
+        anchors.right: parent.horizontalCenter
+        anchors.rightMargin: 30
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        width: 210
+
+        // Album Art
+        Item {
+            id: albumArtContainer
+            width: 70; height: 70
+            anchors.left: parent.left
+            anchors.leftMargin: 24
+            anchors.verticalCenter: parent.verticalCenter
+
+            Rectangle {
+                id: albumMask; layer.enabled: true
+                anchors.fill: parent
+                radius: 16
+                visible: false
+            }
+
+            Rectangle {
+                anchors.fill: parent
+                color: sr.mediaArtUrl ? "transparent" : Qt.rgba(1, 1, 1, 0.08)
+                radius: 16
+
+                Image {
+                    anchors.fill: parent
+                    source: sr.mediaArtUrl || ""
+                    fillMode: Image.PreserveAspectCrop
+                    layer.enabled: true
+                    visible: sr.mediaArtUrl !== ""
+                    layer.effect: MultiEffect { maskEnabled: true; maskSource: albumMask }
+                }
+                Text {
+                    anchors.centerIn: parent; text: "♫"
+                    color: textMutedColor; font.pixelSize: 24
+                    visible: sr.mediaArtUrl === ""
+                }
+            }
+        }
+
+        // Text and Controls
+        Column {
+            anchors.left: albumArtContainer.right
+            anchors.leftMargin: 16
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 2
+
+            Text {
+                width: parent.width
+                text: sr.mediaTitle || "No media"
+                color: textColor
+                font.pixelSize: 15
+                font.weight: Font.Bold
+                elide: Text.ElideRight
+                maximumLineCount: 1
+            }
+            
+            Text {
+                width: parent.width
+                text: sr.mediaArtist || "—"
+                color: textDimColor
+                font.pixelSize: 12
+                font.weight: Font.Medium
+                elide: Text.ElideRight
+                maximumLineCount: 1
+            }
+            
+            Item { width: 1; height: 6 }
+
+            Row {
+                spacing: 16
+                Rectangle {
+                    width: 24; height: 24; radius: 12; color: prevArea.containsMouse ? Qt.rgba(1, 1, 1, 0.15) : "transparent"
+                    Image {
+                        anchors.centerIn: parent; width: 12; height: 12
+                        source: "../../icons/previous.png"; layer.enabled: true
+                        layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: textColor }
+                    }
+                    MouseArea { id: prevArea; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: { if (sr.mediaPlayer) sr.mediaPlayer.previous(); } }
+                }
+                Rectangle {
+                    width: 24; height: 24; radius: 12; color: playArea.containsMouse ? Qt.rgba(1, 1, 1, 0.15) : "transparent"
+                    Image {
+                        anchors.centerIn: parent; width: 12; height: 12
+                        source: sr.mediaPlaying ? "../../icons/pause.png" : "../../icons/play-button.png"; layer.enabled: true
+                        layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: textColor }
+                    }
+                    MouseArea { id: playArea; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: { if (sr.mediaPlayer) { if (sr.mediaPlaying) sr.mediaPlayer.pause(); else sr.mediaPlayer.play(); } } }
+                }
+                Rectangle {
+                    width: 24; height: 24; radius: 12; color: nextArea.containsMouse ? Qt.rgba(1, 1, 1, 0.15) : "transparent"
+                    Image {
+                        anchors.centerIn: parent; width: 12; height: 12
+                        source: "../../icons/next.png"; layer.enabled: true
+                        layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: textColor }
+                    }
+                    MouseArea { id: nextArea; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: { if (sr.mediaPlayer) sr.mediaPlayer.next(); } }
+                }
+            }
+        }
+        MouseArea { anchors.fill: parent; z: -1; cursorShape: Qt.PointingHandCursor; onClicked: sr.setState(10) }
+    }
+
+    // --- RIGHT SIDE: CLOCK & CALENDAR ---
+    Item {
+        id: clockArea
+        anchors.left: parent.horizontalCenter
+        anchors.leftMargin: 30
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        width: 210
+
+        Column {
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.right: parent.right
+            anchors.rightMargin: 24
+            spacing: 4
+
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: sr.currentTime12h
+                color: textColor
+                font.pixelSize: 32
+                font.weight: Font.Bold
+                font.letterSpacing: 0.5
+                font.family: "Varela Round"
+            }
+
+            Row {
+                anchors.horizontalCenter: parent.horizontalCenter
+                spacing: 8
+
+                Repeater {
+                    model: {
+                        var today = new Date();
+                        var dates = [];
+                        for (var i = -3; i <= 3; i++) {
+                            var d = new Date(today);
+                            d.setDate(today.getDate() + i);
+                            dates.push({ day: d.getDate(), weekday: ["S", "M", "T", "W", "T", "F", "S"][d.getDay()], isToday: i === 0 });
+                        }
+                        return dates;
+                    }
+
+                    Item {
+                        width: 16; height: 32
+
+                        Column {
+                            anchors.centerIn: parent
+                            spacing: 4
+
+                            Text {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: modelData.weekday
+                                color: modelData.isToday ? sr.accent : textMutedColor
+                                font.pixelSize: 11
+                                font.weight: Font.Medium
+                            }
+
+                            Text {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: modelData.day
+                                color: modelData.isToday ? textColor : Qt.rgba(1, 1, 1, 0.4)
+                                font.pixelSize: modelData.isToday ? 14 : 10
+                                font.weight: modelData.isToday ? Font.Bold : Font.Medium
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        MouseArea { anchors.fill: parent; z: -1; cursorShape: Qt.PointingHandCursor; onClicked: sr.setState(5) }
+    }
+}
