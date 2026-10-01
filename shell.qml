@@ -9266,7 +9266,7 @@ function getCurrentThemeStateKey() {
                 opacity: shell.overviewActive ? 1.0 : 0.0
                 Behavior on opacity {
                     NumberAnimation {
-                        duration: shell.overviewActive ? 220 : 180
+                        duration: shell.overviewActive ? 120 : 100
                         easing.type: Easing.OutQuad
                     }
                 }
@@ -9375,7 +9375,7 @@ function getCurrentThemeStateKey() {
                     opacity: shell.overviewActive ? 1.0 : 0.0
                     Behavior on opacity {
                         NumberAnimation {
-                            duration: shell.overviewActive ? 260 : 180
+                            duration: shell.overviewActive ? 130 : 90
                             easing.type: Easing.OutQuad
                         }
                     }
@@ -9420,7 +9420,7 @@ function getCurrentThemeStateKey() {
                     y: Math.round((parent.height - cardHeight) / 2 - overviewOverlayWindow.selectedRow * (cardHeight + spacing))
                     Behavior on y {
                         NumberAnimation {
-                            duration: 220
+                            duration: 130
                             easing.bezierCurve: [0.22, 1.0, 0.36, 1.0]
                         }
                     }
@@ -9434,7 +9434,7 @@ function getCurrentThemeStateKey() {
                     property real exitPanX: 0
                     Behavior on exitPanX {
                         NumberAnimation {
-                            duration: shell.overviewActive ? 220 : 200
+                            duration: shell.overviewActive ? 160 : 120
                             easing.bezierCurve: [0.22, 1.0, 0.36, 1.0]
                         }
                     }
@@ -9445,7 +9445,7 @@ function getCurrentThemeStateKey() {
                     scale: shell.overviewActive ? 1.0 : 1.45
                     Behavior on scale {
                         NumberAnimation {
-                            duration: shell.overviewActive ? 280 : 200
+                            duration: shell.overviewActive ? 200 : 140
                             easing.bezierCurve: shell.overviewActive ? [0.16, 1.0, 0.3, 1.0] : [0.4, 0.0, 0.7, 0.2]
                         }
                     }
@@ -9478,7 +9478,7 @@ function getCurrentThemeStateKey() {
                             }
                             Behavior on trackPanX {
                                 NumberAnimation {
-                                    duration: 220
+                                    duration: 130
                                     easing.bezierCurve: [0.22, 1.0, 0.36, 1.0]
                                 }
                             }
@@ -9597,7 +9597,7 @@ function getCurrentThemeStateKey() {
                                     height: Math.max(35, Math.round(winData.rel_h * overviewRowsColumn.cardHeight))
                                     z: winTileItem.isWinSelected ? 30 : 10
                                     scale: winTileItem.isWinSelected ? 1.04 : 1.0
-                                    Behavior on scale { NumberAnimation { duration: 160; easing.bezierCurve: [0.2, 0.9, 0.3, 1.0] } }
+                                    Behavior on scale { NumberAnimation { duration: 100; easing.bezierCurve: [0.2, 0.9, 0.3, 1.0] } }
 
                                     Rectangle {
                                         id: winTileMask
@@ -9834,7 +9834,7 @@ function getCurrentThemeStateKey() {
                 opacity: shell.wsOverviewActive ? 1.0 : 0.0
                 Behavior on opacity {
                     NumberAnimation {
-                        duration: shell.wsOverviewActive ? 220 : 160
+                        duration: shell.wsOverviewActive ? 120 : 90
                         easing.type: Easing.OutQuad
                     }
                 }
@@ -9888,7 +9888,7 @@ function getCurrentThemeStateKey() {
                         var selCardCenter = wsOvWindow.selectedWsIdx * (cardW + cardGap) + cardW / 2;
                         return Math.round(parent.width / 2 - selCardCenter);
                     }
-                    Behavior on panX { NumberAnimation { duration: 220; easing.bezierCurve: [0.22, 1.0, 0.36, 1.0] } }
+                    Behavior on panX { NumberAnimation { duration: 140; easing.bezierCurve: [0.22, 1.0, 0.36, 1.0] } }
 
                     anchors.verticalCenter: parent.verticalCenter
                     width: parent.width
@@ -9898,7 +9898,7 @@ function getCurrentThemeStateKey() {
                     scale: shell.wsOverviewActive ? 1.0 : 1.4
                     Behavior on scale {
                         NumberAnimation {
-                            duration: shell.wsOverviewActive ? 280 : 200
+                            duration: shell.wsOverviewActive ? 200 : 130
                             easing.bezierCurve: shell.wsOverviewActive ? [0.16, 1.0, 0.3, 1.0] : [0.4, 0.0, 0.7, 0.2]
                         }
                     }
@@ -9920,7 +9920,7 @@ function getCurrentThemeStateKey() {
                             height: wsOvStrip.cardH
 
                             scale: isSelected ? 1.05 : 1.0
-                            Behavior on scale { NumberAnimation { duration: 160; easing.bezierCurve: [0.2, 0.9, 0.3, 1.0] } }
+                            Behavior on scale { NumberAnimation { duration: 100; easing.bezierCurve: [0.2, 0.9, 0.3, 1.0] } }
                             z: isSelected ? 10 : 1
 
                             Rectangle {
@@ -9997,7 +9997,7 @@ function getCurrentThemeStateKey() {
                                 Rectangle {
                                     anchors.fill: parent; radius: 20; z: 3
                                     color: wsCardItem.isSelected ? "transparent" : "#2A000000"
-                                    Behavior on color { ColorAnimation { duration: 160 } }
+                                    Behavior on color { ColorAnimation { duration: 100 } }
                                 }
                             }
 
