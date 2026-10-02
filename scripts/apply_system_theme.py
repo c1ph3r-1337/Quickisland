@@ -57,15 +57,54 @@ def get_closest_gnome_accent(hex_color):
         return 'blue'
 
 def main():
-    if len(sys.argv) < 2:
-        print("Usage: apply_system_theme.py '<theme_json>'")
-        sys.exit(1)
+    home = Path.home()
+    cache_theme_file = home / ".cache/quickisland/current_theme.json"
 
-    try:
-        data = json.loads(sys.argv[1])
-    except Exception as e:
-        print(f"Error parsing theme JSON: {e}")
-        sys.exit(1)
+    if len(sys.argv) >= 2 and sys.argv[1].strip().startswith("{"):
+        try:
+            data = json.loads(sys.argv[1])
+            try:
+                cache_theme_file.parent.mkdir(parents=True, exist_ok=True)
+                with open(cache_theme_file, "w", encoding="utf-8") as f:
+                    json.dump(data, f, indent=2)
+            except Exception:
+                pass
+        except Exception as e:
+            print(f"Error parsing theme JSON: {e}")
+            sys.exit(1)
+    elif cache_theme_file.exists():
+        try:
+            with open(cache_theme_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception as e:
+            print(f"Error loading cached theme JSON: {e}")
+            sys.exit(1)
+    else:
+        # Fallback to custom-palette.json
+        cp_file = home / ".cache/quickisland/custom-palette.json"
+        if cp_file.exists():
+            try:
+                with open(cp_file, "r", encoding="utf-8") as f:
+                    cp_data = json.load(f)
+                data = {
+                    "name": "QuickIsland Theme",
+                    "accent": cp_data.get("customAccent", "#cba6f7"),
+                    "surface": cp_data.get("customSurface", "#11111b"),
+                    "surfaceAlt": cp_data.get("customSurfaceAlt", "#1e1e2e"),
+                    "surfaceBright": cp_data.get("customSurfaceBright", "#313244"),
+                    "textPrimary": cp_data.get("customTextPrimary", "#cdd6f4"),
+                    "textSecondary": cp_data.get("customTextSecondary", "#a6adc8"),
+                    "textMuted": cp_data.get("customTextMuted", "#6c7086"),
+                    "red": cp_data.get("customRed", "#f38ba8"),
+                    "green": cp_data.get("customGreen", "#a6e3a1"),
+                    "peach": cp_data.get("customPeach", "#fab387"),
+                    "blue": cp_data.get("customBlue", "#89b4fa"),
+                }
+            except Exception:
+                data = {}
+        else:
+            print("Usage: apply_system_theme.py '<theme_json>'")
+            sys.exit(1)
 
     name = data.get("name", "custom")
     accent = data.get("accent", "#cba6f7")
@@ -1258,27 +1297,60 @@ theme[process_end]="{red}"
     # ---------------------------------------------------------
     try:
         obsidian_vaults = []
-        obs_config = home / ".config/obsidian/obsidian.json"
-        if obs_config.exists():
+        seen_vault_paths = set()
+
+        def add_vault(p):
+            if not p:
+                return
             try:
-                with open(obs_config, "r") as f:
-                    obs_data = json.load(f)
-                for v_info in obs_data.get("vaults", {}).values():
-                    v_path = v_info.get("path")
-                    if v_path and os.path.exists(v_path):
-                        obsidian_vaults.append(Path(v_path))
+                p_res = Path(p).resolve()
+                if p_res.exists() and (p_res / ".obsidian").exists() and p_res not in seen_vault_paths:
+                    seen_vault_paths.add(p_res)
+                    obsidian_vaults.append(p_res)
             except Exception:
                 pass
 
-        # Also discover common vault locations if not in obsidian.json
-        for cand in [
+        obs_config = home / ".config/obsidian/obsidian.json"
+        if obs_config.exists():
+            try:
+                with open(obs_config, "r", encoding="utf-8") as f:
+                    obs_data = json.load(f)
+                for v_info in obs_data.get("vaults", {}).values():
+                    add_vault(v_info.get("path"))
+            except Exception:
+                pass
+
+        # Also discover common vault locations and all vaults on /vault partition
+        candidate_roots = [
             home / "Obsidian",
             home / "Documents/Obsidian",
-            Path("/vault/Obsidian/Vault"),
-            Path("/vault/Notes/Obsidian Notes"),
-        ]:
-            if cand.exists() and (cand / ".obsidian").exists() and cand not in obsidian_vaults:
-                obsidian_vaults.append(cand)
+            home / "Notes",
+            home / "vault",
+            Path("/vault"),
+        ]
+
+        for root_dir in candidate_roots:
+            if not root_dir.exists():
+                continue
+            add_vault(root_dir)
+            try:
+                for entry in root_dir.iterdir():
+                    if entry.is_dir() and not entry.name.startswith("."):
+                        add_vault(entry)
+                        try:
+                            for sub in entry.iterdir():
+                                if sub.is_dir() and not sub.name.startswith("."):
+                                    add_vault(sub)
+                                    try:
+                                        for sub2 in sub.iterdir():
+                                            if sub2.is_dir() and not sub2.name.startswith("."):
+                                                add_vault(sub2)
+                                    except Exception:
+                                        pass
+                        except Exception:
+                            pass
+            except Exception:
+                pass
 
         if obsidian_vaults:
             ar, ag, ab = hex_to_rgb(accent)
@@ -1636,6 +1708,7 @@ svg.lucide-pin,
                         en.append("quickisland-theme")
                     app_data["enabledCssSnippets"] = en
                     app_data["accentColor"] = accent
+                    app_data.setdefault("baseTheme", "obsidian")
                     atomic_write(app_json, json.dumps(app_data, indent=2))
 
                     # Update editing-toolbar config if present to remove leftover purple

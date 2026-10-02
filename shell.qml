@@ -457,6 +457,56 @@ ShellRoot {
         }
     }
 
+    // ── Obsidian Vault Watcher & Sync ────────────────────────────────────
+    Timer {
+        id: obsidianDebounceTimer1
+        interval: 600
+        running: false
+        repeat: false
+        onTriggered: {
+            shell.syncCurrentThemeToSystem();
+        }
+    }
+
+    Timer {
+        id: obsidianDebounceTimer2
+        interval: 2200
+        running: false
+        repeat: false
+        onTriggered: {
+            shell.syncCurrentThemeToSystem();
+        }
+    }
+
+    FileView {
+        id: obsidianConfigFileView
+        path: Quickshell.env("HOME") + "/.config/obsidian/obsidian.json"
+        printErrors: false
+        watchChanges: true
+        onFileChanged: {
+            obsidianDebounceTimer1.restart();
+            obsidianDebounceTimer2.restart();
+        }
+        onLoaded: {
+            if (!startupSystemThemeTimer.running) {
+                obsidianDebounceTimer1.restart();
+                obsidianDebounceTimer2.restart();
+            }
+        }
+    }
+
+    Connections {
+        target: Hyprland
+        function onRawEvent(event) {
+            if (!event) return;
+            var ename = event.name || "";
+            var edata = event.data || "";
+            if ((ename === "activewindow" || ename === "openwindow") && edata.toLowerCase().indexOf("obsidian") !== -1) {
+                obsidianDebounceTimer1.restart();
+            }
+        }
+    }
+
     function applyPreset(p) {
         customAccent = p.accent;
         customSurface = p.surface;
@@ -965,6 +1015,9 @@ function getCurrentThemeStateKey() {
 
     IpcHandler {
         target: "theme"
+        function sync() {
+            shell.syncCurrentThemeToSystem();
+        }
         function set(name: string) {
             for (var i = 0; i < shell.presets.length; i++) {
                 if (shell.presets[i].name.toLowerCase() === name.toLowerCase()) {
