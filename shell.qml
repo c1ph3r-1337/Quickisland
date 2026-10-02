@@ -2656,7 +2656,7 @@ function getCurrentThemeStateKey() {
             Behavior on wsCircleSpacing { NumberAnimation { duration: 180; easing.type: Easing.OutQuart } }
 
             WlrLayershell.namespace: "morphing-island"
-            WlrLayershell.layer: WlrLayer.Overlay
+            WlrLayershell.layer: (panelWindow.activeState > 1) ? WlrLayer.Overlay : WlrLayer.Top
             WlrLayershell.exclusionMode: ExclusionMode.Ignore
             WlrLayershell.keyboardFocus: {
                 if (panelWindow.activeState === 13) return WlrKeyboardFocus.Exclusive;
