@@ -3674,8 +3674,8 @@ function getCurrentThemeStateKey() {
                 Item {
                     id: launcherView
                     anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.top: shell.fullscreenMode ? undefined : parent.top
-                    anchors.verticalCenter: shell.fullscreenMode ? parent.verticalCenter : undefined
+                    // Fixed size; positioned via y (switching anchors at runtime clobbered height -> empty launcher)
+                    y: shell.fullscreenMode ? Math.round((parent.height - height) / 2) : 0
                     width: 445; height: 445
                     clip: true
                     opacity: panelWindow.activeState === 4 ? 1 : 0
