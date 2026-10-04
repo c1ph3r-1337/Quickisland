@@ -3160,7 +3160,7 @@ function getCurrentThemeStateKey() {
                     var isNotch = typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode;
                     switch (panelWindow.activeState) {
                         case 0: {
-                            if (isNotch) return 28;
+                            if (isNotch) return (shell.fullscreenMode) ? 0 : 28;
                             if (shell.fullscreenMode && panelWindow.isClosingCentered) {
                                 return 24;
                             }
