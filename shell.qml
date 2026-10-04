@@ -2568,6 +2568,18 @@ function getCurrentThemeStateKey() {
             property bool isSystemReady: false
             property bool workspaceCircleActive: false
             property bool notchWorkspaceActive: false
+            property bool isClosingCentered: false
+            property bool isClosingVolume: false
+
+            Timer {
+                id: closingStateTimer
+                interval: shell.animNormal + 40
+                repeat: false
+                onTriggered: {
+                    panelWindow.isClosingCentered = false;
+                    panelWindow.isClosingVolume = false;
+                }
+            }
             
             // For the left circle (Y-axis)
             property real leftWsCircleSpacing: (workspaceCircleActive && shell.spatialWmEnabled && !panelWindow.showingActualWorkspace) ? 8 : -30
@@ -2689,8 +2701,19 @@ function getCurrentThemeStateKey() {
                         panelWindow.workspaceCircleActive = false;
                         panelWindow.notchWorkspaceActive = false;
                         panelWindow.showingActualWorkspace = false;
+                        panelWindow.isClosingCentered = false;
+                        panelWindow.isClosingVolume = false;
+                        closingStateTimer.stop();
                         workspaceTimer.stop();
                         notchWorkspaceTimer.stop();
+                    } else if (shell.fullscreenMode && !panelWindow.isNotch) {
+                        if (shell.prevState === 2) {
+                            panelWindow.isClosingVolume = true;
+                            closingStateTimer.restart();
+                        } else if (shell.prevState > 0 && shell.prevState !== 3) {
+                            panelWindow.isClosingCentered = true;
+                            closingStateTimer.restart();
+                        }
                     }
                 }
             }
@@ -2734,8 +2757,8 @@ function getCurrentThemeStateKey() {
             BackgroundEffect.blurRegion: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass && Settings.data.colorSchemes.hyprglassStyle === "frosted") ? animatedBlurRegion : null
             anchors { top: true; bottom: true; left: true; right: true }
 
-            property real targetMaskWidth: (shell.fullscreenMode && panelWindow.activeState === 0) ? 0 : (island ? (island.islandWidth + (workspaceCircleActive ? (30 + 8) : 0)) : ((Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 150 : 110))
-            property real targetMaskHeight: (shell.fullscreenMode && panelWindow.activeState === 0) ? 0 : (island ? Math.max(island.islandHeight, workspaceCircleActive ? 30 : 0) : ((Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 28 : 30))
+            property real targetMaskWidth: (shell.fullscreenMode && panelWindow.activeState === 0 && !panelWindow.isClosingCentered && !panelWindow.isClosingVolume) ? 0 : (island ? (island.islandWidth + (workspaceCircleActive ? (30 + 8) : 0)) : ((Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 150 : 110))
+            property real targetMaskHeight: (shell.fullscreenMode && panelWindow.activeState === 0 && !panelWindow.isClosingCentered && !panelWindow.isClosingVolume) ? 0 : (island ? Math.max(island.islandHeight, workspaceCircleActive ? 30 : 0) : ((Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 28 : 30))
 
             property real maskWidth: (Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 150 : 110
             property real maskHeight: (Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 28 : 30
@@ -2778,13 +2801,16 @@ function getCurrentThemeStateKey() {
                 anchors.top: parent.top
                 anchors.topMargin: {
                     if (panelWindow.isNotch) return 0;
-                    if (panelWindow.activeState === 3) {
+                    if (panelWindow.activeState === 3 || (panelWindow.activeState === 0 && shell.prevState === 3 && island && island.opacity > 0.01)) {
                         return shell.fullscreenMode ? 14 : 6;
                     }
-                    if (island && island.isCenteredFullscreen) {
+                    if (shell.fullscreenMode && (panelWindow.activeState === 2 || panelWindow.isClosingVolume)) {
+                        return panelWindow.height - panelWindow.maskHeight - 28;
+                    }
+                    if (shell.fullscreenMode && (island && (island.isCenteredFullscreen || panelWindow.isClosingCentered))) {
                         return Math.max(10, Math.round((panelWindow.height - panelWindow.maskHeight) / 2));
                     }
-                    if (shell.fullscreenMode && panelWindow.activeState === 0) {
+                    if (shell.fullscreenMode && panelWindow.activeState === 0 && panelWindow.maskHeight === 0) {
                         return -100;
                     }
                     return 6;
@@ -2987,7 +3013,7 @@ function getCurrentThemeStateKey() {
 
             Rectangle {
                 id: island
-                readonly property bool isCenteredFullscreen: shell.fullscreenMode && !panelWindow.isNotch && panelWindow.activeState > 0 && panelWindow.activeState !== 3
+                readonly property bool isCenteredFullscreen: shell.fullscreenMode && !panelWindow.isNotch && panelWindow.activeState > 0 && panelWindow.activeState !== 2 && panelWindow.activeState !== 3
                 transformOrigin: Item.Center
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.horizontalCenterOffset: {
@@ -2998,23 +3024,26 @@ function getCurrentThemeStateKey() {
                 anchors.top: parent.top
                 anchors.topMargin: {
                     if (panelWindow.isNotch) return 0;
-                    if (panelWindow.activeState === 3) {
+                    if (panelWindow.activeState === 3 || (panelWindow.activeState === 0 && shell.prevState === 3 && island.opacity > 0.01)) {
                         return shell.fullscreenMode ? 14 : 6;
                     }
-                    if (island.isCenteredFullscreen) {
+                    if (shell.fullscreenMode && (panelWindow.activeState === 2 || panelWindow.isClosingVolume)) {
+                        return panelWindow.height - island.height - 28;
+                    }
+                    if (shell.fullscreenMode && (island.isCenteredFullscreen || panelWindow.isClosingCentered)) {
                         return Math.max(10, Math.round((panelWindow.height - island.height) / 2));
                     }
                     if (shell.fullscreenMode && panelWindow.activeState === 0) {
-                        return Math.max(10, Math.round((panelWindow.height - island.height) / 2));
+                        return -island.height - 20;
                     }
                     return 6;
                 }
                 Behavior on anchors.topMargin {
-                    enabled: !island.isCenteredFullscreen && !(shell.fullscreenMode && panelWindow.activeState === 0)
+                    enabled: !island.isCenteredFullscreen && !panelWindow.isClosingCentered && panelWindow.activeState !== 2 && !panelWindow.isClosingVolume
                     NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic }
                 }
-                opacity: (shell.fullscreenMode && panelWindow.activeState === 0 && !panelWindow.isNotch) ? 0.0 : 1.0
-                scale: (shell.fullscreenMode && panelWindow.activeState === 0 && !panelWindow.isNotch) ? 0.82 : 1.0
+                opacity: (shell.fullscreenMode && (panelWindow.isClosingCentered || panelWindow.isClosingVolume)) ? 0.0 : ((shell.fullscreenMode && panelWindow.activeState === 0 && !panelWindow.isNotch) ? 0.0 : 1.0)
+                scale: (shell.fullscreenMode && panelWindow.isClosingCentered) ? 0.88 : 1.0
                 Behavior on opacity { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
                 Behavior on scale   { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
                 color: "transparent"
@@ -3096,7 +3125,13 @@ function getCurrentThemeStateKey() {
                                 }
                                 return 160 - 2 * 5;
                             }
-                            return (shell.fullscreenMode) ? 0 : 110;
+                            if (shell.fullscreenMode && panelWindow.isClosingCentered) {
+                                return 80;
+                            }
+                            if (shell.fullscreenMode && panelWindow.isClosingVolume) {
+                                return 120;
+                            }
+                            return 110;
                         }
                         case 1: return isNotch ? (500 - 2 * notchFlareW) : 380;
                         case 2: return 230;
@@ -3124,7 +3159,16 @@ function getCurrentThemeStateKey() {
                 property real islandHeight: {
                     var isNotch = typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode;
                     switch (panelWindow.activeState) {
-                        case 0: return (shell.fullscreenMode) ? 0 : (isNotch ? 28 : 30);
+                        case 0: {
+                            if (isNotch) return 28;
+                            if (shell.fullscreenMode && panelWindow.isClosingCentered) {
+                                return 24;
+                            }
+                            if (shell.fullscreenMode && panelWindow.isClosingVolume) {
+                                return 24;
+                            }
+                            return 30;
+                        }
                         case 1: return isNotch ? 110 : 44;
                         case 2: return 34;
                         case 3: return 76;
@@ -3628,9 +3672,14 @@ function getCurrentThemeStateKey() {
                 // STATE 4: APP LAUNCHER
                 // =============================================================
                 Item {
-                    id: launcherView; anchors.fill: parent
-                    opacity: panelWindow.activeState === 4 ? 1 : 0; scale: panelWindow.activeState === 4 ? 1 : 0.96; visible: opacity > 0.01
-                    Behavior on opacity { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
+                    id: launcherView
+                    anchors.centerIn: parent
+                    width: 445; height: 445
+                    clip: true
+                    opacity: panelWindow.activeState === 4 ? 1 : 0
+                    scale: panelWindow.activeState === 4 ? 1 : 0.96
+                    visible: opacity > 0.01
+                    Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
                     Behavior on scale   { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
 
                     property int selectedAppIndex: 0
@@ -3865,7 +3914,7 @@ function getCurrentThemeStateKey() {
                     id: ccView; anchors.fill: parent
                     readonly property bool ccActive: panelWindow.activeState === 5
                     opacity: ccActive ? 1 : 0; scale: ccActive ? 1 : 0.96; visible: opacity > 0.01
-                    Behavior on opacity { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
+                    Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
                     Behavior on scale   { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
 
                     MouseArea {
