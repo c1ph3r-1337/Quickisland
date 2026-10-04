@@ -2824,9 +2824,9 @@ function getCurrentThemeStateKey() {
                 id: leftGapFiller
                 anchors.left: island.left
                 anchors.top: island.top
-                width: typeof island !== "undefined" ? Math.min(island.islandRadius, island.height) : 0
-                height: typeof island !== "undefined" ? Math.min(island.islandRadius, island.height) : 0
-                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode && (island.height > 0.01)
+                width: typeof island !== "undefined" ? (height > 0 ? island.islandRadius : 0) : 0
+                height: typeof island !== "undefined" ? Math.max(0, island.height - island.radius) : 0
+                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode && (height > 0.01)
                 clip: true
                 Rectangle {
                     anchors.fill: parent
@@ -2838,9 +2838,9 @@ function getCurrentThemeStateKey() {
                 id: rightGapFiller
                 anchors.right: island.right
                 anchors.top: island.top
-                width: typeof island !== "undefined" ? Math.min(island.islandRadius, island.height) : 0
-                height: typeof island !== "undefined" ? Math.min(island.islandRadius, island.height) : 0
-                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode && (island.height > 0.01)
+                width: typeof island !== "undefined" ? (height > 0 ? island.islandRadius : 0) : 0
+                height: typeof island !== "undefined" ? Math.max(0, island.height - island.radius) : 0
+                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode && (height > 0.01)
                 clip: true
                 Rectangle {
                     anchors.fill: parent
@@ -2855,8 +2855,8 @@ function getCurrentThemeStateKey() {
                 anchors.top: parent.top
                 anchors.topMargin: (Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 0 : 6
                 width: panelWindow.maskWidth
-                height: typeof island !== "undefined" ? Math.min(island.islandRadius, island.height) : 0
-                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode && (island.height > 0.01)
+                height: typeof island !== "undefined" ? Math.max(0, island.height - island.radius) : 0
+                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode && (height > 0.01)
             }
 
             mask: Region {
@@ -3056,7 +3056,12 @@ function getCurrentThemeStateKey() {
                     }
                 }
                 readonly property bool isPillState: panelWindow.activeState <= 1 && shell.prevState <= 1 && !panelWindow.isNotch
-                radius: isPillState ? (island.height / 2) : Math.min(islandRadius, Math.min(island.width, island.height) / 2)
+                radius: {
+                    if (isPillState) return island.height / 2;
+                    if (panelWindow.isNotch) return islandRadius;
+                    if (shell.fullscreenMode && panelWindow.isClosingCentered) return Math.min(islandRadius, Math.min(island.width, island.height) / 2);
+                    return islandRadius;
+                }
                 clip: true
 
                 LiquidGlassBackground {
@@ -3197,7 +3202,7 @@ function getCurrentThemeStateKey() {
                 Behavior on width  { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
                 Behavior on height { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
                 Behavior on radius {
-                    enabled: !island.isPillState
+                    enabled: !island.isPillState && !(panelWindow.isNotch && panelWindow.activeState <= 1) && !(shell.fullscreenMode && panelWindow.isClosingCentered)
                     NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic }
                 }
 
