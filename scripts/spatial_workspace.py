@@ -104,12 +104,16 @@ def main():
     os.makedirs(STATE_DIR, exist_ok=True)
     env = get_hypr_env()
 
-    # If spatial workspace is toggled off, fallback to physical Hyprland workspace navigation
+    # If spatial workspace is toggled off, fallback to default window focus switching
     if not is_spatial_enabled():
         if action == "left":
-            subprocess.run(["hyprctl", "dispatch", "workspace", "r-1"], env=env)
+            subprocess.run(["hyprctl", "dispatch", "movefocus", "l"], env=env)
         elif action == "right":
-            subprocess.run(["hyprctl", "dispatch", "workspace", "r+1"], env=env)
+            subprocess.run(["hyprctl", "dispatch", "movefocus", "r"], env=env)
+        elif action == "up":
+            subprocess.run(["hyprctl", "dispatch", "movefocus", "u"], env=env)
+        elif action == "down":
+            subprocess.run(["hyprctl", "dispatch", "movefocus", "d"], env=env)
         elif action == "jump" and len(sys.argv) > 2:
             try:
                 target_ws = int(sys.argv[2]) + 1
