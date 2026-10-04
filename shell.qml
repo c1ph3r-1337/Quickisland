@@ -2558,6 +2558,7 @@ function getCurrentThemeStateKey() {
             visible: true
             color: "transparent"
             property var shellRootObj: shell
+            readonly property bool isNotch: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode
 
             // Workspace tracking and indicator properties
             property int workspaceX: 0
@@ -2727,13 +2728,11 @@ function getCurrentThemeStateKey() {
             WlrLayershell.keyboardFocus: {
                 if (panelWindow.activeState === 13) return WlrKeyboardFocus.Exclusive;
                 if (panelWindow.activeState === 0) return WlrKeyboardFocus.None;
-                var isNotch = typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode;
-                if (isNotch && panelWindow.activeState === 1) return WlrKeyboardFocus.OnDemand;
+                if (panelWindow.isNotch && panelWindow.activeState === 1) return WlrKeyboardFocus.OnDemand;
                 return (panelWindow.activeState !== 1 && panelWindow.activeState !== 2 && panelWindow.activeState !== 3) ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None;
             }
             BackgroundEffect.blurRegion: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass && Settings.data.colorSchemes.hyprglassStyle === "frosted") ? animatedBlurRegion : null
-            anchors { top: true; left: true; right: true }
-            implicitHeight: 720
+            anchors { top: true; bottom: true; left: true; right: true }
 
             property real targetMaskWidth: (shell.fullscreenMode && panelWindow.activeState === 0) ? 0 : (island ? (island.islandWidth + (workspaceCircleActive ? (30 + 8) : 0)) : ((Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 150 : 110))
             property real targetMaskHeight: (shell.fullscreenMode && panelWindow.activeState === 0) ? 0 : (island ? Math.max(island.islandHeight, workspaceCircleActive ? 30 : 0) : ((Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 28 : 30))
@@ -2777,7 +2776,19 @@ function getCurrentThemeStateKey() {
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.horizontalCenterOffset: island ? island.anchors.horizontalCenterOffset : 0
                 anchors.top: parent.top
-                anchors.topMargin: (Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 0 : 6
+                anchors.topMargin: {
+                    if (panelWindow.isNotch) return 0;
+                    if (panelWindow.activeState === 3) {
+                        return shell.fullscreenMode ? 14 : 6;
+                    }
+                    if (island && island.isCenteredFullscreen) {
+                        return Math.max(10, Math.round((panelWindow.height - panelWindow.maskHeight) / 2));
+                    }
+                    if (shell.fullscreenMode && panelWindow.activeState === 0) {
+                        return -100;
+                    }
+                    return 6;
+                }
                 width: panelWindow.maskWidth
                 height: panelWindow.maskHeight
             }
@@ -2899,7 +2910,7 @@ function getCurrentThemeStateKey() {
                 shadowVerticalOffset: panelWindow.activeState === 0 ? 2 : 6
                 shadowHorizontalOffset: 0
                 opacity: panelWindow.activeState === 0 ? 0.45 : 1.0
-                visible: !Settings.data.colorSchemes.hyprglass && (island.height > 0.01)
+                visible: !Settings.data.colorSchemes.hyprglass && (island.height > 0.01) && !(shell.fullscreenMode && panelWindow.activeState === 0)
                 Behavior on opacity { NumberAnimation { duration: shell.animFast } }
                 Behavior on shadowVerticalOffset { NumberAnimation { duration: shell.animFast } }
             }
@@ -2917,11 +2928,20 @@ function getCurrentThemeStateKey() {
             Behavior on flareBgColor { ColorAnimation { duration: 400; easing.type: Easing.OutCubic } }
 
             property real currentFlareRadius: {
-                if (!(typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode)) return 12;
-                if (shell.fullscreenMode && panelWindow.activeState === 0) return 0;
-                return (panelWindow.activeState === 0) ? 5 : ((Settings.data.islandConfig.notchFlare) ? Settings.data.islandConfig.notchFlare : 12);
+                if (!panelWindow.isNotch) return 12;
+                var baseFlare = (Settings.isLoaded && Settings.data.islandConfig.notchFlare) ? Settings.data.islandConfig.notchFlare : 5;
+                if (panelWindow.activeState === 0) {
+                    if (shell.fullscreenMode) {
+                        return baseFlare * Math.max(0.0, Math.min(1.0, island.height / 28));
+                    }
+                    return 5;
+                }
+                return baseFlare;
             }
-            Behavior on currentFlareRadius { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
+            Behavior on currentFlareRadius {
+                enabled: !(shell.fullscreenMode && panelWindow.activeState === 0)
+                NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic }
+            }
 
             // Left Notch Flare
             Item {
@@ -2930,7 +2950,7 @@ function getCurrentThemeStateKey() {
                 anchors.top: island.top
                 width: panelWindow.currentFlareRadius
                 height: width
-                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode && (panelWindow.currentFlareRadius > 0.01 || island.height > 0.01)
+                visible: panelWindow.isNotch && (panelWindow.currentFlareRadius > 0.01 && island.height > 0.01)
                 clip: true
 
                 Shape {
@@ -2951,7 +2971,7 @@ function getCurrentThemeStateKey() {
                 anchors.top: island.top
                 width: panelWindow.currentFlareRadius
                 height: width
-                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode && (panelWindow.currentFlareRadius > 0.01 || island.height > 0.01)
+                visible: panelWindow.isNotch && (panelWindow.currentFlareRadius > 0.01 && island.height > 0.01)
                 clip: true
 
                 Shape {
@@ -2967,6 +2987,8 @@ function getCurrentThemeStateKey() {
 
             Rectangle {
                 id: island
+                readonly property bool isCenteredFullscreen: shell.fullscreenMode && !panelWindow.isNotch && panelWindow.activeState > 0 && panelWindow.activeState !== 3
+                transformOrigin: Item.Center
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.horizontalCenterOffset: {
                     var rightOffset = (panelWindow.wsCircleSpacing + panelWindow.wsCircleWidth) / 2;
@@ -2974,29 +2996,43 @@ function getCurrentThemeStateKey() {
                     return leftOffset - rightOffset;
                 }
                 anchors.top: parent.top
-                anchors.topMargin: (Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 0 : ((shell.fullscreenMode && panelWindow.activeState === 0) ? -36 : 6)
-                Behavior on anchors.topMargin { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
+                anchors.topMargin: {
+                    if (panelWindow.isNotch) return 0;
+                    if (panelWindow.activeState === 3) {
+                        return shell.fullscreenMode ? 14 : 6;
+                    }
+                    if (island.isCenteredFullscreen) {
+                        return Math.max(10, Math.round((panelWindow.height - island.height) / 2));
+                    }
+                    if (shell.fullscreenMode && panelWindow.activeState === 0) {
+                        return Math.max(10, Math.round((panelWindow.height - island.height) / 2));
+                    }
+                    return 6;
+                }
+                Behavior on anchors.topMargin {
+                    enabled: !island.isCenteredFullscreen && !(shell.fullscreenMode && panelWindow.activeState === 0)
+                    NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic }
+                }
+                opacity: (shell.fullscreenMode && panelWindow.activeState === 0 && !panelWindow.isNotch) ? 0.0 : 1.0
+                scale: (shell.fullscreenMode && panelWindow.activeState === 0 && !panelWindow.isNotch) ? 0.82 : 1.0
+                Behavior on opacity { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
+                Behavior on scale   { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
                 color: "transparent"
                 property real islandRadius: {
-                    if (shell.fullscreenMode && panelWindow.activeState === 0) return 0;
                     switch (panelWindow.activeState) {
-                        case 0: return (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 18 : 15;
-                        case 1: return (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 18 : 22;
+                        case 0: return panelWindow.isNotch ? 18 : 15;
+                        case 1: return panelWindow.isNotch ? 18 : 22;
                         case 2: return 17;
                         default: return 24;
                     }
                 }
-                readonly property bool isPillState: panelWindow.activeState <= 1 && shell.prevState <= 1 && !(typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode)
+                readonly property bool isPillState: panelWindow.activeState <= 1 && shell.prevState <= 1 && !panelWindow.isNotch
                 radius: isPillState ? (island.height / 2) : islandRadius
                 clip: true
 
                 LiquidGlassBackground {
                     id: liquidGlassBg
-                    anchors.top: parent.top
-                    anchors.bottom: parent.bottom
-                    x: -(leftFlare.visible ? leftFlare.width : 0)
-                    width: (leftFlare.visible ? leftFlare.width : 0) + parent.width + (rightFlare.visible ? rightFlare.width : 0)
-                    
+                    anchors.fill: parent
                     radius: island.radius
                     surfaceColor: shell.surface
                     accentColor: shell.accent
@@ -3060,7 +3096,7 @@ function getCurrentThemeStateKey() {
                                 }
                                 return 160 - 2 * 5;
                             }
-                            return 110;
+                            return (shell.fullscreenMode) ? 0 : 110;
                         }
                         case 1: return isNotch ? (500 - 2 * notchFlareW) : 380;
                         case 2: return 230;
@@ -3126,7 +3162,7 @@ function getCurrentThemeStateKey() {
                 // =============================================================
                 Item {
                     anchors.fill: parent
-                    opacity: (panelWindow.activeState === 0 && !shell.fullscreenMode && !(typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode)) ? 1 : 0
+                    opacity: (panelWindow.activeState === 0 && !shell.fullscreenMode && !panelWindow.isNotch) ? 1 : 0
                     scale: (panelWindow.activeState === 0 && !shell.fullscreenMode) ? 1 : 0.85
                     visible: opacity > 0.01
                     Behavior on opacity { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
@@ -3190,7 +3226,7 @@ function getCurrentThemeStateKey() {
                 // State 0 Notch Mode: Resting Notch Clock & Now Playing EQ
                 Item {
                     anchors.fill: parent
-                    opacity: (panelWindow.activeState === 0 && !shell.fullscreenMode && (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode)) ? 1 : 0
+                    opacity: (panelWindow.activeState === 0 && !shell.fullscreenMode && panelWindow.isNotch) ? 1 : 0
                     scale: (panelWindow.activeState === 0 && !shell.fullscreenMode) ? 1 : 0.85
                     visible: opacity > 0.01
                     Behavior on opacity { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
