@@ -3684,22 +3684,6 @@ function getCurrentThemeStateKey() {
                     Behavior on opacity { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutQuad } }
                     Behavior on scale   { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
 
-                    // Soft black/surface gradient at top for non-fullscreen mode
-                    Rectangle {
-                        anchors.top: parent.top
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        height: 38
-                        z: 10
-                        gradient: Gradient {
-                            GradientStop { position: 0.0; color: shell.surface }
-                            GradientStop { position: 0.55; color: Qt.rgba(shell.surface.r, shell.surface.g, shell.surface.b, 0.65) }
-                            GradientStop { position: 1.0; color: "transparent" }
-                        }
-                        visible: !shell.fullscreenMode
-                        enabled: false
-                    }
-
                     property int selectedAppIndex: 0
                     property bool hasQuery: (typeof searchInput !== "undefined" && searchInput) ? (searchInput.text.length > 0) : false
 
