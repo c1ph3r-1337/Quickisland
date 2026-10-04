@@ -3039,7 +3039,7 @@ function getCurrentThemeStateKey() {
                     return 6;
                 }
                 Behavior on anchors.topMargin {
-                    enabled: !island.isCenteredFullscreen && !panelWindow.isClosingCentered && panelWindow.activeState !== 2 && !panelWindow.isClosingVolume
+                    enabled: !panelWindow.isClosingCentered && panelWindow.activeState !== 2 && !panelWindow.isClosingVolume && !(shell.fullscreenMode && panelWindow.activeState === 0 && shell.prevState > 0)
                     NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic }
                 }
                 opacity: (shell.fullscreenMode && (panelWindow.isClosingCentered || panelWindow.isClosingVolume)) ? 0.0 : ((shell.fullscreenMode && panelWindow.activeState === 0 && !panelWindow.isNotch) ? 0.0 : 1.0)
