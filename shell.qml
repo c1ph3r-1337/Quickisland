@@ -3056,7 +3056,7 @@ function getCurrentThemeStateKey() {
                     }
                 }
                 readonly property bool isPillState: panelWindow.activeState <= 1 && shell.prevState <= 1 && !panelWindow.isNotch
-                radius: isPillState ? (island.height / 2) : islandRadius
+                radius: isPillState ? (island.height / 2) : Math.min(islandRadius, Math.min(island.width, island.height) / 2)
                 clip: true
 
                 LiquidGlassBackground {
@@ -3126,7 +3126,7 @@ function getCurrentThemeStateKey() {
                                 return 160 - 2 * 5;
                             }
                             if (shell.fullscreenMode && panelWindow.isClosingCentered) {
-                                return 80;
+                                return 0;
                             }
                             if (shell.fullscreenMode && panelWindow.isClosingVolume) {
                                 return 120;
@@ -3162,7 +3162,7 @@ function getCurrentThemeStateKey() {
                         case 0: {
                             if (isNotch) return (shell.fullscreenMode) ? 0 : 28;
                             if (shell.fullscreenMode && panelWindow.isClosingCentered) {
-                                return 24;
+                                return 0;
                             }
                             if (shell.fullscreenMode && panelWindow.isClosingVolume) {
                                 return 24;
@@ -3673,14 +3673,32 @@ function getCurrentThemeStateKey() {
                 // =============================================================
                 Item {
                     id: launcherView
-                    anchors.centerIn: parent
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.top: shell.fullscreenMode ? undefined : parent.top
+                    anchors.verticalCenter: shell.fullscreenMode ? parent.verticalCenter : undefined
                     width: 445; height: 445
                     clip: true
                     opacity: panelWindow.activeState === 4 ? 1 : 0
                     scale: panelWindow.activeState === 4 ? 1 : 0.96
                     visible: opacity > 0.01
-                    Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
-                    Behavior on scale   { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
+                    Behavior on opacity { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutQuad } }
+                    Behavior on scale   { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
+
+                    // Soft black/surface gradient at top for non-fullscreen mode
+                    Rectangle {
+                        anchors.top: parent.top
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        height: 38
+                        z: 10
+                        gradient: Gradient {
+                            GradientStop { position: 0.0; color: shell.surface }
+                            GradientStop { position: 0.55; color: Qt.rgba(shell.surface.r, shell.surface.g, shell.surface.b, 0.65) }
+                            GradientStop { position: 1.0; color: "transparent" }
+                        }
+                        visible: !shell.fullscreenMode
+                        enabled: false
+                    }
 
                     property int selectedAppIndex: 0
                     property bool hasQuery: (typeof searchInput !== "undefined" && searchInput) ? (searchInput.text.length > 0) : false
@@ -3914,8 +3932,8 @@ function getCurrentThemeStateKey() {
                     id: ccView; anchors.fill: parent
                     readonly property bool ccActive: panelWindow.activeState === 5
                     opacity: ccActive ? 1 : 0; scale: ccActive ? 1 : 0.96; visible: opacity > 0.01
-                    Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
-                    Behavior on scale   { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
+                    Behavior on opacity { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutQuad } }
+                    Behavior on scale   { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
 
                     MouseArea {
                         anchors.fill: parent
