@@ -2787,9 +2787,9 @@ function getCurrentThemeStateKey() {
                 id: leftGapFiller
                 anchors.left: island.left
                 anchors.top: island.top
-                width: typeof island !== "undefined" ? island.islandRadius : 0
-                height: typeof island !== "undefined" ? island.islandRadius : 0
-                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode && !(shell.fullscreenMode && panelWindow.activeState === 0)
+                width: typeof island !== "undefined" ? Math.min(island.islandRadius, island.height) : 0
+                height: typeof island !== "undefined" ? Math.min(island.islandRadius, island.height) : 0
+                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode && (island.height > 0.01)
                 clip: true
                 Rectangle {
                     anchors.fill: parent
@@ -2801,9 +2801,9 @@ function getCurrentThemeStateKey() {
                 id: rightGapFiller
                 anchors.right: island.right
                 anchors.top: island.top
-                width: typeof island !== "undefined" ? island.islandRadius : 0
-                height: typeof island !== "undefined" ? island.islandRadius : 0
-                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode && !(shell.fullscreenMode && panelWindow.activeState === 0)
+                width: typeof island !== "undefined" ? Math.min(island.islandRadius, island.height) : 0
+                height: typeof island !== "undefined" ? Math.min(island.islandRadius, island.height) : 0
+                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode && (island.height > 0.01)
                 clip: true
                 Rectangle {
                     anchors.fill: parent
@@ -2818,8 +2818,8 @@ function getCurrentThemeStateKey() {
                 anchors.top: parent.top
                 anchors.topMargin: (Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 0 : 6
                 width: panelWindow.maskWidth
-                height: typeof island !== "undefined" ? island.islandRadius : 0
-                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode && !(shell.fullscreenMode && panelWindow.activeState === 0)
+                height: typeof island !== "undefined" ? Math.min(island.islandRadius, island.height) : 0
+                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode && (island.height > 0.01)
             }
 
             mask: Region {
@@ -2899,7 +2899,7 @@ function getCurrentThemeStateKey() {
                 shadowVerticalOffset: panelWindow.activeState === 0 ? 2 : 6
                 shadowHorizontalOffset: 0
                 opacity: panelWindow.activeState === 0 ? 0.45 : 1.0
-                visible: !Settings.data.colorSchemes.hyprglass && !(shell.fullscreenMode && panelWindow.activeState === 0)
+                visible: !Settings.data.colorSchemes.hyprglass && (island.height > 0.01)
                 Behavior on opacity { NumberAnimation { duration: shell.animFast } }
                 Behavior on shadowVerticalOffset { NumberAnimation { duration: shell.animFast } }
             }
@@ -2918,6 +2918,7 @@ function getCurrentThemeStateKey() {
 
             property real currentFlareRadius: {
                 if (!(typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode)) return 12;
+                if (shell.fullscreenMode && panelWindow.activeState === 0) return 0;
                 return (panelWindow.activeState === 0) ? 5 : ((Settings.data.islandConfig.notchFlare) ? Settings.data.islandConfig.notchFlare : 12);
             }
             Behavior on currentFlareRadius { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
@@ -2929,7 +2930,7 @@ function getCurrentThemeStateKey() {
                 anchors.top: island.top
                 width: panelWindow.currentFlareRadius
                 height: width
-                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode && !(shell.fullscreenMode && panelWindow.activeState === 0)
+                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode && (panelWindow.currentFlareRadius > 0.01 || island.height > 0.01)
                 clip: true
 
                 Shape {
@@ -2950,7 +2951,7 @@ function getCurrentThemeStateKey() {
                 anchors.top: island.top
                 width: panelWindow.currentFlareRadius
                 height: width
-                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode && !(shell.fullscreenMode && panelWindow.activeState === 0)
+                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode && (panelWindow.currentFlareRadius > 0.01 || island.height > 0.01)
                 clip: true
 
                 Shape {
@@ -2973,12 +2974,11 @@ function getCurrentThemeStateKey() {
                     return leftOffset - rightOffset;
                 }
                 anchors.top: parent.top
-                anchors.topMargin: (shell.fullscreenMode && panelWindow.activeState === 0) ? (-island.islandHeight - 20) : ((Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 0 : 6)
+                anchors.topMargin: (Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 0 : ((shell.fullscreenMode && panelWindow.activeState === 0) ? -36 : 6)
                 Behavior on anchors.topMargin { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
-                opacity: (shell.fullscreenMode && panelWindow.activeState === 0) ? 0.0 : 1.0
-                Behavior on opacity { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
                 color: "transparent"
                 property real islandRadius: {
+                    if (shell.fullscreenMode && panelWindow.activeState === 0) return 0;
                     switch (panelWindow.activeState) {
                         case 0: return (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 18 : 15;
                         case 1: return (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 18 : 22;
@@ -3088,7 +3088,7 @@ function getCurrentThemeStateKey() {
                 property real islandHeight: {
                     var isNotch = typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode;
                     switch (panelWindow.activeState) {
-                        case 0: return isNotch ? 28 : 30;
+                        case 0: return (shell.fullscreenMode) ? 0 : (isNotch ? 28 : 30);
                         case 1: return isNotch ? 110 : 44;
                         case 2: return 34;
                         case 3: return 76;
@@ -3126,9 +3126,11 @@ function getCurrentThemeStateKey() {
                 // =============================================================
                 Item {
                     anchors.fill: parent
-                    opacity: (panelWindow.activeState === 0 && !(typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode)) ? 1 : 0; scale: panelWindow.activeState === 0 ? 1 : 0.92; visible: opacity > 0.01
-                    Behavior on opacity { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
-                    Behavior on scale   { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
+                    opacity: (panelWindow.activeState === 0 && !shell.fullscreenMode && !(typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode)) ? 1 : 0
+                    scale: (panelWindow.activeState === 0 && !shell.fullscreenMode) ? 1 : 0.85
+                    visible: opacity > 0.01
+                    Behavior on opacity { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
+                    Behavior on scale   { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
 
                     Row {
                         anchors.centerIn: parent
@@ -3188,11 +3190,11 @@ function getCurrentThemeStateKey() {
                 // State 0 Notch Mode: Resting Notch Clock & Now Playing EQ
                 Item {
                     anchors.fill: parent
-                    opacity: (panelWindow.activeState === 0 && (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode)) ? 1 : 0
-                    scale: panelWindow.activeState === 0 ? 1 : 0.92
+                    opacity: (panelWindow.activeState === 0 && !shell.fullscreenMode && (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode)) ? 1 : 0
+                    scale: (panelWindow.activeState === 0 && !shell.fullscreenMode) ? 1 : 0.85
                     visible: opacity > 0.01
-                    Behavior on opacity { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
-                    Behavior on scale   { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
+                    Behavior on opacity { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
+                    Behavior on scale   { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
 
                     Row {
                         anchors.centerIn: parent
