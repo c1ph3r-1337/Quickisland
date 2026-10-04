@@ -2824,9 +2824,9 @@ function getCurrentThemeStateKey() {
                 id: leftGapFiller
                 anchors.left: island.left
                 anchors.top: island.top
-                width: typeof island !== "undefined" ? (height > 0 ? island.islandRadius : 0) : 0
-                height: typeof island !== "undefined" ? Math.max(0, island.height - island.radius) : 0
-                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode && (height > 0.01)
+                width: typeof island !== "undefined" ? island.islandRadius : 0
+                height: typeof island !== "undefined" ? Math.min(island.islandRadius, island.height / 2) : 0
+                visible: panelWindow.isNotch && (height > 0.01) && (island.height > 0.01)
                 clip: true
                 Rectangle {
                     anchors.fill: parent
@@ -2838,9 +2838,9 @@ function getCurrentThemeStateKey() {
                 id: rightGapFiller
                 anchors.right: island.right
                 anchors.top: island.top
-                width: typeof island !== "undefined" ? (height > 0 ? island.islandRadius : 0) : 0
-                height: typeof island !== "undefined" ? Math.max(0, island.height - island.radius) : 0
-                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode && (height > 0.01)
+                width: typeof island !== "undefined" ? island.islandRadius : 0
+                height: typeof island !== "undefined" ? Math.min(island.islandRadius, island.height / 2) : 0
+                visible: panelWindow.isNotch && (height > 0.01) && (island.height > 0.01)
                 clip: true
                 Rectangle {
                     anchors.fill: parent
@@ -2855,7 +2855,7 @@ function getCurrentThemeStateKey() {
                 anchors.top: parent.top
                 anchors.topMargin: (Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 0 : 6
                 width: panelWindow.maskWidth
-                height: typeof island !== "undefined" ? Math.max(0, island.height - island.radius) : 0
+                height: typeof island !== "undefined" ? Math.min(island.islandRadius, Math.max(0, island.height / 2)) : 0
                 visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode && (height > 0.01)
             }
 
@@ -2957,15 +2957,13 @@ function getCurrentThemeStateKey() {
                 if (!panelWindow.isNotch) return 12;
                 var baseFlare = (Settings.isLoaded && Settings.data.islandConfig.notchFlare) ? Settings.data.islandConfig.notchFlare : 5;
                 if (panelWindow.activeState === 0) {
-                    if (shell.fullscreenMode) {
-                        return baseFlare * Math.max(0.0, Math.min(1.0, island.height / 28));
-                    }
-                    return 5;
+                    var s0Flare = 5;
+                    return s0Flare * Math.max(0.0, Math.min(1.0, island.height / 28));
                 }
                 return baseFlare;
             }
             Behavior on currentFlareRadius {
-                enabled: !(shell.fullscreenMode && panelWindow.activeState === 0)
+                enabled: !(panelWindow.activeState === 0 && (shell.fullscreenMode || island.height < 28))
                 NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic }
             }
 
