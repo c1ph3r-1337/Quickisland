@@ -7,6 +7,8 @@ killall -q dunst 2>/dev/null
 killall -q quickshell qs 2>/dev/null
 sleep 0.3
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # GPU Selection:
 # If on battery, do NOT force rendering through the dGPU over a throttled PCIe bus.
 # Running on integrated GPU ensures 120+ FPS smoothness and saves significant battery life.

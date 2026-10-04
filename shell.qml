@@ -27,6 +27,7 @@ ShellRoot {
     property int virtualWorkspaceY: 0
     property bool overviewActive: false
     property bool wsOverviewActive: false
+    property bool fullscreenMode: false
     Connections {
         target: Settings.data.colorSchemes
         function onHyprglassChanged() {
@@ -948,6 +949,18 @@ function getCurrentThemeStateKey() {
         }
         shell.activeColorHex = shell[shell.activeColorKey].toString();
         _loadingTheme = false;
+    }
+
+    IpcHandler {
+        target: "fullscreen"
+        function toggle() {
+            shell.fullscreenMode = !shell.fullscreenMode;
+            console.log("[IPC Debug] Fullscreen mode toggled: " + shell.fullscreenMode);
+        }
+        function set(val: bool) {
+            shell.fullscreenMode = val;
+            console.log("[IPC Debug] Fullscreen mode set to: " + shell.fullscreenMode);
+        }
     }
 
     IpcHandler {
@@ -2497,7 +2510,7 @@ function getCurrentThemeStateKey() {
             color: "transparent"
             mask: Region {}
 
-            visible: true
+            visible: !shell.fullscreenMode
             WlrLayershell.namespace: "morphing-island-exclusion"
             WlrLayershell.layer: WlrLayer.Top
             WlrLayershell.exclusionMode: ExclusionMode.Auto
@@ -2722,8 +2735,8 @@ function getCurrentThemeStateKey() {
             anchors { top: true; left: true; right: true }
             implicitHeight: 720
 
-            property real targetMaskWidth: island ? (island.islandWidth + (workspaceCircleActive ? (30 + 8) : 0)) : ((Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 150 : 110)
-            property real targetMaskHeight: island ? Math.max(island.islandHeight, workspaceCircleActive ? 30 : 0) : ((Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 28 : 30)
+            property real targetMaskWidth: (shell.fullscreenMode && panelWindow.activeState === 0) ? 0 : (island ? (island.islandWidth + (workspaceCircleActive ? (30 + 8) : 0)) : ((Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 150 : 110))
+            property real targetMaskHeight: (shell.fullscreenMode && panelWindow.activeState === 0) ? 0 : (island ? Math.max(island.islandHeight, workspaceCircleActive ? 30 : 0) : ((Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 28 : 30))
 
             property real maskWidth: (Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 150 : 110
             property real maskHeight: (Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 28 : 30
@@ -2776,7 +2789,7 @@ function getCurrentThemeStateKey() {
                 anchors.top: island.top
                 width: typeof island !== "undefined" ? island.islandRadius : 0
                 height: typeof island !== "undefined" ? island.islandRadius : 0
-                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode
+                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode && !(shell.fullscreenMode && panelWindow.activeState === 0)
                 clip: true
                 Rectangle {
                     anchors.fill: parent
@@ -2790,7 +2803,7 @@ function getCurrentThemeStateKey() {
                 anchors.top: island.top
                 width: typeof island !== "undefined" ? island.islandRadius : 0
                 height: typeof island !== "undefined" ? island.islandRadius : 0
-                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode
+                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode && !(shell.fullscreenMode && panelWindow.activeState === 0)
                 clip: true
                 Rectangle {
                     anchors.fill: parent
@@ -2806,7 +2819,7 @@ function getCurrentThemeStateKey() {
                 anchors.topMargin: (Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 0 : 6
                 width: panelWindow.maskWidth
                 height: typeof island !== "undefined" ? island.islandRadius : 0
-                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode
+                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode && !(shell.fullscreenMode && panelWindow.activeState === 0)
             }
 
             mask: Region {
@@ -2886,7 +2899,7 @@ function getCurrentThemeStateKey() {
                 shadowVerticalOffset: panelWindow.activeState === 0 ? 2 : 6
                 shadowHorizontalOffset: 0
                 opacity: panelWindow.activeState === 0 ? 0.45 : 1.0
-                visible: !Settings.data.colorSchemes.hyprglass
+                visible: !Settings.data.colorSchemes.hyprglass && !(shell.fullscreenMode && panelWindow.activeState === 0)
                 Behavior on opacity { NumberAnimation { duration: shell.animFast } }
                 Behavior on shadowVerticalOffset { NumberAnimation { duration: shell.animFast } }
             }
@@ -2916,7 +2929,7 @@ function getCurrentThemeStateKey() {
                 anchors.top: island.top
                 width: panelWindow.currentFlareRadius
                 height: width
-                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode
+                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode && !(shell.fullscreenMode && panelWindow.activeState === 0)
                 clip: true
 
                 Shape {
@@ -2937,7 +2950,7 @@ function getCurrentThemeStateKey() {
                 anchors.top: island.top
                 width: panelWindow.currentFlareRadius
                 height: width
-                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode
+                visible: typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode && !(shell.fullscreenMode && panelWindow.activeState === 0)
                 clip: true
 
                 Shape {
@@ -2960,7 +2973,10 @@ function getCurrentThemeStateKey() {
                     return leftOffset - rightOffset;
                 }
                 anchors.top: parent.top
-                anchors.topMargin: (Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 0 : 6
+                anchors.topMargin: (shell.fullscreenMode && panelWindow.activeState === 0) ? (-island.islandHeight - 20) : ((Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 0 : 6)
+                Behavior on anchors.topMargin { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
+                opacity: (shell.fullscreenMode && panelWindow.activeState === 0) ? 0.0 : 1.0
+                Behavior on opacity { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
                 color: "transparent"
                 property real islandRadius: {
                     switch (panelWindow.activeState) {
@@ -8089,6 +8105,7 @@ function getCurrentThemeStateKey() {
                                     { keys: "Super + /", desc: "Keyboard Shortcuts" },
                                     { keys: "Super + M", desc: "Quick Settings" },
                                     { keys: "Super + L", desc: "Lock Screen" },
+                                    { keys: "Super + F", desc: "Fullscreen" },
                                     { keys: "Super + Shift + S", desc: "Screen Annotate" },
                                     { keys: "Super + Shift + C", desc: "Color Picker" },
                                     { keys: "Ctrl + Alt + Del", desc: "Power / Session Menu" }
@@ -9166,7 +9183,7 @@ function getCurrentThemeStateKey() {
 
                     opacity: panelWindow.leftWsCircleOpacity
                     scale: panelWindow.wsCircleScale
-                    visible: shell.spatialWmEnabled
+                    visible: shell.spatialWmEnabled && !(shell.fullscreenMode && panelWindow.activeState === 0)
 
                     LiquidGlassBackground {
                         anchors.fill: parent
@@ -9208,6 +9225,7 @@ function getCurrentThemeStateKey() {
 
                     opacity: panelWindow.wsCircleOpacity
                     scale: panelWindow.wsCircleScale
+                    visible: !(shell.fullscreenMode && panelWindow.activeState === 0)
 
                     LiquidGlassBackground {
                         id: wsLiquidGlassBg
