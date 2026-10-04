@@ -3035,7 +3035,17 @@ function getCurrentThemeStateKey() {
                     var notchFlareW = (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchFlare) ? Settings.data.islandConfig.notchFlare : 12;
                     var isNotch = typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode;
                     switch (panelWindow.activeState) {
-                        case 0: return isNotch ? (160 - 2 * 5) : 110;
+                        case 0: {
+                            if (isNotch) {
+                                if (panelWindow.notchWorkspaceActive) {
+                                    var labelW = (typeof notchWorkspaceLabel !== "undefined" && notchWorkspaceLabel.implicitWidth > 0) ? notchWorkspaceLabel.implicitWidth : 12;
+                                    var wsW = Math.max(64, labelW + 48);
+                                    return wsW - 2 * 5;
+                                }
+                                return 160 - 2 * 5;
+                            }
+                            return 110;
+                        }
                         case 1: return isNotch ? (500 - 2 * notchFlareW) : 380;
                         case 2: return 230;
                         case 3: return 400;
@@ -3178,8 +3188,8 @@ function getCurrentThemeStateKey() {
                             height: 12
                             anchors.verticalCenter: parent.verticalCenter
                             clip: true
-                            width: shell.mediaPlaying ? 18.5 : 0
-                            opacity: shell.mediaPlaying ? 1 : 0
+                            width: (shell.mediaPlaying && !panelWindow.notchWorkspaceActive) ? 18.5 : 0
+                            opacity: (shell.mediaPlaying && !panelWindow.notchWorkspaceActive) ? 1 : 0
 
                             Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.InOutQuad } }
                             Behavior on opacity { NumberAnimation { duration: 250; easing.type: Easing.InOutQuad } }

@@ -86,7 +86,14 @@ Item {
         }
     }
 
-    property real notchWidth: isExpanded ? 500 : 160
+    property real notchWidth: {
+        if (isExpanded) return 500;
+        if (notchWorkspaceActive) {
+            var labelW = (typeof notchWorkspaceLabel !== "undefined" && notchWorkspaceLabel.implicitWidth > 0) ? notchWorkspaceLabel.implicitWidth : 12;
+            return Math.max(64, labelW + 48);
+        }
+        return 160;
+    }
     property real notchHeight: isExpanded ? 110 : 28
     
     Behavior on notchWidth { NumberAnimation { duration: 350; easing.type: Easing.OutExpo } }
