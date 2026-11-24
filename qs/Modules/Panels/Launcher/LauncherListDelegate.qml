@@ -13,7 +13,7 @@ NBox {
   implicitHeight: launcher.entryHeight
   clip: true
   radius: Style.radiusL
-  color: entry.isSelected ? Color.mHover : Color.mSurfaceVariant
+  color: entry.isSelected ? QuickIslandPalette.mHover : QuickIslandPalette.mSurfaceVariant
   forceOpaque: entry.isSelected
 
   required property var modelData
@@ -59,7 +59,7 @@ NBox {
         Rectangle {
           anchors.fill: parent
           radius: Style.radiusL
-          color: Color.mSurface
+          color: QuickIslandPalette.mSurface
           visible: Settings.data.appLauncher.showIconBackground && !modelData.isImage
         }
 
@@ -69,7 +69,7 @@ NBox {
           anchors.fill: parent
           visible: !!modelData.isImage && !modelData.displayString
           radius: Style.radiusL
-          borderColor: Color.mOnSurface
+          borderColor: QuickIslandPalette.mOnSurface
           borderWidth: Style.borderM
           imageFillMode: Image.PreserveAspectCrop
 
@@ -89,7 +89,7 @@ NBox {
           Rectangle {
             anchors.fill: parent
             visible: parent.status === Image.Loading
-            color: Color.mSurfaceVariant
+            color: QuickIslandPalette.mSurfaceVariant
 
             BusyIndicator {
               anchors.centerIn: parent
@@ -113,7 +113,7 @@ NBox {
           radius: Style.radiusL
           color: modelData.colorHex || "transparent"
           visible: !!modelData.colorHex
-          border.color: Color.mOnSurface
+          border.color: QuickIslandPalette.mOnSurface
           border.width: Style.borderM
         }
 
@@ -138,7 +138,7 @@ NBox {
               icon: modelData.icon
               pointSize: Style.fontSizeXXXL
               visible: modelData.icon && !modelData.displayString
-              color: (entry.isSelected && !Settings.data.appLauncher.showIconBackground) ? Color.mOnHover : Color.mOnSurface
+              color: (entry.isSelected && !Settings.data.appLauncher.showIconBackground) ? QuickIslandPalette.mOnHover : QuickIslandPalette.mOnSurface
             }
           }
 
@@ -161,7 +161,7 @@ NBox {
           text: modelData.displayString ? modelData.displayString : (modelData.name ? modelData.name.charAt(0).toUpperCase() : "?")
           pointSize: modelData.displayString ? (modelData.displayStringSize || Style.fontSizeXXXL) : Style.fontSizeXXL
           font.weight: Style.fontWeightBold
-          color: modelData.displayString ? Color.mOnSurface : Color.mOnPrimary
+          color: modelData.displayString ? QuickIslandPalette.mOnSurface : QuickIslandPalette.mOnPrimary
         }
 
         // Image type indicator overlay
@@ -172,7 +172,7 @@ NBox {
           anchors.margins: 2
           width: formatLabel.width + Style.marginXS
           height: formatLabel.height + Style.marginXXS
-          color: Color.mSurfaceVariant
+          color: QuickIslandPalette.mSurfaceVariant
           radius: Style.radiusL
           NText {
             id: formatLabel
@@ -185,7 +185,7 @@ NBox {
               return parts[0] || "IMG";
             }
             pointSize: Style.fontSizeXXS
-            color: Color.mOnSurfaceVariant
+            color: QuickIslandPalette.mOnSurfaceVariant
           }
         }
 
@@ -197,13 +197,13 @@ NBox {
           anchors.margins: 2
           width: height
           height: Style.fontSizeM + Style.marginXS
-          color: Color.mSurfaceVariant
+          color: QuickIslandPalette.mSurfaceVariant
           radius: Style.radiusL
           NIcon {
             anchors.centerIn: parent
             icon: modelData.badgeIcon || ""
             pointSize: Style.fontSizeS
-            color: Color.mOnSurfaceVariant
+            color: QuickIslandPalette.mOnSurfaceVariant
           }
         }
       }
@@ -217,7 +217,7 @@ NBox {
           text: modelData.name || "Unknown"
           pointSize: Style.fontSizeL
           font.weight: Style.fontWeightBold
-          color: entry.isSelected ? Color.mOnHover : Color.mOnSurface
+          color: entry.isSelected ? QuickIslandPalette.mOnHover : QuickIslandPalette.mOnSurface
           elide: Text.ElideRight
           maximumLineCount: 1
           wrapMode: Text.Wrap
@@ -228,7 +228,7 @@ NBox {
         NText {
           text: modelData.description || ""
           pointSize: Style.fontSizeS
-          color: entry.isSelected ? Color.mOnHover : Color.mOnSurfaceVariant
+          color: entry.isSelected ? QuickIslandPalette.mOnHover : QuickIslandPalette.mOnSurfaceVariant
           elide: Text.ElideRight
           maximumLineCount: 1
           Layout.fillWidth: true

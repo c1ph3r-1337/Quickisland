@@ -153,17 +153,17 @@ NBox {
         NIconButton {
           icon: AudioService.muted ? "volume-off" : "volume-high"
           baseSize: Style.baseWidgetSize * 0.5
-          colorFg: AudioService.muted ? Color.mError : Color.mOnSurface
+          colorFg: AudioService.muted ? QuickIslandPalette.mError : QuickIslandPalette.mOnSurface
           colorBg: "transparent"
-          colorBgHover: Color.mHover
-          colorFgHover: Color.mOnHover
+          colorBgHover: QuickIslandPalette.mHover
+          colorFgHover: QuickIslandPalette.mOnHover
           onClicked: AudioService.setOutputMuted(!AudioService.muted)
         }
 
         NText {
           text: AudioService.sink ? AudioService.sink.description : "No output device"
           pointSize: Style.fontSizeXS
-          color: Color.mOnSurfaceVariant
+          color: QuickIslandPalette.mOnSurfaceVariant
           elide: Text.ElideRight
           Layout.fillWidth: true
           Layout.preferredWidth: 0
@@ -221,17 +221,17 @@ NBox {
         NIconButton {
           icon: AudioService.inputMuted ? "microphone-off" : "microphone"
           baseSize: Style.baseWidgetSize * 0.5
-          colorFg: AudioService.inputMuted ? Color.mError : Color.mOnSurface
+          colorFg: AudioService.inputMuted ? QuickIslandPalette.mError : QuickIslandPalette.mOnSurface
           colorBg: "transparent"
-          colorBgHover: Color.mHover
-          colorFgHover: Color.mOnHover
+          colorBgHover: QuickIslandPalette.mHover
+          colorFgHover: QuickIslandPalette.mOnHover
           onClicked: AudioService.setInputMuted(!AudioService.inputMuted)
         }
 
         NText {
           text: AudioService.source ? AudioService.source.description : "No input device"
           pointSize: Style.fontSizeXS
-          color: Color.mOnSurfaceVariant
+          color: QuickIslandPalette.mOnSurfaceVariant
           elide: Text.ElideRight
           Layout.fillWidth: true
           Layout.preferredWidth: 0

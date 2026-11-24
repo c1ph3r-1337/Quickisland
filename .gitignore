@@ -10,3 +10,7 @@ __pycache__/
 .idea/
 scratch/
 *.orig
+# Personal Apple font files are installed locally and must not be redistributed.
+Assets/Fonts/SF-Pro-Rounded/
+# Local recovery copy, not an application source file.
+LockScreen.qml.backup_glyph

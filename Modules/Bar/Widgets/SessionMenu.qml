@@ -5,10 +5,12 @@ import Quickshell
 import qs.Commons
 import qs.Modules.Bar.Extras
 import qs.Services.UI
+import qs.Services.Power
 import qs.Widgets
 
 NIconButton {
   id: root
+  visible: !PowerProfileService.quickislandGameMode
 
   property ShellScreen screen
 
@@ -45,7 +47,7 @@ NIconButton {
   }
   tooltipDirection: BarService.getTooltipDirection(screenName)
   colorBg: Style.capsuleColor
-  colorFg: Color.resolveColorKey(iconColorKey)
+  colorFg: QuickIslandPalette.resolveColorKey(iconColorKey)
   border.color: Style.capsuleBorderColor
   border.width: Style.capsuleBorderWidth
 

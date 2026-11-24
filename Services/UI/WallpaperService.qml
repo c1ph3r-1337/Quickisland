@@ -94,7 +94,7 @@ Singleton {
     favoriteSchemeDebounceTimer.pendingPath = path;
     favoriteSchemeDebounceTimer.pendingSlot = slot;
     favoriteSchemeDebounceTimer.restart();
-    if (Color.isTransitioning) {
+    if (QuickIslandPalette.isTransitioning) {
       root.pendingFavoriteSchemeRefresh = {
         "path": path,
         "slot": slot
@@ -799,7 +799,7 @@ Singleton {
 
     currentWallpapers[screenName] = newEntry;
     saveTimer.restart();
-    Quickshell.execDetached(["awww", "img", path, "--transition-type", "none"]);
+    Quickshell.execDetached(["awww", "img", path, "--outputs", screenName, "--transition-type", "none"]);
     Quickshell.execDetached(["bash", "-c", "ln -sf '" + path + "' $HOME/.cache/wal/current-wallpaper"]);
     root.wallpaperChanged(screenName, _entryToEffectivePath(newEntry));
 
@@ -1415,7 +1415,7 @@ Singleton {
                   ,
       "useWallpaperColors": Settings.data.colorSchemes.useWallpaperColors,
       "generationMethod": Settings.data.colorSchemes.generationMethod,
-      "paletteColors": [Color.mPrimary.toString(), Color.mSecondary.toString(), Color.mTertiary.toString(), Color.mError.toString()]
+      "paletteColors": [QuickIslandPalette.mPrimary.toString(), QuickIslandPalette.mSecondary.toString(), QuickIslandPalette.mTertiary.toString(), QuickIslandPalette.mError.toString()]
     };
   }
 
@@ -1616,9 +1616,9 @@ Singleton {
 
   // Auto-update favorite palette colors when theme colors finish transitioning
   Connections {
-    target: Color
+    target: QuickIslandPalette
     function onIsTransitioningChanged() {
-      if (!Color.isTransitioning) {
+      if (!QuickIslandPalette.isTransitioning) {
         _updateCurrentWallpaperFavorites();
       }
     }
@@ -1696,7 +1696,7 @@ Singleton {
       Object.keys(root.currentWallpapers).forEach(function (screenName) {
         var path = root.getWallpaper(screenName);
         if (path && !root.isSolidColorPath(path)) {
-          Quickshell.execDetached(["awww", "img", path, "--transition-type", "none"]);
+          Quickshell.execDetached(["awww", "img", path, "--outputs", screenName, "--transition-type", "none"]);
           Quickshell.execDetached(["bash", "-c", "ln -sf '" + path + "' $HOME/.cache/wal/current-wallpaper"]);
         }
       });

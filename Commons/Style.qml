@@ -24,36 +24,36 @@ Singleton {
   readonly property int fontWeightBold: 700
 
   // Container Radii: major layout sections (sidebars, cards, content panels)
-  readonly property int radiusXXXS: Math.round(3 * Settings.data.general.radiusRatio)
-  readonly property int radiusXXS: Math.round(4 * Settings.data.general.radiusRatio)
-  readonly property int radiusXS: Math.round(8 * Settings.data.general.radiusRatio)
-  readonly property int radiusS: Math.round(12 * Settings.data.general.radiusRatio)
-  readonly property int radiusM: Math.round(16 * Settings.data.general.radiusRatio)
-  readonly property int radiusL: Math.round(20 * Settings.data.general.radiusRatio)
+  readonly property int radiusXXXS: PowerProfileService.quickislandGameMode ? 0 : Math.round(3 * Settings.data.general.radiusRatio)
+  readonly property int radiusXXS: PowerProfileService.quickislandGameMode ? 0 : Math.round(4 * Settings.data.general.radiusRatio)
+  readonly property int radiusXS: PowerProfileService.quickislandGameMode ? 0 : Math.round(8 * Settings.data.general.radiusRatio)
+  readonly property int radiusS: PowerProfileService.quickislandGameMode ? 0 : Math.round(12 * Settings.data.general.radiusRatio)
+  readonly property int radiusM: PowerProfileService.quickislandGameMode ? 0 : Math.round(16 * Settings.data.general.radiusRatio)
+  readonly property int radiusL: PowerProfileService.quickislandGameMode ? 0 : Math.round(20 * Settings.data.general.radiusRatio)
 
   // Input radii: interactive elements (buttons, toggles, text fields)
-  readonly property int iRadiusXXXS: Math.round(3 * Settings.data.general.iRadiusRatio)
-  readonly property int iRadiusXXS: Math.round(4 * Settings.data.general.iRadiusRatio)
-  readonly property int iRadiusXS: Math.round(8 * Settings.data.general.iRadiusRatio)
-  readonly property int iRadiusS: Math.round(12 * Settings.data.general.iRadiusRatio)
-  readonly property int iRadiusM: Math.round(16 * Settings.data.general.iRadiusRatio)
-  readonly property int iRadiusL: Math.round(20 * Settings.data.general.iRadiusRatio)
+  readonly property int iRadiusXXXS: PowerProfileService.quickislandGameMode ? 0 : Math.round(3 * Settings.data.general.iRadiusRatio)
+  readonly property int iRadiusXXS: PowerProfileService.quickislandGameMode ? 0 : Math.round(4 * Settings.data.general.iRadiusRatio)
+  readonly property int iRadiusXS: PowerProfileService.quickislandGameMode ? 0 : Math.round(8 * Settings.data.general.iRadiusRatio)
+  readonly property int iRadiusS: PowerProfileService.quickislandGameMode ? 0 : Math.round(12 * Settings.data.general.iRadiusRatio)
+  readonly property int iRadiusM: PowerProfileService.quickislandGameMode ? 0 : Math.round(16 * Settings.data.general.iRadiusRatio)
+  readonly property int iRadiusL: PowerProfileService.quickislandGameMode ? 0 : Math.round(20 * Settings.data.general.iRadiusRatio)
 
-  readonly property int screenRadius: Math.round(20 * Settings.data.general.screenRadiusRatio)
+  readonly property int screenRadius: PowerProfileService.quickislandGameMode ? 0 : Math.round(20 * Settings.data.general.screenRadiusRatio)
 
   // Border
-  readonly property int borderS: Math.max(1, Math.round(1 * uiScaleRatio))
-  readonly property int borderM: Math.max(1, Math.round(2 * uiScaleRatio))
-  readonly property int borderL: Math.max(1, Math.round(3 * uiScaleRatio))
+  readonly property int borderS: PowerProfileService.quickislandGameMode ? 0 : Math.max(1, Math.round(1 * uiScaleRatio))
+  readonly property int borderM: PowerProfileService.quickislandGameMode ? 0 : Math.max(1, Math.round(2 * uiScaleRatio))
+  readonly property int borderL: PowerProfileService.quickislandGameMode ? 0 : Math.max(1, Math.round(3 * uiScaleRatio))
 
   // Margins (for margins and spacing)
-  readonly property int marginXXXS: Math.round(1 * uiScaleRatio)
-  readonly property int marginXXS: Math.round(2 * uiScaleRatio)
-  readonly property int marginXS: Math.round(4 * uiScaleRatio)
-  readonly property int marginS: Math.round(6 * uiScaleRatio)
-  readonly property int marginM: Math.round(9 * uiScaleRatio)
-  readonly property int marginL: Math.round(13 * uiScaleRatio)
-  readonly property int marginXL: Math.round(18 * uiScaleRatio)
+  readonly property int marginXXXS: PowerProfileService.quickislandGameMode ? 0 : Math.round(1 * uiScaleRatio)
+  readonly property int marginXXS: PowerProfileService.quickislandGameMode ? 0 : Math.round(2 * uiScaleRatio)
+  readonly property int marginXS: PowerProfileService.quickislandGameMode ? 0 : Math.round(4 * uiScaleRatio)
+  readonly property int marginS: PowerProfileService.quickislandGameMode ? 0 : Math.round(6 * uiScaleRatio)
+  readonly property int marginM: PowerProfileService.quickislandGameMode ? 0 : Math.round(9 * uiScaleRatio)
+  readonly property int marginL: PowerProfileService.quickislandGameMode ? 0 : Math.round(13 * uiScaleRatio)
+  readonly property int marginXL: PowerProfileService.quickislandGameMode ? 0 : Math.round(18 * uiScaleRatio)
 
   // Double margins, for proper container sizing only (e.g. height: id.implicitHeight + Style.margin2M)
   readonly property int margin2XXXS: marginXXXS * 2
@@ -72,7 +72,7 @@ Singleton {
   readonly property real opacityAlmost: 0.95
   readonly property real opacityFull: 1.0
 
-  readonly property real effectivePanelOpacity: PowerProfileService.quickislandPerformanceMode ? 1.0 : Color.adaptiveOpacity(Settings.data.ui.panelBackgroundOpacity)
+  readonly property real effectivePanelOpacity: PowerProfileService.quickislandPerformanceMode ? 1.0 : QuickIslandPalette.adaptiveOpacity(Settings.data.ui.panelBackgroundOpacity)
   readonly property real effectiveBarOpacity: PowerProfileService.quickislandPerformanceMode ? 1.0 : Settings.data.bar.backgroundOpacity
 
   // Shadows
@@ -152,12 +152,12 @@ Singleton {
   readonly property real _barBaseFontSize: Math.max(1, (Style.barHeight / Style.capsuleHeight) * Style.fontSizeXXS)
   readonly property real barFontSize: (Settings.data.bar.position === "left" || Settings.data.bar.position === "right") ? _barBaseFontSize * 0.9 * Settings.data.bar.fontScale : _barBaseFontSize * Settings.data.bar.fontScale
 
-  readonly property color capsuleColor: Settings.data.bar.showCapsule ? Qt.alpha(Settings.data.bar.capsuleColorKey !== "none" ? Color.resolveColorKey(Settings.data.bar.capsuleColorKey) : Color.mSurfaceVariant, Settings.data.bar.capsuleOpacity) : "transparent"
+  readonly property color capsuleColor: Settings.data.bar.showCapsule ? Qt.alpha(Settings.data.bar.capsuleColorKey !== "none" ? QuickIslandPalette.resolveColorKey(Settings.data.bar.capsuleColorKey) : QuickIslandPalette.mSurfaceVariant, Settings.data.bar.capsuleOpacity) : "transparent"
 
-  readonly property color capsuleBorderColor: Settings.data.bar.showOutline ? Color.mPrimary : "transparent"
+  readonly property color capsuleBorderColor: Settings.data.bar.showOutline ? QuickIslandPalette.mPrimary : "transparent"
   readonly property int capsuleBorderWidth: Settings.data.bar.showOutline ? Style.borderS : 0
 
-  readonly property color boxBorderColor: Settings.data.ui.boxBorderEnabled ? Color.mOutline : "transparent"
+  readonly property color boxBorderColor: Settings.data.ui.boxBorderEnabled ? QuickIslandPalette.mOutline : "transparent"
 
   // Pixel-perfect utility for centering content without subpixel positioning
   function pixelAlignCenter(containerSize, contentSize) {

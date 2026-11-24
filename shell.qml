@@ -18,8 +18,11 @@ import "Modules/Panels/ControlCenter" as IslandCC
 import qs.Services.UI
 import qs.Services.Hardware
 import qs.Services.Networking
+import qs.Services.Power
 import "ScreenToolkit" as ST
 import "Modules" as Modules
+import "Modules/GameMode/GameModeMenuLayout.js" as GameModeMenuLayout
+import "Modules/GameMode" as GameMode
 
 ShellRoot {
     id: shell
@@ -28,6 +31,101 @@ ShellRoot {
     property bool overviewActive: false
     property bool wsOverviewActive: false
     property bool fullscreenMode: false
+
+    property bool gameModeBusy: false
+    property bool gameModeRequestedState: false
+    property bool gameModePreviousPerformanceMode: false
+    property bool gameModeHasPerformanceSnapshot: false
+    readonly property string gameModeScript: Qt.resolvedUrl("scripts/game-mode.sh").toString().replace("file://", "")
+
+    function refreshGameMode() {
+        if (!gameModeStatusProcess.running) {
+            gameModeBusy = true;
+            gameModeStatusProcess.exec({ command: [gameModeScript, "status"] });
+        }
+    }
+
+    function setGameModeEnabled(value) {
+        if (gameModeBusy || value === PowerProfileService.quickislandGameMode)
+            return;
+        gameModeRequestedState = value;
+        gameModeBusy = true;
+        gameModeProcess.exec({ command: [gameModeScript, value ? "enable" : "disable"] });
+    }
+
+    function toggleGameMode() {
+        setGameModeEnabled(!PowerProfileService.quickislandGameMode);
+    }
+
+    function reapplyGameMode() {
+        if (PowerProfileService.quickislandGameMode && !gameModeReapplyProcess.running)
+            gameModeReapplyProcess.exec({ command: [gameModeScript, "enable"] });
+    }
+
+    Process {
+        id: gameModeStatusProcess
+        stdout: StdioCollector {}
+        onExited: (code) => {
+            shell.gameModeBusy = false;
+            var active = code === 0 && stdout.text.trim() === "on";
+            PowerProfileService.quickislandGameMode = active;
+            if (active)
+                shell.reapplyGameMode();
+        }
+        Component.onCompleted: shell.refreshGameMode()
+    }
+
+    Process {
+        id: gameModeProcess
+        stdout: StdioCollector {}
+        onExited: (code) => {
+            shell.gameModeBusy = false;
+            if (code === 0)
+                PowerProfileService.quickislandGameMode = shell.gameModeRequestedState;
+            else
+                shell.refreshGameMode();
+        }
+    }
+
+    Process {
+        id: gameModeReapplyProcess
+        onExited: (code) => {
+            if (code !== 0)
+                console.warn("[Game Mode] Failed to reapply compositor settings after a reload");
+        }
+    }
+
+    Connections {
+        target: Hyprland
+        function onRawEvent(event) {
+            if (event.name === "configreloaded")
+                shell.reapplyGameMode();
+        }
+    }
+
+    IpcHandler {
+        target: "game_mode"
+        function toggle() { shell.toggleGameMode(); }
+        function set(value: bool) { shell.setGameModeEnabled(value); }
+        function refresh() { shell.refreshGameMode(); }
+    }
+
+    Connections {
+        target: PowerProfileService
+        function onQuickislandGameModeChanged() {
+            if (PowerProfileService.quickislandGameMode) {
+                shell.gameModePreviousPerformanceMode = PowerProfileService.quickislandPerformanceMode;
+                shell.gameModeHasPerformanceSnapshot = true;
+                PowerProfileService.setQuickislandPerformance(true);
+            } else if (shell.gameModeHasPerformanceSnapshot) {
+                PowerProfileService.setQuickislandPerformance(shell.gameModePreviousPerformanceMode);
+                shell.gameModeHasPerformanceSnapshot = false;
+            }
+            if (Settings.isLoaded)
+                shell.applyCompositorRules();
+        }
+    }
+
     Connections {
         target: Settings.data.colorSchemes
         function onHyprglassChanged() {
@@ -102,6 +200,7 @@ ShellRoot {
     property string activeColorHex: "#cba6f7"
     property bool pickerRunning: false
     property bool locked: false
+    property int notchTab: 0 // 0: Media & Calendar, 1: AirDrop
     property bool spatialWmEnabled: false
     onSpatialWmEnabledChanged: {
         if (!spatialWmEnabled) {
@@ -583,17 +682,17 @@ ShellRoot {
     }
 
     // Sync quickisland theme colors
-    Binding { target: Color; property: "mPrimary";          value: shell.accent }
-    Binding { target: Color; property: "mOnPrimary";        value: shell.surface }
-    Binding { target: Color; property: "mSurface";          value: shell.surface }
-    Binding { target: Color; property: "mSurfaceVariant";   value: shell.surfaceAlt }
-    Binding { target: Color; property: "mOnSurface";        value: shell.textPrimary }
-    Binding { target: Color; property: "mOnSurfaceVariant"; value: shell.textSecondary }
-    Binding { target: Color; property: "mError";            value: shell.red }
-    Binding { target: Color; property: "mSecondary";        value: shell.accentDim }
-    Binding { target: Color; property: "mOnSecondary";      value: shell.textPrimary }
-    Binding { target: Color; property: "mHover";            value: shell.surfaceBright }
-    Binding { target: Color; property: "mOnHover";          value: shell.textPrimary }
+    Binding { target: QuickIslandPalette; property: "mPrimary";          value: shell.accent }
+    Binding { target: QuickIslandPalette; property: "mOnPrimary";        value: shell.surface }
+    Binding { target: QuickIslandPalette; property: "mSurface";          value: shell.surface }
+    Binding { target: QuickIslandPalette; property: "mSurfaceVariant";   value: shell.surfaceAlt }
+    Binding { target: QuickIslandPalette; property: "mOnSurface";        value: shell.textPrimary }
+    Binding { target: QuickIslandPalette; property: "mOnSurfaceVariant"; value: shell.textSecondary }
+    Binding { target: QuickIslandPalette; property: "mError";            value: shell.red }
+    Binding { target: QuickIslandPalette; property: "mSecondary";        value: shell.accentDim }
+    Binding { target: QuickIslandPalette; property: "mOnSecondary";      value: shell.textPrimary }
+    Binding { target: QuickIslandPalette; property: "mHover";            value: shell.surfaceBright }
+    Binding { target: QuickIslandPalette; property: "mOnHover";          value: shell.textPrimary }
 
     // ── Screen Toolkit Standalone Setup ──────────────────────────────────
     FileView {
@@ -1024,6 +1123,14 @@ function getCurrentThemeStateKey() {
                 shell.setState(s);
             }
         }
+        function toggleLauncher() {
+            if (shell.currentState === 4) {
+                shell.setState(0);
+            } else {
+                shell.launcherOpenedDirectly = true;
+                shell.setState(4);
+            }
+        }
     }
 
     IpcHandler {
@@ -1067,12 +1174,40 @@ function getCurrentThemeStateKey() {
     }
 
     IpcHandler {
+        target: "wallpaper"
+        function random() {
+            WallpaperService.setNextWallpaper();
+        }
+    }
+
+    IpcHandler {
         target: "lockscreen"
         function lock() {
             shell.locked = true;
         }
         function unlock() {
             shell.locked = false;
+        }
+    }
+
+    IpcHandler {
+        target: "airdrop"
+        function toggle() {
+            if (shell.currentState === 1 && shell.notchTab === 1) {
+                shell.setState(0);
+                shell.notchTab = 0;
+            } else {
+                shell.notchTab = 1;
+                shell.setState(1);
+            }
+        }
+        function open() {
+            shell.notchTab = 1;
+            shell.setState(1);
+        }
+        function close() {
+            shell.notchTab = 0;
+            shell.setState(0);
         }
     }
 
@@ -1136,17 +1271,17 @@ function getCurrentThemeStateKey() {
     property color peach:           themeMode === "wallpaper" ? wpPeach         : customPeach
     property color blue:            themeMode === "wallpaper" ? wpBlue          : customBlue
 
-    Behavior on accent        { ColorAnimation { duration: 400; easing.type: Easing.OutCubic } }
-    Behavior on surface       { ColorAnimation { duration: 400; easing.type: Easing.OutCubic } }
-    Behavior on surfaceAlt    { ColorAnimation { duration: 400; easing.type: Easing.OutCubic } }
-    Behavior on surfaceBright { ColorAnimation { duration: 400; easing.type: Easing.OutCubic } }
-    Behavior on textPrimary   { ColorAnimation { duration: 400; easing.type: Easing.OutCubic } }
-    Behavior on textSecondary { ColorAnimation { duration: 400; easing.type: Easing.OutCubic } }
-    Behavior on textMuted     { ColorAnimation { duration: 400; easing.type: Easing.OutCubic } }
-    Behavior on red           { ColorAnimation { duration: 400; easing.type: Easing.OutCubic } }
-    Behavior on green         { ColorAnimation { duration: 400; easing.type: Easing.OutCubic } }
-    Behavior on peach         { ColorAnimation { duration: 400; easing.type: Easing.OutCubic } }
-    Behavior on blue          { ColorAnimation { duration: 400; easing.type: Easing.OutCubic } }
+    Behavior on accent        { ColorAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 400; easing.type: Easing.OutCubic } }
+    Behavior on surface       { ColorAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 400; easing.type: Easing.OutCubic } }
+    Behavior on surfaceAlt    { ColorAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 400; easing.type: Easing.OutCubic } }
+    Behavior on surfaceBright { ColorAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 400; easing.type: Easing.OutCubic } }
+    Behavior on textPrimary   { ColorAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 400; easing.type: Easing.OutCubic } }
+    Behavior on textSecondary { ColorAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 400; easing.type: Easing.OutCubic } }
+    Behavior on textMuted     { ColorAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 400; easing.type: Easing.OutCubic } }
+    Behavior on red           { ColorAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 400; easing.type: Easing.OutCubic } }
+    Behavior on green         { ColorAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 400; easing.type: Easing.OutCubic } }
+    Behavior on peach         { ColorAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 400; easing.type: Easing.OutCubic } }
+    Behavior on blue          { ColorAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 400; easing.type: Easing.OutCubic } }
 
     // Color extraction process
     property string lastExtractedWallpaperPath: ""
@@ -1287,8 +1422,8 @@ function getCurrentThemeStateKey() {
         debounceExtractTimer.restart();
     }
 
-    readonly property int animFast:   65
-    readonly property int animNormal: 120
+    readonly property int animFast:   PowerProfileService.quickislandGameMode ? 0 : 65
+    readonly property int animNormal: PowerProfileService.quickislandGameMode ? 0 : 120
 
     // =========================================================================
     // STATE MACHINE
@@ -1296,6 +1431,7 @@ function getCurrentThemeStateKey() {
     // =========================================================================
     property int currentState: 0
     property int prevState: 0
+    property bool launcherOpenedDirectly: false
     property bool hoverCooldown: false
     property double lastState1Time: 0
 
@@ -1334,6 +1470,8 @@ function getCurrentThemeStateKey() {
 
     function setState(s) {
         console.log("[State Debug] setState called: " + currentState + " -> " + s);
+        if (s !== 4)
+            launcherOpenedDirectly = false;
         prevState = currentState;
         // Start cooldown when leaving any active state back to idle
         if (currentState > 0 && s === 0) {
@@ -1349,6 +1487,8 @@ function getCurrentThemeStateKey() {
         }
         if (s === 1) {
             lastState1Time = Date.now();
+        } else if (s === 0) {
+            notchTab = 0;
         }
         currentState = s;
     }
@@ -1699,9 +1839,22 @@ function getCurrentThemeStateKey() {
     readonly property string mediaArtUrl: mediaPlayer ? (mediaPlayer.trackArtUrl || "") : ""
     readonly property real mediaLength: mediaPlayer ? mediaPlayer.length : 0
     property real mediaPosition: mediaPlayer ? mediaPlayer.position : 0
+    property int gameModeVisualizerFrame: 0
+
+    function gameModeVisualizerHeight(index) {
+        const phase = (gameModeVisualizerFrame * Math.PI * 2 / 24) + (index * Math.PI / 2);
+        return 2 + Math.round((Math.sin(phase) + 1) * 5);
+    }
 
     Timer {
-        interval: 1000; running: shell.mediaPlaying; repeat: true
+        interval: 60
+        running: shell.mediaPlaying && PowerProfileService.quickislandGameMode
+        repeat: true
+        onTriggered: shell.gameModeVisualizerFrame = (shell.gameModeVisualizerFrame + 1) % 24
+    }
+
+    Timer {
+        interval: 1000; running: shell.mediaPlaying && !PowerProfileService.quickislandGameMode; repeat: true
         onTriggered: { if (shell.mediaPlayer) shell.mediaPosition = shell.mediaPlayer.position; }
     }
 
@@ -2044,34 +2197,19 @@ function getCurrentThemeStateKey() {
         if (!Settings.isLoaded) return;
         var glassEnabled = Settings.data.colorSchemes.hyprglass;
         var style = Settings.data.colorSchemes.hyprglassStyle;
-        var useLiquid = glassEnabled && style === "liquid";
-        var useFrosted = glassEnabled && style === "frosted";
+        var useLiquid = !PowerProfileService.quickislandGameMode && glassEnabled && style === "liquid";
+        var useFrosted = !PowerProfileService.quickislandGameMode && glassEnabled && style === "frosted";
 
         hyprglassProc.running = false;
         var cmd = "";
         
-        // 1. Manage hyprglass plugin loading/unloading
+        // HyprGlass is loaded from the Hyprland Lua config. Keep it loaded and
+        // switch its effects with the saved QuickIsland toggle state.
         if (useLiquid) {
-            cmd = "hyprctl plugin load " + Quickshell.env("HOME") + "/hyprglass/hyprglass.so";
-            var blur = Settings.data.colorSchemes.hyprglassBlur;
-            var refract = Settings.data.colorSchemes.hyprglassRefraction;
-            var chroma = Settings.data.colorSchemes.hyprglassChroma;
-            var edge = Settings.data.colorSchemes.hyprglassEdge;
-            var preset = "preset = name:island_glass, inherits:glass, blur_strength:" + blur.toFixed(2) + 
-                         ", refraction_strength:" + refract.toFixed(2) + 
-                         ", lens_distortion:0.0, chromatic_aberration:" + chroma.toFixed(2) + 
-                         ", edge_thickness:" + edge.toFixed(2) + 
-                         ", fresnel_strength:0.0, specular_strength:0.0, brightness:0.85, contrast:1.0, saturation:1.0, adaptive_dim:0.0";
-            var presetDark = "preset = name:island_glass:dark, inherits:glass:dark, blur_strength:" + blur.toFixed(2) + 
-                             ", refraction_strength:" + refract.toFixed(2) + 
-                             ", lens_distortion:0.0, chromatic_aberration:" + chroma.toFixed(2) + 
-                             ", edge_thickness:" + edge.toFixed(2) + 
-                             ", fresnel_strength:0.0, specular_strength:0.0, brightness:0.85, contrast:1.0, saturation:1.0, adaptive_dim:0.0";
-            cmd += " && hyprctl keyword plugin:hyprglass:preset '" + preset + "'";
-            cmd += " && hyprctl keyword plugin:hyprglass:preset '" + presetDark + "'";
-            cmd += " && hyprctl dispatch hyprglass:clear_cache ''";
+            var layersEnabled = Settings.data.colorSchemes.hyprglassIsland ? "1" : "0";
+            cmd = "hyprctl keyword plugin:hyprglass:enabled 1 && hyprctl keyword plugin:hyprglass:layers:enabled " + layersEnabled;
         } else {
-            cmd = "hyprctl plugin unload " + Quickshell.env("HOME") + "/hyprglass/hyprglass.so";
+            cmd = "hyprctl keyword plugin:hyprglass:enabled 0 && hyprctl keyword plugin:hyprglass:layers:enabled 0";
         }
 
         // 2. Manage flat compositor blur rules
@@ -2542,7 +2680,7 @@ function getCurrentThemeStateKey() {
                 anchors.fill: parent
                 color: Qt.rgba(0.85, 0.48, 0.0, 0.12)
                 opacity: shell.nightMode ? 1.0 : 0.0
-                Behavior on opacity { NumberAnimation { duration: 400; easing.type: Easing.InOutQuad } }
+                Behavior on opacity { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 400; easing.type: Easing.InOutQuad } }
             }
         }
     }
@@ -2585,8 +2723,8 @@ function getCurrentThemeStateKey() {
             property real leftWsCircleSpacing: (workspaceCircleActive && shell.spatialWmEnabled && !panelWindow.showingActualWorkspace) ? 8 : -30
             property real leftWsCircleOpacity: (workspaceCircleActive && shell.spatialWmEnabled && !panelWindow.showingActualWorkspace) ? 1.0 : 0.0
             
-            Behavior on leftWsCircleSpacing { NumberAnimation { duration: 180; easing.type: Easing.OutQuart } }
-            Behavior on leftWsCircleOpacity { NumberAnimation { duration: 120; easing.type: Easing.OutQuad } }
+            Behavior on leftWsCircleSpacing { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 180; easing.type: Easing.OutQuart } }
+            Behavior on leftWsCircleOpacity { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 120; easing.type: Easing.OutQuad } }
 
             readonly property bool isFocusedScreen: {
                 if (Quickshell.screens.length <= 1) return true;
@@ -2595,10 +2733,38 @@ function getCurrentThemeStateKey() {
                 return panelWindow.screen.name === Hyprland.focusedMonitor.name;
             }
 
-            readonly property int activeState: isFocusedScreen ? shell.currentState : 0
+            readonly property bool gameModeVolumeOngoing: isFocusedScreen
+                && PowerProfileService.quickislandGameMode
+                && shell.currentState === 2
+                && shell.osdType === "volume"
+            readonly property bool gameModeSessionOngoing: isFocusedScreen
+                && PowerProfileService.quickislandGameMode
+                && shell.currentState === 6
+            readonly property bool gameModeVolumeTopBarVisible: gameModeVolumeOngoing
+                && BarService.effectivelyVisible
+                && !shell.fullscreenMode
+            readonly property bool gameModeSessionTopBarVisible: gameModeSessionOngoing
+                && BarService.effectivelyVisible
+                && !shell.fullscreenMode
+            readonly property int activeState: isFocusedScreen
+                ? (gameModeVolumeTopBarVisible ? 0 : shell.currentState)
+                : 0
+
+            onGameModeVolumeOngoingChanged: {
+                Qt.callLater(function() {
+                    if (typeof islandRegion !== "undefined")
+                        islandRegion.changed();
+                });
+            }
+            onGameModeSessionOngoingChanged: {
+                Qt.callLater(function() {
+                    if (typeof islandRegion !== "undefined")
+                        islandRegion.changed();
+                });
+            }
 
             onIsFocusedScreenChanged: {
-                if (isFocusedScreen && shell.currentState > 1 && shell.currentState !== 4 && shell.currentState !== 15 && shell.currentState !== 16) {
+                if (isFocusedScreen && shell.currentState > 1 && !gameModeVolumeTopBarVisible && shell.currentState !== 4 && shell.currentState !== 15 && shell.currentState !== 16) {
                     island.forceActiveFocus();
                 }
             }
@@ -2613,8 +2779,10 @@ function getCurrentThemeStateKey() {
                 if (shell.spatialWmEnabled) {
                     panelWindow.workspaceX = shell.virtualWorkspaceX;
                     panelWindow.workspaceY = shell.virtualWorkspaceY;
-                    if (panelWindow.isSystemReady && panelWindow.isFocusedScreen && !mainHoverArea.containsMouse && panelWindow.activeState === 0) {
-                        if (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) {
+                    if (panelWindow.isSystemReady && panelWindow.isFocusedScreen
+                        && (!mainHoverArea.containsMouse || PowerProfileService.quickislandGameMode)
+                        && panelWindow.activeState === 0) {
+                        if (!PowerProfileService.quickislandGameMode && typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) {
                             notchWorkspaceTimer.stop();
                             panelWindow.notchWorkspaceActive = true;
                             notchWorkspaceTimer.restart();
@@ -2668,8 +2836,10 @@ function getCurrentThemeStateKey() {
             onWorkspaceYChanged: triggerWorkspaceAnimation(false)
             function triggerWorkspaceAnimation(isActual) {
                 panelWindow.showingActualWorkspace = isActual;
-                if (isSystemReady && isFocusedScreen && !mainHoverArea.containsMouse && panelWindow.activeState === 0) {
-                    if (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) {
+                if (isSystemReady && isFocusedScreen
+                    && (!mainHoverArea.containsMouse || PowerProfileService.quickislandGameMode)
+                    && panelWindow.activeState === 0) {
+                    if (!PowerProfileService.quickislandGameMode && typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode) {
                         notchWorkspaceTimer.stop();
                         panelWindow.notchWorkspaceActive = true;
                         notchWorkspaceTimer.restart();
@@ -2684,7 +2854,7 @@ function getCurrentThemeStateKey() {
             Connections {
                 target: mainHoverArea
                 function onContainsMouseChanged() {
-                    if (mainHoverArea.containsMouse) {
+                    if (mainHoverArea.containsMouse && !PowerProfileService.quickislandGameMode) {
                         panelWindow.workspaceCircleActive = false;
                         panelWindow.notchWorkspaceActive = false;
                         panelWindow.showingActualWorkspace = false;
@@ -2720,7 +2890,7 @@ function getCurrentThemeStateKey() {
 
             Timer {
                 id: workspaceTimer
-                interval: 350
+                interval: PowerProfileService.quickislandGameMode ? 500 : 350
                 onTriggered: {
                     panelWindow.workspaceCircleActive = false;
                     panelWindow.showingActualWorkspace = false;
@@ -2741,9 +2911,9 @@ function getCurrentThemeStateKey() {
             property real wsCircleOpacity: workspaceCircleActive ? 1.0 : 0.0
             property real wsCircleScale: 1.0
 
-            Behavior on wsCircleOpacity { NumberAnimation { duration: 120; easing.type: Easing.OutQuad } }
+            Behavior on wsCircleOpacity { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 120; easing.type: Easing.OutQuad } }
 
-            Behavior on wsCircleSpacing { NumberAnimation { duration: 180; easing.type: Easing.OutQuart } }
+            Behavior on wsCircleSpacing { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 180; easing.type: Easing.OutQuart } }
 
             WlrLayershell.namespace: "morphing-island"
             WlrLayershell.layer: (panelWindow.activeState > 1) ? WlrLayer.Overlay : WlrLayer.Top
@@ -2754,11 +2924,13 @@ function getCurrentThemeStateKey() {
                 if (panelWindow.isNotch && panelWindow.activeState === 1) return WlrKeyboardFocus.OnDemand;
                 return (panelWindow.activeState !== 1 && panelWindow.activeState !== 2 && panelWindow.activeState !== 3) ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None;
             }
-            BackgroundEffect.blurRegion: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass && Settings.data.colorSchemes.hyprglassStyle === "frosted") ? animatedBlurRegion : null
+            BackgroundEffect.blurRegion: (!PowerProfileService.quickislandGameMode && Settings.isLoaded && Settings.data.colorSchemes.hyprglass && Settings.data.colorSchemes.hyprglassStyle === "frosted") ? animatedBlurRegion : null
             anchors { top: true; bottom: true; left: true; right: true }
 
-            property real targetMaskWidth: (shell.fullscreenMode && panelWindow.activeState === 0 && !panelWindow.isClosingCentered && !panelWindow.isClosingVolume) ? 0 : (island ? (island.islandWidth + (workspaceCircleActive ? (30 + 8) : 0)) : ((Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 150 : 110))
-            property real targetMaskHeight: (shell.fullscreenMode && panelWindow.activeState === 0 && !panelWindow.isClosingCentered && !panelWindow.isClosingVolume) ? 0 : (island ? Math.max(island.islandHeight, workspaceCircleActive ? 30 : 0) : ((Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 28 : 30))
+            property bool gameModeBarVisible: PowerProfileService.quickislandGameMode && BarService.effectivelyVisible && !shell.fullscreenMode && (panelWindow.activeState <= 1 || panelWindow.gameModeVolumeTopBarVisible || panelWindow.gameModeSessionTopBarVisible)
+            property bool gameModeBarHidden: PowerProfileService.quickislandGameMode && shell.fullscreenMode && (panelWindow.activeState <= 1 || (panelWindow.gameModeVolumeOngoing && !panelWindow.gameModeVolumeTopBarVisible))
+            property real targetMaskWidth: (gameModeBarHidden || (shell.fullscreenMode && panelWindow.activeState === 0 && !panelWindow.isClosingCentered && !panelWindow.isClosingVolume)) ? 0 : (gameModeBarVisible && island ? island.islandWidth : (island ? (island.islandWidth + (workspaceCircleActive ? (30 + 8) : 0)) : ((Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 150 : 110)))
+            property real targetMaskHeight: (gameModeBarHidden || (shell.fullscreenMode && panelWindow.activeState === 0 && !panelWindow.isClosingCentered && !panelWindow.isClosingVolume)) ? 0 : (gameModeBarVisible && island ? island.islandHeight : (island ? Math.max(island.islandHeight, workspaceCircleActive ? 30 : 0) : ((Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 28 : 30)))
 
             property real maskWidth: (Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 150 : 110
             property real maskHeight: (Settings.isLoaded && Settings.data.islandConfig.notchMode) ? 28 : 30
@@ -2800,6 +2972,8 @@ function getCurrentThemeStateKey() {
                 anchors.horizontalCenterOffset: island ? island.anchors.horizontalCenterOffset : 0
                 anchors.top: parent.top
                 anchors.topMargin: {
+                    if (PowerProfileService.quickislandGameMode && BarService.effectivelyVisible && !shell.fullscreenMode && panelWindow.activeState <= 1) return 0;
+                    if (panelWindow.gameModeSessionTopBarVisible || panelWindow.gameModeVolumeTopBarVisible) return 0;
                     if (panelWindow.isNotch) return 0;
                     if (panelWindow.activeState === 3 || (panelWindow.activeState === 0 && shell.prevState === 3 && island && island.opacity > 0.01)) {
                         return shell.fullscreenMode ? 14 : 6;
@@ -2873,6 +3047,12 @@ function getCurrentThemeStateKey() {
                 }
                 Region {
                     item: rightFlare
+                }
+                Region {
+                    item: gameModeVolumePopup
+                }
+                Region {
+                    item: gameModeSessionPanel
                 }
             }
 
@@ -2951,7 +3131,7 @@ function getCurrentThemeStateKey() {
                 }
                 return shell.surface;
             }
-            Behavior on flareBgColor { ColorAnimation { duration: 400; easing.type: Easing.OutCubic } }
+            Behavior on flareBgColor { ColorAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 400; easing.type: Easing.OutCubic } }
 
             property real currentFlareRadius: {
                 if (!panelWindow.isNotch) return 12;
@@ -3009,18 +3189,76 @@ function getCurrentThemeStateKey() {
                 }
             }
 
+            Item {
+                id: gameModeVolumeOverlay
+                anchors.fill: parent
+                visible: panelWindow.gameModeVolumeOngoing
+                z: 100
+
+                Rectangle {
+                    id: gameModeVolumePopup
+                    width: 210
+                    height: 26
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.bottom: parent.bottom
+                    anchors.bottomMargin: 18
+                    color: shell.surfaceAlt
+                    radius: 0
+                    clip: true
+
+                    Rectangle {
+                        width: parent.width * (shell.sysMuted ? 0 : Math.max(0, Math.min(1, shell.sysVolume)))
+                        height: parent.height
+                        color: shell.sysMuted ? shell.surfaceBright : shell.accent
+                    }
+
+                    Image {
+                        id: gameModeVolumeIcon
+                        anchors.left: parent.left
+                        anchors.leftMargin: 9
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 14
+                        height: 14
+                        source: "icons/volume.png"
+                        fillMode: Image.PreserveAspectFit
+                        layer.enabled: true
+                        layer.effect: MultiEffect {
+                            brightness: 1.0
+                            colorization: 1.0
+                            colorizationColor: !shell.sysMuted
+                                && shell.sysVolume * gameModeVolumePopup.width >= gameModeVolumeIcon.anchors.leftMargin + gameModeVolumeIcon.width
+                                ? "#000000"
+                                : "#ffffff"
+                        }
+                    }
+                }
+            }
+
+            GameMode.SessionMenu {
+                id: gameModeSessionPanel
+                anchors.centerIn: parent
+                shellRoot: shell
+                visible: panelWindow.gameModeSessionOngoing
+                z: 100
+            }
+
             Rectangle {
                 id: island
                 readonly property bool isCenteredFullscreen: shell.fullscreenMode && !panelWindow.isNotch && panelWindow.activeState > 0 && panelWindow.activeState !== 2 && panelWindow.activeState !== 3
                 transformOrigin: Item.Center
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.horizontalCenterOffset: {
+                    if (PowerProfileService.quickislandGameMode && BarService.effectivelyVisible && !shell.fullscreenMode && (panelWindow.activeState <= 1 || panelWindow.gameModeSessionTopBarVisible)) return 0;
                     var rightOffset = (panelWindow.wsCircleSpacing + panelWindow.wsCircleWidth) / 2;
                     var leftOffset = (panelWindow.leftWsCircleSpacing + panelWindow.wsCircleWidth) / 2;
                     return leftOffset - rightOffset;
                 }
                 anchors.top: parent.top
                 anchors.topMargin: {
+                    if (PowerProfileService.quickislandGameMode && BarService.effectivelyVisible && !shell.fullscreenMode && (panelWindow.activeState <= 1 || panelWindow.gameModeSessionTopBarVisible)) return 0;
+                    if (PowerProfileService.quickislandGameMode && panelWindow.activeState === 6) {
+                        return Math.max(8, Math.round((panelWindow.height - island.height) / 2));
+                    }
                     if (panelWindow.isNotch) return 0;
                     if (panelWindow.activeState === 3 || (panelWindow.activeState === 0 && shell.prevState === 3 && island.opacity > 0.01)) {
                         return shell.fullscreenMode ? 14 : 6;
@@ -3044,8 +3282,9 @@ function getCurrentThemeStateKey() {
                 scale: (shell.fullscreenMode && panelWindow.isClosingCentered) ? 0.88 : 1.0
                 Behavior on opacity { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
                 Behavior on scale   { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
-                color: "transparent"
+                color: PowerProfileService.quickislandGameMode ? shell.surface : "transparent"
                 property real islandRadius: {
+                    if (PowerProfileService.quickislandGameMode) return 0;
                     switch (panelWindow.activeState) {
                         case 0: return panelWindow.isNotch ? 18 : 15;
                         case 1: return panelWindow.isNotch ? 18 : 22;
@@ -3055,6 +3294,7 @@ function getCurrentThemeStateKey() {
                 }
                 readonly property bool isPillState: panelWindow.activeState <= 1 && shell.prevState <= 1 && !panelWindow.isNotch
                 radius: {
+                    if (PowerProfileService.quickislandGameMode) return 0;
                     if (isPillState) return island.height / 2;
                     if (panelWindow.isNotch) return islandRadius;
                     if (shell.fullscreenMode && panelWindow.isClosingCentered) return Math.min(islandRadius, Math.min(island.width, island.height) / 2);
@@ -3069,7 +3309,7 @@ function getCurrentThemeStateKey() {
                     surfaceColor: shell.surface
                     accentColor: shell.accent
                     borderColor: "transparent"
-                    active: Settings.isLoaded && Settings.data.colorSchemes.hyprglass
+                    active: !PowerProfileService.quickislandGameMode && Settings.isLoaded && Settings.data.colorSchemes.hyprglass
                 }
 
                 focus: true
@@ -3083,8 +3323,24 @@ function getCurrentThemeStateKey() {
                 }
                 Keys.onPressed: event => {
                     var isNotch = typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode;
+                    if (PowerProfileService.quickislandGameMode && shell.currentState === 6
+                        && (event.key === Qt.Key_Right || event.key === Qt.Key_Left || event.key === Qt.Key_Up || event.key === Qt.Key_Down)) {
+                        event.accepted = true;
+                        return;
+                    }
                     if (event.key === Qt.Key_Right || event.key === Qt.Key_Down) {
-                        if (isNotch) {
+                        if (PowerProfileService.quickislandGameMode && isNotch) {
+                            if (panelWindow.activeState === 1 || panelWindow.activeState === 0) { shell.setState(5); event.accepted = true; }
+                            else if (panelWindow.activeState === 5) { shell.setState(4); event.accepted = true; }
+                            else if (panelWindow.activeState === 4) { shell.setState(1); event.accepted = true; }
+                            else if (panelWindow.activeState === 6) { shell.setState(1); event.accepted = true; }
+                            else { shell.setState(5); event.accepted = true; }
+                        } else if (PowerProfileService.quickislandGameMode) {
+                            if (panelWindow.activeState === 5) { shell.setState(4); event.accepted = true; }
+                            else if (panelWindow.activeState === 4) { shell.setState(5); event.accepted = true; }
+                            else if (panelWindow.activeState === 6) { shell.setState(5); event.accepted = true; }
+                            else if (panelWindow.activeState <= 1) { shell.setState(5); event.accepted = true; }
+                        } else if (isNotch) {
                             if (panelWindow.activeState === 1 || panelWindow.activeState === 0) { shell.setState(5); event.accepted = true; }
                             else if (panelWindow.activeState === 5) { shell.setState(4); event.accepted = true; }
                             else if (panelWindow.activeState === 4) { shell.setState(6); event.accepted = true; }
@@ -3097,7 +3353,18 @@ function getCurrentThemeStateKey() {
                             else if (panelWindow.activeState <= 1) { shell.setState(5); event.accepted = true; }
                         }
                     } else if (event.key === Qt.Key_Left || event.key === Qt.Key_Up) {
-                        if (isNotch) {
+                        if (PowerProfileService.quickislandGameMode && isNotch) {
+                            if (panelWindow.activeState === 1 || panelWindow.activeState === 0) { shell.setState(4); event.accepted = true; }
+                            else if (panelWindow.activeState === 6) { shell.setState(4); event.accepted = true; }
+                            else if (panelWindow.activeState === 4) { shell.setState(5); event.accepted = true; }
+                            else if (panelWindow.activeState === 5) { shell.setState(1); event.accepted = true; }
+                            else { shell.setState(4); event.accepted = true; }
+                        } else if (PowerProfileService.quickislandGameMode) {
+                            if (panelWindow.activeState === 5) { shell.setState(4); event.accepted = true; }
+                            else if (panelWindow.activeState === 6) { shell.setState(4); event.accepted = true; }
+                            else if (panelWindow.activeState === 4) { shell.setState(5); event.accepted = true; }
+                            else if (panelWindow.activeState <= 1) { shell.setState(4); event.accepted = true; }
+                        } else if (isNotch) {
                             if (panelWindow.activeState === 1 || panelWindow.activeState === 0) { shell.setState(6); event.accepted = true; }
                             else if (panelWindow.activeState === 6) { shell.setState(4); event.accepted = true; }
                             else if (panelWindow.activeState === 4) { shell.setState(5); event.accepted = true; }
@@ -3118,6 +3385,19 @@ function getCurrentThemeStateKey() {
                 property real islandWidth: {
                     var notchFlareW = (typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchFlare) ? Settings.data.islandConfig.notchFlare : 12;
                     var isNotch = typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode;
+                    if (panelWindow.gameModeVolumeOngoing && !panelWindow.gameModeVolumeTopBarVisible) return 0;
+                    if (PowerProfileService.quickislandGameMode && panelWindow.gameModeSessionTopBarVisible && panelWindow.screen) {
+                        return panelWindow.screen.width;
+                    }
+                    if (PowerProfileService.quickislandGameMode && panelWindow.activeState === 6) {
+                        return GameModeMenuLayout.sessionPanelWidth();
+                    }
+                    if (PowerProfileService.quickislandGameMode && BarService.effectivelyVisible && !shell.fullscreenMode && panelWindow.activeState <= 1 && panelWindow.screen) {
+                        return panelWindow.screen.width;
+                    }
+                    if (PowerProfileService.quickislandGameMode && GameModeMenuLayout.appliesToState(panelWindow.activeState)) {
+                        return GameModeMenuLayout.panelWidthFor(panelWindow.screen ? panelWindow.screen.width : 0);
+                    }
                     switch (panelWindow.activeState) {
                         case 0: {
                             if (isNotch) {
@@ -3161,6 +3441,20 @@ function getCurrentThemeStateKey() {
                 }
                 property real islandHeight: {
                     var isNotch = typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchMode;
+                    if (panelWindow.gameModeVolumeOngoing && !panelWindow.gameModeVolumeTopBarVisible) return 0;
+                    if (PowerProfileService.quickislandGameMode && panelWindow.gameModeSessionTopBarVisible) {
+                        return (Settings.isLoaded && Settings.data.islandConfig.barHeight) ? Settings.data.islandConfig.barHeight : 30;
+                    }
+                    if (PowerProfileService.quickislandGameMode && shell.fullscreenMode && panelWindow.activeState <= 1) {
+                        return 0;
+                    }
+                    if (PowerProfileService.quickislandGameMode && BarService.effectivelyVisible && !shell.fullscreenMode && panelWindow.activeState === 0) {
+                        return (Settings.isLoaded && Settings.data.islandConfig.barHeight) ? Settings.data.islandConfig.barHeight : 30;
+                    }
+                    if (PowerProfileService.quickislandGameMode && GameModeMenuLayout.usesCompactHeight(panelWindow.activeState)) {
+                        if (panelWindow.activeState === 6) return GameModeMenuLayout.sessionPanelHeight;
+                        return GameModeMenuLayout.panelHeight;
+                    }
                     switch (panelWindow.activeState) {
                         case 0: {
                             if (isNotch) return (shell.fullscreenMode) ? 0 : 28;
@@ -3209,10 +3503,13 @@ function getCurrentThemeStateKey() {
                 // =============================================================
                 Item {
                     anchors.fill: parent
-                    opacity: (panelWindow.activeState === 0 && !shell.fullscreenMode && !panelWindow.isNotch) ? 1 : 0
-                    scale: (panelWindow.activeState === 0 && !shell.fullscreenMode) ? 1 : 0.85
+                    opacity: ((panelWindow.activeState === 0 || panelWindow.gameModeSessionTopBarVisible)
+                        && !shell.fullscreenMode
+                        && (!panelWindow.isNotch || PowerProfileService.quickislandGameMode)
+                        && !(PowerProfileService.quickislandGameMode && panelWindow.workspaceCircleActive)) ? 1 : 0
+                    scale: ((panelWindow.activeState === 0 || panelWindow.gameModeSessionTopBarVisible) && !shell.fullscreenMode) ? 1 : 0.85
                     visible: opacity > 0.01
-                    Behavior on opacity { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
+                    Behavior on opacity { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : shell.animNormal; easing.type: Easing.OutCubic } }
                     Behavior on scale   { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
 
                     Row {
@@ -3228,8 +3525,8 @@ function getCurrentThemeStateKey() {
                             width: shell.mediaPlaying ? 18.5 : 0
                             opacity: shell.mediaPlaying ? 1 : 0
 
-                            Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.InOutQuad } }
-                            Behavior on opacity { NumberAnimation { duration: 250; easing.type: Easing.InOutQuad } }
+                            Behavior on width { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 300; easing.type: Easing.InOutQuad } }
+                            Behavior on opacity { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 250; easing.type: Easing.InOutQuad } }
 
                             Row {
                                 id: eqVisualizer
@@ -3248,11 +3545,14 @@ function getCurrentThemeStateKey() {
                                     Item {
                                         width: 2; height: 12
                                         Rectangle {
-                                            width: 2; radius: 1; color: shell.accent
+                                            width: 2; radius: PowerProfileService.quickislandGameMode ? 0 : 1; color: shell.accent
                                             anchors.bottom: parent.bottom; anchors.horizontalCenter: parent.horizontalCenter
-                                            height: shell.mediaPlaying ? 5 : 2
+                                            height: {
+                                                if (!shell.mediaPlaying) return 2;
+                                                return PowerProfileService.quickislandGameMode ? shell.gameModeVisualizerHeight(index) : 5;
+                                            }
                                             SequentialAnimation on height {
-                                                loops: Animation.Infinite; running: shell.mediaPlaying
+                                                loops: Animation.Infinite; running: shell.mediaPlaying && !PowerProfileService.quickislandGameMode
                                                 NumberAnimation { to: modelData.h1; duration: modelData.d1; easing.type: Easing.InOutSine }
                                                 NumberAnimation { to: modelData.h2; duration: modelData.d2; easing.type: Easing.InOutSine }
                                             }
@@ -3262,9 +3562,10 @@ function getCurrentThemeStateKey() {
                             }
                         }
 
-                        Text {
+                        GameMode.AdaptiveTime {
                             id: idleClock; text: shell.currentTime12h
-                            color: shell.textPrimary; font.pixelSize: 13; font.weight: Font.Bold; font.letterSpacing: 0.5; font.family: "Varela Round"
+                            rollingEnabled: PowerProfileService.quickislandGameMode
+                            color: shell.textPrimary; font.pixelSize: 13; font.weight: Font.Bold; font.letterSpacing: 0.5; font.family: "SF Pro Rounded"
                             anchors.verticalCenter: parent.verticalCenter
                         }
                     }
@@ -3273,7 +3574,7 @@ function getCurrentThemeStateKey() {
                 // State 0 Notch Mode: Resting Notch Clock & Now Playing EQ
                 Item {
                     anchors.fill: parent
-                    opacity: (panelWindow.activeState === 0 && !shell.fullscreenMode && panelWindow.isNotch) ? 1 : 0
+                    opacity: (panelWindow.activeState === 0 && !shell.fullscreenMode && panelWindow.isNotch && !PowerProfileService.quickislandGameMode) ? 1 : 0
                     scale: (panelWindow.activeState === 0 && !shell.fullscreenMode) ? 1 : 0.85
                     visible: opacity > 0.01
                     Behavior on opacity { NumberAnimation { duration: shell.animNormal; easing.type: Easing.OutCubic } }
@@ -3292,8 +3593,8 @@ function getCurrentThemeStateKey() {
                             width: (shell.mediaPlaying && !panelWindow.notchWorkspaceActive) ? 18.5 : 0
                             opacity: (shell.mediaPlaying && !panelWindow.notchWorkspaceActive) ? 1 : 0
 
-                            Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.InOutQuad } }
-                            Behavior on opacity { NumberAnimation { duration: 250; easing.type: Easing.InOutQuad } }
+                            Behavior on width { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 300; easing.type: Easing.InOutQuad } }
+                            Behavior on opacity { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 250; easing.type: Easing.InOutQuad } }
 
                             Row {
                                 id: notchEqVisualizer
@@ -3312,11 +3613,14 @@ function getCurrentThemeStateKey() {
                                     Item {
                                         width: 2; height: 12
                                         Rectangle {
-                                            width: 2; radius: 1; color: shell.accent
+                                            width: 2; radius: PowerProfileService.quickislandGameMode ? 0 : 1; color: shell.accent
                                             anchors.bottom: parent.bottom; anchors.horizontalCenter: parent.horizontalCenter
-                                            height: shell.mediaPlaying ? 5 : 2
+                                            height: {
+                                                if (!shell.mediaPlaying) return 2;
+                                                return PowerProfileService.quickislandGameMode ? shell.gameModeVisualizerHeight(index) : 5;
+                                            }
                                             SequentialAnimation on height {
-                                                loops: Animation.Infinite; running: shell.mediaPlaying
+                                                loops: Animation.Infinite; running: shell.mediaPlaying && !PowerProfileService.quickislandGameMode
                                                 NumberAnimation { to: modelData.h1; duration: modelData.d1; easing.type: Easing.InOutSine }
                                                 NumberAnimation { to: modelData.h2; duration: modelData.d2; easing.type: Easing.InOutSine }
                                             }
@@ -3332,21 +3636,22 @@ function getCurrentThemeStateKey() {
                             height: Math.max(notchIdleClock.implicitHeight, notchWorkspaceLabel.implicitHeight)
                             anchors.verticalCenter: parent.verticalCenter
 
-                            Behavior on width { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+                            Behavior on width { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 200; easing.type: Easing.OutCubic } }
 
-                            Text {
+                            GameMode.AdaptiveTime {
                                 id: notchIdleClock
                                 anchors.centerIn: parent
                                 text: shell.currentTime12h
+                                rollingEnabled: PowerProfileService.quickislandGameMode
                                 color: shell.textPrimary
                                 font.pixelSize: 13
                                 font.weight: Font.Bold
                                 font.letterSpacing: 0.5
-                                font.family: "Varela Round"
+                                font.family: "SF Pro Rounded"
                                 opacity: panelWindow.notchWorkspaceActive ? 0.0 : 1.0
                                 scale: panelWindow.notchWorkspaceActive ? 0.8 : 1.0
-                                Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
-                                Behavior on scale   { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+                                Behavior on opacity { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 200; easing.type: Easing.OutCubic } }
+                                Behavior on scale   { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 200; easing.type: Easing.OutCubic } }
                             }
 
                             Text {
@@ -3357,11 +3662,11 @@ function getCurrentThemeStateKey() {
                                 font.pixelSize: 13
                                 font.weight: Font.Bold
                                 font.letterSpacing: 0.5
-                                font.family: "Varela Round"
+                                font.family: "SF Pro Rounded"
                                 opacity: panelWindow.notchWorkspaceActive ? 1.0 : 0.0
                                 scale: panelWindow.notchWorkspaceActive ? 1.0 : 0.8
-                                Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
-                                Behavior on scale   { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+                                Behavior on opacity { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 200; easing.type: Easing.OutCubic } }
+                                Behavior on scale   { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 200; easing.type: Easing.OutCubic } }
                             }
                         }
                     }
@@ -3400,11 +3705,14 @@ function getCurrentThemeStateKey() {
                                         Item {
                                             width: 2; height: 12
                                             Rectangle {
-                                                width: 2; radius: 1; color: shell.accent
+                                                width: 2; radius: PowerProfileService.quickislandGameMode ? 0 : 1; color: shell.accent
                                                 anchors.bottom: parent.bottom; anchors.horizontalCenter: parent.horizontalCenter
-                                                height: shell.mediaPlaying ? 5 : 2
+                                                height: {
+                                                    if (!shell.mediaPlaying) return 2;
+                                                    return PowerProfileService.quickislandGameMode ? shell.gameModeVisualizerHeight(index) : 5;
+                                                }
                                                 SequentialAnimation on height {
-                                                    loops: Animation.Infinite; running: shell.mediaPlaying
+                                                    loops: Animation.Infinite; running: shell.mediaPlaying && !PowerProfileService.quickislandGameMode
                                                     NumberAnimation { to: modelData.h1; duration: modelData.d1; easing.type: Easing.InOutSine }
                                                     NumberAnimation { to: modelData.h2; duration: modelData.d2; easing.type: Easing.InOutSine }
                                                 }
@@ -3425,10 +3733,11 @@ function getCurrentThemeStateKey() {
                         // CENTER — Clock
                         Item {
                             width: parent.width * 0.4; height: parent.height
-                            Text {
+                            GameMode.AdaptiveTime {
                                 id: heroClock; anchors.centerIn: parent
                                 text: shell.currentTime12h
-                                color: shell.textPrimary; font.pixelSize: 16; font.weight: Font.Bold; font.letterSpacing: 1.5; font.family: "Varela Round"
+                                rollingEnabled: PowerProfileService.quickislandGameMode
+                                color: shell.textPrimary; font.pixelSize: 16; font.weight: Font.Bold; font.letterSpacing: 1.5; font.family: "SF Pro Rounded"
                             }
                         }
 
@@ -3463,7 +3772,7 @@ function getCurrentThemeStateKey() {
                                     Rectangle {
                                         id: batteryBody
                                         width: 23; height: 12
-                                        radius: 4
+                                        radius: PowerProfileService.quickislandGameMode ? 0 : 4
                                         color: Qt.rgba(shell.textPrimary.r, shell.textPrimary.g, shell.textPrimary.b, 0.06)
                                         border.width: 1.2
                                         border.color: Qt.rgba(shell.textPrimary.r, shell.textPrimary.g, shell.textPrimary.b, 0.45)
@@ -3476,11 +3785,11 @@ function getCurrentThemeStateKey() {
                                             x: 2; y: 2
                                             height: parent.height - 4
                                             width: Math.max(0, (parent.width - 4) * Math.max(0, Math.min(1.0, shell.batteryPercent / 100)))
-                                            radius: 2
+                                            radius: PowerProfileService.quickislandGameMode ? 0 : 2
                                             color: shell.batteryPercent < 20 ? shell.red : (shell.batteryCharging ? shell.green : shell.accent)
 
                                             Behavior on width {
-                                                NumberAnimation { duration: 300; easing.type: Easing.OutCubic }
+                                                NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 300; easing.type: Easing.OutCubic }
                                             }
                                         }
                                     }
@@ -3488,7 +3797,7 @@ function getCurrentThemeStateKey() {
                                     // Battery Terminal Tip / Nub
                                     Rectangle {
                                         width: 1.8; height: 4.5
-                                        radius: 1
+                                        radius: PowerProfileService.quickislandGameMode ? 0 : 1
                                         anchors.left: batteryBody.right
                                         anchors.leftMargin: 1
                                         anchors.verticalCenter: batteryBody.verticalCenter
@@ -3534,18 +3843,25 @@ function getCurrentThemeStateKey() {
                     readonly property bool isBright: shell.osdType === "brightness"
                     readonly property real curVal: osdView.isBright ? Math.max(0.0, Math.min(1.0, shell.sysBrightness)) : (shell.sysMuted ? 0.0 : Math.max(0.0, Math.min(1.0, shell.sysVolume)))
 
+                    Item {
+                        id: osdControl
+                        anchors.centerIn: parent
+                        width: PowerProfileService.quickislandGameMode ? 230 : parent.width
+                        height: parent.height
+
                     // Percentage Text (tucked cleanly inside right curve)
                     Text {
                         id: osdPercentText
                         anchors.right: parent.right
-                        anchors.rightMargin: 12
+                        anchors.rightMargin: (osdView.isBright || !PowerProfileService.quickislandGameMode) ? 12 : 0
                         anchors.verticalCenter: parent.verticalCenter
-                        width: 22
+                        width: (osdView.isBright || !PowerProfileService.quickislandGameMode) ? 22 : 0
                         horizontalAlignment: Text.AlignHCenter
                         text: (shell.sysMuted && !osdView.isBright) ? "0" : "" + Math.round(osdView.curVal * 100)
+                        visible: osdView.isBright || !PowerProfileService.quickislandGameMode
                         font.pixelSize: 11
                         font.weight: Font.DemiBold
-                        font.family: "JetBrainsMono Nerd Font"
+                        font.family: "SF Pro Rounded"
                         color: shell.textPrimary
                     }
 
@@ -3558,7 +3874,7 @@ function getCurrentThemeStateKey() {
                         anchors.rightMargin: 8
                         anchors.verticalCenter: parent.verticalCenter
                         height: 26
-                        radius: 13
+                        radius: PowerProfileService.quickislandGameMode ? 0 : 13
                         color: shell.surfaceAlt
                         clip: true
 
@@ -3566,7 +3882,7 @@ function getCurrentThemeStateKey() {
                         Rectangle {
                             width: Math.min(parent.width, Math.max(26, 26 + (parent.width - 26) * osdView.curVal))
                             height: parent.height
-                            radius: 13
+                            radius: PowerProfileService.quickislandGameMode ? 0 : 13
                             color: (shell.sysMuted && !osdView.isBright) ? shell.surfaceBright : shell.accent
                             Behavior on color { ColorAnimation { duration: shell.animFast } }
                             Behavior on width { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
@@ -3588,6 +3904,7 @@ function getCurrentThemeStateKey() {
                             }
                         }
                     }
+                    }
                 }
 
                 // =============================================================
@@ -3606,40 +3923,32 @@ function getCurrentThemeStateKey() {
                     }
 
                     Row {
-                        anchors.fill: parent; anchors.margins: 12; spacing: 12
+                        anchors.centerIn: parent
+                        width: PowerProfileService.quickislandGameMode
+                            ? GameModeMenuLayout.notificationWidthFor(parent.width)
+                            : parent.width - 24
+                        height: parent.height - 24
+                        spacing: 12
 
                         Rectangle {
-                            width: 36; height: 36; radius: 11; anchors.verticalCenter: parent.verticalCenter
-                            color: shell.accentDim
-
-                            Image {
-                                anchors.centerIn: parent
-                                width: 20; height: 20
-                                source: "icons/notification.png"
-                                fillMode: Image.PreserveAspectFit
-                                visible: {
-                                    if (shell.notifHistory.count === 0) return true;
-                                    var item = shell.notifHistory.get(0);
-                                    return item ? item.appName.toLowerCase() !== "power" : true;
-                                }
-                                layer.enabled: true
-                                layer.effect: MultiEffect {
-                                    brightness: 1.0
-                                    colorization: 1.0
-                                    colorizationColor: shell.accent
-                                }
+                            id: notificationIcon
+                            readonly property bool isPowerNotification: {
+                                if (shell.notifHistory.count === 0) return false;
+                                var item = shell.notifHistory.get(0);
+                                return item ? (item.appName || "").toLowerCase() === "power" : false;
                             }
+                            visible: isPowerNotification
+                            width: visible ? 36 : 0
+                            height: 36
+                            radius: PowerProfileService.quickislandGameMode ? 0 : 11
+                            anchors.verticalCenter: parent.verticalCenter
+                            color: shell.accentDim
 
                             Image {
                                 anchors.centerIn: parent
                                 width: 20; height: 20
                                 source: "icons/power.png"
                                 fillMode: Image.PreserveAspectFit
-                                visible: {
-                                    if (shell.notifHistory.count === 0) return false;
-                                    var item = shell.notifHistory.get(0);
-                                    return item ? item.appName.toLowerCase() === "power" : false;
-                                }
                                 layer.enabled: true
                                 layer.effect: MultiEffect {
                                     brightness: 1.0
@@ -3651,21 +3960,28 @@ function getCurrentThemeStateKey() {
 
                         Column {
                             anchors.verticalCenter: parent.verticalCenter; spacing: 2
-                            width: parent.width - 48
+                            width: parent.width - (notificationIcon.visible ? 48 : 0)
 
                             Text {
                                 text: shell.notifHistory.count > 0 ? shell.notifHistory.get(0).appName : ""
                                 color: shell.textMuted; font.pixelSize: 9; font.weight: Font.Medium; font.letterSpacing: 0.3
+                                width: parent.width
+                                horizontalAlignment: Text.AlignHCenter
+                                elide: Text.ElideRight; wrapMode: Text.NoWrap
                             }
                             Text {
                                 text: shell.notifHistory.count > 0 ? shell.notifHistory.get(0).summary : ""
                                 color: shell.textPrimary; font.pixelSize: 13; font.weight: Font.Bold
                                 elide: Text.ElideRight; width: parent.width
+                                horizontalAlignment: Text.AlignHCenter
+                                wrapMode: Text.NoWrap
                             }
                             Text {
                                 text: shell.notifHistory.count > 0 ? shell.notifHistory.get(0).body : ""
                                 color: shell.textSecondary; font.pixelSize: 11
                                 elide: Text.ElideRight; width: parent.width
+                                horizontalAlignment: Text.AlignHCenter
+                                wrapMode: Text.NoWrap
                             }
                         }
                     }
@@ -3679,7 +3995,8 @@ function getCurrentThemeStateKey() {
                     anchors.horizontalCenter: parent.horizontalCenter
                     // Fixed size; positioned via y (switching anchors at runtime clobbered height -> empty launcher)
                     y: shell.fullscreenMode ? Math.round((parent.height - height) / 2) : 0
-                    width: 445; height: 445
+                    width: PowerProfileService.quickislandGameMode ? parent.width : 445
+                    height: PowerProfileService.quickislandGameMode ? parent.height : 445
                     clip: true
                     opacity: panelWindow.activeState === 4 ? 1 : 0
                     scale: panelWindow.activeState === 4 ? 1 : 0.96
@@ -3688,7 +4005,10 @@ function getCurrentThemeStateKey() {
                     Behavior on scale   { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
 
                     property int selectedAppIndex: 0
+                    property bool ensuringSelectionVisible: false
+                    property bool syncingSelectionFromScroll: false
                     property bool hasQuery: (typeof searchInput !== "undefined" && searchInput) ? (searchInput.text.length > 0) : false
+                    readonly property bool openedDirectly: shell.launcherOpenedDirectly
 
                     onVisibleChanged: {
                         if (visible) {
@@ -3696,6 +4016,31 @@ function getCurrentThemeStateKey() {
                             selectedAppIndex = 0;
                             Qt.callLater(() => searchInput.forceActiveFocus());
                         }
+                    }
+
+                    onSelectedAppIndexChanged: {
+                        if (!launcherView.openedDirectly || launcherView.syncingSelectionFromScroll)
+                            return;
+                        Qt.callLater(function() {
+                            var card = appsGridRepeater.itemAt(launcherView.selectedAppIndex);
+                            if (!card)
+                                return;
+                            launcherView.ensuringSelectionVisible = true;
+                            if (PowerProfileService.quickislandGameMode) {
+                                if (card.x < appsFlickable.contentX) {
+                                    appsFlickable.contentX = card.x;
+                                } else if (card.x + card.width > appsFlickable.contentX + appsFlickable.width) {
+                                    appsFlickable.contentX = card.x + card.width - appsFlickable.width;
+                                }
+                            } else {
+                                if (card.y < appsFlickable.contentY) {
+                                    appsFlickable.contentY = card.y;
+                                } else if (card.y + card.height > appsFlickable.contentY + appsFlickable.height) {
+                                    appsFlickable.contentY = card.y + card.height - appsFlickable.height;
+                                }
+                            }
+                            launcherView.ensuringSelectionVisible = false;
+                        });
                     }
 
                     MouseArea {
@@ -3755,15 +4100,7 @@ function getCurrentThemeStateKey() {
                         }
 
                         Keys.onPressed: event => {
-                            if (searchInput.text.length === 0) {
-                                if (event.key === Qt.Key_Right || event.key === Qt.Key_Down) {
-                                    panelWindow.shellRootObj.setState(6);
-                                    event.accepted = true;
-                                } else if (event.key === Qt.Key_Left || event.key === Qt.Key_Up) {
-                                    panelWindow.shellRootObj.setState(5);
-                                    event.accepted = true;
-                                }
-                            } else {
+                            if (launcherView.openedDirectly) {
                                 var listLen = panelWindow.shellRootObj.filteredAppsList.length;
                                 if (listLen > 0) {
                                     if (event.key === Qt.Key_Right) {
@@ -3772,38 +4109,113 @@ function getCurrentThemeStateKey() {
                                     } else if (event.key === Qt.Key_Left) {
                                         launcherView.selectedAppIndex = Math.max(launcherView.selectedAppIndex - 1, 0);
                                         event.accepted = true;
-                                    } else if (event.key === Qt.Key_Down) {
+                                    } else if (!PowerProfileService.quickislandGameMode && event.key === Qt.Key_Down) {
                                         launcherView.selectedAppIndex = Math.min(launcherView.selectedAppIndex + 5, listLen - 1);
                                         event.accepted = true;
-                                    } else if (event.key === Qt.Key_Up) {
+                                    } else if (!PowerProfileService.quickislandGameMode && event.key === Qt.Key_Up) {
                                         launcherView.selectedAppIndex = Math.max(launcherView.selectedAppIndex - 5, 0);
                                         event.accepted = true;
                                     }
+                                }
+                            } else {
+                                if (event.key === Qt.Key_Right || event.key === Qt.Key_Down) {
+                                    panelWindow.shellRootObj.setState(PowerProfileService.quickislandGameMode ? 5 : 6);
+                                    event.accepted = true;
+                                } else if (event.key === Qt.Key_Left || event.key === Qt.Key_Up) {
+                                    panelWindow.shellRootObj.setState(5);
+                                    event.accepted = true;
                                 }
                             }
                         }
                     }
 
                     Flickable {
+                        id: appsFlickable
                         anchors.fill: parent
-                        anchors.margins: 12
-                        contentHeight: appsGrid.height
+                        anchors.margins: PowerProfileService.quickislandGameMode ? GameModeMenuLayout.launcherInset : 12
+                        contentWidth: PowerProfileService.quickislandGameMode ? appsGrid.width : width
+                        contentHeight: PowerProfileService.quickislandGameMode ? height : appsGrid.height
+                        flickableDirection: PowerProfileService.quickislandGameMode ? Flickable.HorizontalFlick : Flickable.VerticalFlick
                         clip: true
                         boundsBehavior: Flickable.StopAtBounds
 
+                        onContentXChanged: {
+                            if (!launcherView.openedDirectly || !PowerProfileService.quickislandGameMode || launcherView.ensuringSelectionVisible)
+                                return;
+                            var stride = GameModeMenuLayout.launcherCellWidth + appsGrid.spacing;
+                            var count = panelWindow.shellRootObj.filteredAppsList.length;
+                            if (stride <= 0 || count <= 0)
+                                return;
+                            var index = Math.max(0, Math.min(count - 1, Math.round(contentX / stride)));
+                            if (index !== launcherView.selectedAppIndex) {
+                                launcherView.syncingSelectionFromScroll = true;
+                                launcherView.selectedAppIndex = index;
+                                launcherView.syncingSelectionFromScroll = false;
+                            }
+                        }
+
+                        onContentYChanged: {
+                            if (!launcherView.openedDirectly || PowerProfileService.quickislandGameMode || launcherView.ensuringSelectionVisible)
+                                return;
+                            var firstCard = appsGridRepeater.itemAt(0);
+                            var count = panelWindow.shellRootObj.filteredAppsList.length;
+                            var columns = appsGrid.columns;
+                            if (!firstCard || columns <= 0 || count <= 0)
+                                return;
+                            var stride = firstCard.height + appsGrid.spacing;
+                            var index = Math.max(0, Math.min(count - 1, Math.round(contentY / stride) * columns));
+                            if (index !== launcherView.selectedAppIndex) {
+                                launcherView.syncingSelectionFromScroll = true;
+                                launcherView.selectedAppIndex = index;
+                                launcherView.syncingSelectionFromScroll = false;
+                            }
+                        }
+
+                        WheelHandler {
+                            target: appsFlickable.contentItem
+                            acceptedDevices: PointerDevice.TouchPad | PointerDevice.Mouse
+                            enabled: PowerProfileService.quickislandGameMode
+                                ? appsFlickable.contentWidth > appsFlickable.width
+                                : appsFlickable.contentHeight > appsFlickable.height
+                            onWheel: event => {
+                                var delta = event.pixelDelta.x !== 0 ? event.pixelDelta.x
+                                    : (event.pixelDelta.y !== 0 ? event.pixelDelta.y
+                                    : (event.angleDelta.x !== 0 ? event.angleDelta.x / 8.0 : event.angleDelta.y / 8.0));
+                                if (PowerProfileService.quickislandGameMode) {
+                                    var maxX = Math.max(0, appsFlickable.contentWidth - appsFlickable.width);
+                                    appsFlickable.contentX = Math.max(0, Math.min(maxX, appsFlickable.contentX - delta));
+                                } else {
+                                    var maxY = Math.max(0, appsFlickable.contentHeight - appsFlickable.height);
+                                    appsFlickable.contentY = Math.max(0, Math.min(maxY, appsFlickable.contentY - delta));
+                                }
+                                event.accepted = true;
+                            }
+                        }
+
                         Grid {
                             id: appsGrid
-                            columns: 5; spacing: 8; width: parent.width
+                            rows: PowerProfileService.quickislandGameMode ? 1 : 0
+                            columns: PowerProfileService.quickislandGameMode ? Math.max(1, shell.filteredAppsList.length) : 5
+                            spacing: PowerProfileService.quickislandGameMode ? GameModeMenuLayout.launcherGap : 8
+                            width: PowerProfileService.quickislandGameMode
+                                ? Math.max(parent.width, shell.filteredAppsList.length * GameModeMenuLayout.launcherCellWidth + Math.max(0, shell.filteredAppsList.length - 1) * spacing)
+                                : parent.width
+                            height: PowerProfileService.quickislandGameMode ? GameModeMenuLayout.launcherCellHeight : implicitHeight
+                            y: PowerProfileService.quickislandGameMode ? Math.max(0, (parent.height - height) / 2) : 0
 
                             Repeater {
+                                id: appsGridRepeater
                                 model: shell.filteredAppsList
 
                                  Rectangle {
                                      id: appCard
                                      property var appData: modelData
-                                     width: (parent.width - 32) / 5
-                                     height: width; radius: 16
-                                     color: (lma.containsMouse || (launcherView.hasQuery && index === launcherView.selectedAppIndex)) ? shell.surfaceBright : shell.surfaceAlt
+                                     readonly property bool isSelected: index === launcherView.selectedAppIndex
+                                     width: PowerProfileService.quickislandGameMode
+                                         ? GameModeMenuLayout.launcherCellWidth
+                                         : (parent.width - 32) / 5
+                                     height: width; radius: PowerProfileService.quickislandGameMode ? 0 : 16
+                                     color: (lma.containsMouse || ((PowerProfileService.quickislandGameMode || launcherView.hasQuery) && isSelected)) ? shell.surfaceBright : shell.surfaceAlt
                                      Behavior on color { ColorAnimation { duration: shell.animFast } }
                                       
                                       
@@ -3816,7 +4228,7 @@ function getCurrentThemeStateKey() {
                                               id: appIcon
                                               width: 36; height: 36
                                               anchors.horizontalCenter: parent.horizontalCenter
-                                              y: (lma.containsMouse || (launcherView.hasQuery && index === launcherView.selectedAppIndex)) ? 6 : (parent.height - height) / 2
+                                              y: (lma.containsMouse || ((PowerProfileService.quickislandGameMode || launcherView.hasQuery) && appCard.isSelected)) ? 6 : (parent.height - height) / 2
                                               Behavior on y {
                                                    enabled: launcherView.opacity > 0.99
                                                    NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic }
@@ -3851,7 +4263,7 @@ function getCurrentThemeStateKey() {
                                           Rectangle {
                                               id: appIconFallback
                                               width: 36; height: 36
-                                              radius: 10
+                                              radius: PowerProfileService.quickislandGameMode ? 0 : 10
                                               anchors.horizontalCenter: parent.horizontalCenter
                                               y: appIcon.y
                                               visible: !appIcon.visible
@@ -3871,9 +4283,9 @@ function getCurrentThemeStateKey() {
                                          Text {
                                              id: appName
                                              text: appCard.appData ? appCard.appData.name : ""
-                                             color: (lma.containsMouse || (launcherView.hasQuery && index === launcherView.selectedAppIndex)) ? shell.textPrimary : shell.textSecondary
-                                             opacity: (lma.containsMouse || (launcherView.hasQuery && index === launcherView.selectedAppIndex)) ? 1.0 : 0.0
-                                             scale: (lma.containsMouse || (launcherView.hasQuery && index === launcherView.selectedAppIndex)) ? 1.0 : 0.8
+                                             color: (lma.containsMouse || ((PowerProfileService.quickislandGameMode || launcherView.hasQuery) && appCard.isSelected)) ? shell.textPrimary : shell.textSecondary
+                                             opacity: (PowerProfileService.quickislandGameMode || lma.containsMouse || (launcherView.hasQuery && index === launcherView.selectedAppIndex)) ? 1.0 : 0.0
+                                             scale: (PowerProfileService.quickislandGameMode || lma.containsMouse || (launcherView.hasQuery && index === launcherView.selectedAppIndex)) ? 1.0 : 0.8
                                              Behavior on opacity { NumberAnimation { duration: shell.animFast } }
                                              Behavior on scale { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
 
@@ -3929,7 +4341,9 @@ function getCurrentThemeStateKey() {
 
                     Flickable {
                         id: ccFlickable
-                        anchors.fill: parent; anchors.margins: 14
+                        anchors.fill: parent
+                        visible: !PowerProfileService.quickislandGameMode
+                        anchors.margins: (PowerProfileService.quickislandGameMode && panelWindow.activeState === 5) ? GameModeMenuLayout.controlCenterInset : 14
                         contentHeight: ccColumn.height
                         contentWidth: width
                         contentX: 0
@@ -3937,7 +4351,14 @@ function getCurrentThemeStateKey() {
                         clip: true; boundsBehavior: Flickable.StopAtBounds
 
                         Column {
-                            id: ccColumn; width: parent.width; spacing: 10
+                            id: ccColumn
+                            width: PowerProfileService.quickislandGameMode
+                                ? GameModeMenuLayout.contentWidthFor(parent.width)
+                                : parent.width
+                            x: PowerProfileService.quickislandGameMode
+                                ? GameModeMenuLayout.centeredContentX(parent.width, width)
+                                : 0
+                            spacing: (PowerProfileService.quickislandGameMode && panelWindow.activeState === 5) ? GameModeMenuLayout.controlCenterGap : 10
 
                             // Header
                             Item {
@@ -3977,7 +4398,7 @@ function getCurrentThemeStateKey() {
                                 width: parent.width; spacing: 8
 
                                 Rectangle {
-                                    width: 130; height: 45; radius: 22.5
+                                    width: 130; height: 45; radius: PowerProfileService.quickislandGameMode ? 0 : 22.5
                                     color: wma.containsMouse ? shell.surfaceBright : (shell.wifiEnabled ? shell.accentDim : shell.surfaceAlt)
                                     border.width: 0
                                     border.color: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.2)
@@ -3985,7 +4406,7 @@ function getCurrentThemeStateKey() {
                                     Row {
                                         anchors.fill: parent; anchors.margins: 8; spacing: 8
                                         Rectangle {
-                                            width: 28; height: 28; radius: 14; anchors.verticalCenter: parent.verticalCenter
+                                            width: 28; height: 28; radius: PowerProfileService.quickislandGameMode ? 0 : 14; anchors.verticalCenter: parent.verticalCenter
                                             color: shell.wifiEnabled ? shell.accent : shell.surfaceBright
                                             Image {
                                                 anchors.centerIn: parent; width: 16; height: 16
@@ -4016,7 +4437,7 @@ function getCurrentThemeStateKey() {
                                 }
 
                                 Rectangle {
-                                    width: parent.width - 130 - parent.spacing; height: 45; radius: 22.5
+                                    width: parent.width - 130 - parent.spacing; height: 45; radius: PowerProfileService.quickislandGameMode ? 0 : 22.5
                                     color: audma.containsMouse ? shell.surfaceBright : (!shell.sysMuted ? shell.accentDim : shell.surfaceAlt)
                                     border.width: 0
                                     border.color: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.2)
@@ -4024,7 +4445,7 @@ function getCurrentThemeStateKey() {
                                     Row {
                                         anchors.fill: parent; anchors.margins: 8; spacing: 8
                                         Rectangle {
-                                            width: 28; height: 28; radius: 14; anchors.verticalCenter: parent.verticalCenter
+                                            width: 28; height: 28; radius: PowerProfileService.quickislandGameMode ? 0 : 14; anchors.verticalCenter: parent.verticalCenter
                                             color: !shell.sysMuted ? shell.accent : shell.surfaceBright
                                             Image {
                                                 anchors.centerIn: parent; width: 16; height: 16
@@ -4061,7 +4482,7 @@ function getCurrentThemeStateKey() {
 
                                 Rectangle {
                                     id: btBtn
-                                    width: Math.floor((parent.width - (parent.spacing * 2)) / 3); height: 45; radius: 22.5
+                                    width: Math.floor((parent.width - (parent.spacing * 2)) / 3); height: 45; radius: PowerProfileService.quickislandGameMode ? 0 : 22.5
                                     color: bta.containsMouse ? shell.surfaceBright : (shell.btPowered ? shell.accentDim : shell.surfaceAlt)
                                     border.width: 0
                                     border.color: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.2)
@@ -4069,7 +4490,7 @@ function getCurrentThemeStateKey() {
                                     Row {
                                         anchors.fill: parent; anchors.margins: 8; spacing: 6
                                         Rectangle {
-                                            width: 26; height: 26; radius: 13; color: shell.btPowered ? shell.accent : shell.surfaceBright; anchors.verticalCenter: parent.verticalCenter
+                                            width: 26; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 13; color: shell.btPowered ? shell.accent : shell.surfaceBright; anchors.verticalCenter: parent.verticalCenter
                                             Image {
                                                 anchors.centerIn: parent; width: 14; height: 14
                                                 source: "icons/bluetooth.png"
@@ -4095,7 +4516,7 @@ function getCurrentThemeStateKey() {
                                 }
                                 Rectangle {
                                     id: peaceBtn
-                                    width: Math.floor((parent.width - (parent.spacing * 2)) / 3); height: 45; radius: 22.5
+                                    width: Math.floor((parent.width - (parent.spacing * 2)) / 3); height: 45; radius: PowerProfileService.quickislandGameMode ? 0 : 22.5
                                     color: pea.containsMouse ? shell.surfaceBright : (shell.peaceMode ? shell.accentDim : shell.surfaceAlt)
                                     border.width: 0
                                     border.color: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.2)
@@ -4103,7 +4524,7 @@ function getCurrentThemeStateKey() {
                                     Row {
                                         anchors.fill: parent; anchors.margins: 8; spacing: 6
                                         Rectangle {
-                                            width: 26; height: 26; radius: 13; color: shell.peaceMode ? shell.accent : shell.surfaceBright; anchors.verticalCenter: parent.verticalCenter
+                                            width: 26; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 13; color: shell.peaceMode ? shell.accent : shell.surfaceBright; anchors.verticalCenter: parent.verticalCenter
                                             Image {
                                                 anchors.centerIn: parent; width: 14; height: 14
                                                 source: "icons/peace(dnd).png"
@@ -4128,7 +4549,7 @@ function getCurrentThemeStateKey() {
                                     }
                                 }
                                 Rectangle {
-                                    width: parent.width - btBtn.width - peaceBtn.width - (parent.spacing * 2); height: 45; radius: 22.5
+                                    width: parent.width - btBtn.width - peaceBtn.width - (parent.spacing * 2); height: 45; radius: PowerProfileService.quickislandGameMode ? 0 : 22.5
                                     color: nia.containsMouse ? shell.surfaceBright : (shell.nightMode ? shell.accentDim : shell.surfaceAlt)
                                     border.width: 0
                                     border.color: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.2)
@@ -4136,7 +4557,7 @@ function getCurrentThemeStateKey() {
                                     Row {
                                         anchors.fill: parent; anchors.margins: 8; spacing: 6
                                         Rectangle {
-                                            width: 26; height: 26; radius: 13; color: shell.nightMode ? shell.accent : shell.surfaceBright; anchors.verticalCenter: parent.verticalCenter
+                                            width: 26; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 13; color: shell.nightMode ? shell.accent : shell.surfaceBright; anchors.verticalCenter: parent.verticalCenter
                                             Image {
                                                 anchors.centerIn: parent; width: 14; height: 14
                                                 source: "icons/night.png"
@@ -4168,7 +4589,7 @@ function getCurrentThemeStateKey() {
 
                                  // Personalization (Left)
                                  Rectangle {
-                                     width: (parent.width - 8) / 2; height: 45; radius: 22.5
+                                     width: (parent.width - 8) / 2; height: 45; radius: PowerProfileService.quickislandGameMode ? 0 : 22.5
                                      color: persBtnMa.containsMouse ? shell.surfaceBright : ((panelWindow.activeState === 12 || panelWindow.activeState === 11) ? shell.accentDim : shell.surfaceAlt)
                                      border.width: 0
                                      border.color: (panelWindow.activeState === 12 || panelWindow.activeState === 11) ? Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.2) : shell.surfaceBorder
@@ -4177,7 +4598,7 @@ function getCurrentThemeStateKey() {
                                      Row {
                                          anchors.fill: parent; anchors.margins: 8; spacing: 6
                                          Rectangle {
-                                             width: 28; height: 28; radius: 14; anchors.verticalCenter: parent.verticalCenter
+                                             width: 28; height: 28; radius: PowerProfileService.quickislandGameMode ? 0 : 14; anchors.verticalCenter: parent.verticalCenter
                                              color: (panelWindow.activeState === 12 || panelWindow.activeState === 11) ? shell.accent : shell.surfaceBright
                                              Image {
                                                  anchors.centerIn: parent; width: 16; height: 16
@@ -4209,7 +4630,7 @@ function getCurrentThemeStateKey() {
 
                                  // Screen Toolkit (Right)
                                  Rectangle {
-                                     width: (parent.width - 8) / 2; height: 45; radius: 22.5
+                                     width: (parent.width - 8) / 2; height: 45; radius: PowerProfileService.quickislandGameMode ? 0 : 22.5
                                      color: screenToolkitBtnMa.containsMouse ? shell.surfaceBright : (panelWindow.activeState === 14 ? shell.accentDim : shell.surfaceAlt)
                                      border.width: 0
                                      border.color: panelWindow.activeState === 14 ? Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.2) : shell.surfaceBorder
@@ -4218,7 +4639,7 @@ function getCurrentThemeStateKey() {
                                      Row {
                                          anchors.fill: parent; anchors.margins: 8; spacing: 6
                                          Rectangle {
-                                             width: 28; height: 28; radius: 14; anchors.verticalCenter: parent.verticalCenter
+                                             width: 28; height: 28; radius: PowerProfileService.quickislandGameMode ? 0 : 14; anchors.verticalCenter: parent.verticalCenter
                                              color: panelWindow.activeState === 14 ? shell.accent : shell.surfaceBright
                                               Image {
                                                   anchors.centerIn: parent; width: 16; height: 16
@@ -4251,7 +4672,7 @@ function getCurrentThemeStateKey() {
                          
                          // Audio Slider
                          Rectangle {
-                             width: parent.width; height: 36; radius: 18
+                             width: parent.width; height: 36; radius: PowerProfileService.quickislandGameMode ? 0 : 18
                              color: shell.surfaceAlt
                              border.width: 0
                              border.color: shell.surfaceBorder
@@ -4260,7 +4681,7 @@ function getCurrentThemeStateKey() {
                              Rectangle {
                                  readonly property real normVol: Math.max(0.0, Math.min(1.0, shell.sysVolume))
                                  width: Math.min(parent.width, Math.max(36, 36 + (parent.width - 36) * normVol))
-                                 height: parent.height; radius: 18
+                                 height: parent.height; radius: PowerProfileService.quickislandGameMode ? 0 : 18
                                  color: shell.accent
                                  Behavior on color { ColorAnimation { duration: shell.animFast } }
                                  Behavior on width { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
@@ -4326,19 +4747,19 @@ function getCurrentThemeStateKey() {
 
                          // Brightness Slider (real)
                          Rectangle {
-                             width: parent.width; height: 36; radius: 18; color: shell.surfaceAlt; clip: true
+                             width: parent.width; height: 36; radius: PowerProfileService.quickislandGameMode ? 0 : 18; color: shell.surfaceAlt; clip: true
 
                              // Fill
                              Rectangle {
                                  readonly property real normBright: Math.max(0.0, Math.min(1.0, shell.sysBrightness))
                                  width: Math.min(parent.width, Math.max(36, 36 + (parent.width - 36) * normBright))
                                  height: parent.height
-                                 radius: 18
+                                 radius: PowerProfileService.quickislandGameMode ? 0 : 18
                                  color: shell.accent
                                  Behavior on color { ColorAnimation { duration: shell.animFast } }
                                  Behavior on width {
                                      enabled: !brightMouseArea.pressed
-                                     NumberAnimation { duration: 100; easing.type: Easing.OutCubic }
+                                     NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 100; easing.type: Easing.OutCubic }
                                  }
                              }
 
@@ -4398,7 +4819,7 @@ function getCurrentThemeStateKey() {
 
                             // Media Card (real)
                             Rectangle {
-                                width: parent.width; height: 115; radius: 16; color: shell.surfaceAlt; clip: true
+                                width: parent.width; height: 115; radius: PowerProfileService.quickislandGameMode ? 0 : 16; color: shell.surfaceAlt; clip: true
                                 visible: shell.mediaTitle !== ""
 
                                 Rectangle {
@@ -4417,7 +4838,7 @@ function getCurrentThemeStateKey() {
                                     // Album Art / Fallback
                                     Rectangle {
                                         id: albumArtContainer
-                                        width: 85; height: 85; radius: 10; color: shell.surfaceBright
+                                        width: 85; height: 85; radius: PowerProfileService.quickislandGameMode ? 0 : 10; color: shell.surfaceBright
                                         anchors.verticalCenter: parent.verticalCenter
 
                                         layer.enabled: true
@@ -4428,7 +4849,7 @@ function getCurrentThemeStateKey() {
                                                 sourceItem: Rectangle {
                                                     width: 85
                                                     height: 85
-                                                    radius: 10
+                                                    radius: PowerProfileService.quickislandGameMode ? 0 : 10
                                                     color: "white"
                                                 }
                                             }
@@ -4465,11 +4886,11 @@ function getCurrentThemeStateKey() {
                                         Item {
                                              width: parent.width; height: 4
                                              Rectangle {
-                                                 width: parent.width; height: 4; radius: 2; color: Qt.rgba(1, 1, 1, 0.1)
+                                                 width: parent.width; height: 4; radius: PowerProfileService.quickislandGameMode ? 0 : 2; color: Qt.rgba(1, 1, 1, 0.1)
                                                  Rectangle {
                                                      width: shell.mediaLength > 0 ? parent.width * (shell.mediaPosition / shell.mediaLength) : 0
                                                      height: parent.height; radius: parent.radius; color: shell.accent
-                                                     Behavior on width { NumberAnimation { duration: 500; easing.type: Easing.Linear } }
+                                                     Behavior on width { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 500; easing.type: Easing.Linear } }
                                                  }
                                              }
                                          }
@@ -4507,7 +4928,7 @@ function getCurrentThemeStateKey() {
 
                                              // Play/Pause
                                              Rectangle {
-                                                 width: 26; height: 26; radius: 13; color: shell.textPrimary
+                                                 width: 26; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 13; color: shell.textPrimary
                                                  anchors.verticalCenter: parent.verticalCenter
                                                  Image {
                                                      anchors.centerIn: parent
@@ -4538,7 +4959,7 @@ function getCurrentThemeStateKey() {
 
                             // No media placeholder
                             Rectangle {
-                                width: parent.width; height: 48; radius: 14; color: shell.surfaceAlt
+                                width: parent.width; height: 48; radius: PowerProfileService.quickislandGameMode ? 0 : 14; color: shell.surfaceAlt
                                 visible: false
                                 Text { anchors.centerIn: parent; text: "No media playing"; color: shell.textMuted; font.pixelSize: 11 }
                             }
@@ -4564,7 +4985,7 @@ function getCurrentThemeStateKey() {
                                     model: Math.min(shell.notifHistory.count, 5)
 
                                     Rectangle {
-                                        width: ccColumn.width; height: nCol.height + 20; radius: 14; color: shell.surfaceAlt
+                                        width: ccColumn.width; height: nCol.height + 20; radius: PowerProfileService.quickislandGameMode ? 0 : 14; color: shell.surfaceAlt
 
                                         Column {
                                             id: nCol
@@ -4574,7 +4995,7 @@ function getCurrentThemeStateKey() {
                                             Row {
                                                 spacing: 8
                                                 Rectangle {
-                                                    width: 22; height: 22; radius: 11; anchors.verticalCenter: parent.verticalCenter
+                                                    width: 22; height: 22; radius: PowerProfileService.quickislandGameMode ? 0 : 11; anchors.verticalCenter: parent.verticalCenter
                                                     color: shell.accent
                                                     Behavior on color { ColorAnimation { duration: shell.animFast } }
 
@@ -4628,6 +5049,12 @@ function getCurrentThemeStateKey() {
                             }
                         }
                     }
+
+                    GameMode.ControlCenter {
+                        anchors.fill: parent
+                        shellRoot: shell
+                        visible: PowerProfileService.quickislandGameMode && ccView.ccActive
+                    }
                 }
 
                 // =============================================================
@@ -4635,7 +5062,9 @@ function getCurrentThemeStateKey() {
                 // =============================================================
                 Item {
                     anchors.fill: parent
-                    opacity: panelWindow.activeState === 6 ? 1 : 0; scale: panelWindow.activeState === 6 ? 1 : 0.92; visible: opacity > 0.01
+                    opacity: (!PowerProfileService.quickislandGameMode && panelWindow.activeState === 6) ? 1 : 0
+                    scale: (!PowerProfileService.quickislandGameMode && panelWindow.activeState === 6) ? 1 : 0.92
+                    visible: opacity > 0.01
                     Behavior on opacity { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
                     Behavior on scale   { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
 
@@ -4645,7 +5074,9 @@ function getCurrentThemeStateKey() {
                     }
 
                     Row {
-                        anchors.centerIn: parent; spacing: 6
+                        x: PowerProfileService.quickislandGameMode ? 8 : (parent.width - width) / 2
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: PowerProfileService.quickislandGameMode ? GameModeMenuLayout.sessionGap : 6
 
                         Repeater {
                             model: [
@@ -4658,7 +5089,9 @@ function getCurrentThemeStateKey() {
 
                             Rectangle {
                                 id: pBtn
-                                width: 80; height: 70; radius: 16
+                                width: PowerProfileService.quickislandGameMode ? GameModeMenuLayout.sessionButtonWidth : 80
+                                height: PowerProfileService.quickislandGameMode ? width : 70
+                                radius: PowerProfileService.quickislandGameMode ? 0 : 16
                                 readonly property color dangerCol: {
                                     var r = shell.red.r, g = shell.red.g, b = shell.red.b;
                                     var lum = 0.299 * r + 0.587 * g + 0.114 * b;
@@ -4674,9 +5107,11 @@ function getCurrentThemeStateKey() {
                                 border.width: 0
 
                                 Column {
-                                    anchors.centerIn: parent; spacing: 6
+                                    anchors.centerIn: parent; spacing: PowerProfileService.quickislandGameMode ? 3 : 6
                                     Image {
-                                        width: 24; height: 24; anchors.horizontalCenter: parent.horizontalCenter
+                                        width: PowerProfileService.quickislandGameMode ? 26 : 24
+                                        height: width
+                                        anchors.horizontalCenter: parent.horizontalCenter
                                         source: modelData.icon
                                         fillMode: Image.PreserveAspectFit
                                         layer.enabled: panelWindow.activeState === 6
@@ -4691,7 +5126,7 @@ function getCurrentThemeStateKey() {
                                         color: modelData.danger
                                             ? (pma.containsMouse ? "#ffffff" : pBtn.dangerCol)
                                             : (pma.containsMouse ? shell.textPrimary : shell.textSecondary)
-                                        font.pixelSize: 10
+                                        font.pixelSize: PowerProfileService.quickislandGameMode ? 9 : 10
                                         font.weight: Font.Medium
                                         anchors.horizontalCenter: parent.horizontalCenter
                                     }
@@ -4723,18 +5158,22 @@ function getCurrentThemeStateKey() {
                     Behavior on scale   { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
 
                     Column {
-                        anchors.centerIn: parent; spacing: 12; width: parent.width - 48
+                        anchors.centerIn: parent
+                        spacing: 12
+                        width: PowerProfileService.quickislandGameMode
+                            ? GameModeMenuLayout.formWidthFor(parent.width)
+                            : parent.width - 48
 
                         Rectangle {
-                            width: 36; height: 36; radius: 18; color: shell.accentDim; anchors.horizontalCenter: parent.horizontalCenter
-                            Rectangle { anchors.centerIn: parent; y: 2; width: 12; height: 10; radius: 2; color: shell.accent }
+                            width: 36; height: 36; radius: PowerProfileService.quickislandGameMode ? 0 : 18; color: shell.accentDim; anchors.horizontalCenter: parent.horizontalCenter
+                            Rectangle { anchors.centerIn: parent; y: 2; width: 12; height: 10; radius: PowerProfileService.quickislandGameMode ? 0 : 2; color: shell.accent }
                         }
 
                         Text { text: "Authentication Required"; color: shell.textPrimary; font.pixelSize: 13; font.weight: Font.Bold; anchors.horizontalCenter: parent.horizontalCenter }
                         Text { text: "org.freedesktop.policykit"; color: shell.textMuted; font.pixelSize: 9; anchors.horizontalCenter: parent.horizontalCenter }
 
                         Rectangle {
-                            width: parent.width; height: 34; radius: 10; color: shell.surfaceAlt
+                            width: parent.width; height: 34; radius: PowerProfileService.quickislandGameMode ? 0 : 10; color: shell.surfaceAlt
                             border.width: 0; border.color: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.3)
                             Text { anchors.centerIn: parent; text: "• • • • • • • •"; color: shell.textMuted; font.pixelSize: 14; font.letterSpacing: 2 }
                         }
@@ -4742,13 +5181,13 @@ function getCurrentThemeStateKey() {
                         Row {
                             anchors.horizontalCenter: parent.horizontalCenter; spacing: 8
                             Rectangle {
-                                width: 96; height: 30; radius: 10; color: cma.containsMouse ? shell.surfaceBright : shell.surfaceAlt
+                                width: 96; height: 30; radius: PowerProfileService.quickislandGameMode ? 0 : 10; color: cma.containsMouse ? shell.surfaceBright : shell.surfaceAlt
                                 Behavior on color { ColorAnimation { duration: shell.animFast } }
                                 Text { anchors.centerIn: parent; text: "Cancel"; color: shell.textSecondary; font.pixelSize: 11; font.weight: Font.Medium }
                                 MouseArea { id: cma; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: shell.setState(0) }
                             }
                             Rectangle {
-                                width: 96; height: 30; radius: 10; color: ama.containsMouse ? Qt.lighter(shell.accent, 1.1) : shell.accent
+                                width: 96; height: 30; radius: PowerProfileService.quickislandGameMode ? 0 : 10; color: ama.containsMouse ? Qt.lighter(shell.accent, 1.1) : shell.accent
                                 Behavior on color { ColorAnimation { duration: shell.animFast } }
                                 Text { anchors.centerIn: parent; text: "Authenticate"; color: shell.surface; font.pixelSize: 11; font.weight: Font.Bold }
                                 MouseArea { id: ama; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: shell.setState(0) }
@@ -4779,7 +5218,10 @@ function getCurrentThemeStateKey() {
                         clip: true; boundsBehavior: Flickable.StopAtBounds
 
                         Column {
-                            id: wifiCol; width: parent.width; spacing: 12
+                            id: wifiCol
+                            width: parent.width
+                            x: 0
+                            spacing: 12
 
                             // Header
                             Row {
@@ -4811,10 +5253,10 @@ function getCurrentThemeStateKey() {
                                         layer.effect: MultiEffect { brightness: 1.0; colorization: 1.0; colorizationColor: (wifiScanProc.running && !wifiFirstScan) ? shell.textMuted : shell.textPrimary }
                                         RotationAnimator on rotation {
                                             loops: Animation.Infinite
-                                            running: wifiScanProc.running && !wifiFirstScan
+                                            running: wifiScanProc.running && !wifiFirstScan && !PowerProfileService.quickislandGameMode
                                             from: 0
                                             to: 360
-                                            duration: 1000
+                                            duration: PowerProfileService.quickislandGameMode ? 0 : 1000
                                         }
                                     }
                                     MouseArea {
@@ -4831,14 +5273,14 @@ function getCurrentThemeStateKey() {
 
                             // Switch Card (WiFi Toggle)
                             Rectangle {
-                                width: parent.width; height: 50; radius: 14; color: shell.surfaceAlt
+                                width: parent.width; height: 50; radius: PowerProfileService.quickislandGameMode ? 0 : 14; color: shell.surfaceAlt
                                 border.width: 0; border.color: shell.surfaceBorder
 
                                 Row {
                                     anchors.fill: parent; anchors.margins: 12; spacing: 12
 
                                     Rectangle {
-                                        width: 28; height: 28; radius: 14; color: shell.wifiEnabled ? shell.accent : shell.surfaceBright; anchors.verticalCenter: parent.verticalCenter
+                                        width: 28; height: 28; radius: PowerProfileService.quickislandGameMode ? 0 : 14; color: shell.wifiEnabled ? shell.accent : shell.surfaceBright; anchors.verticalCenter: parent.verticalCenter
                                         Image {
                                             anchors.centerIn: parent; width: 14; height: 14
                                             source: "icons/wifi.png"
@@ -4882,7 +5324,7 @@ function getCurrentThemeStateKey() {
                                 }
 
                                 Rectangle {
-                                    width: wifiCol.width; height: shell.wifiIPAddress !== "" ? 75 : 60; radius: 12
+                                    width: wifiCol.width; height: shell.wifiIPAddress !== "" ? 75 : 60; radius: PowerProfileService.quickislandGameMode ? 0 : 12
                                     color: shell.wifiConnectionState === "Failed" ? Qt.rgba(shell.red.r, shell.red.g, shell.red.b, 0.1) : shell.surfaceAlt
                                     border.width: 0
                                     border.color: shell.wifiConnectionState === "Failed" ? shell.red : (shell.wifiConnectionState === "Connected" ? shell.accent : shell.surfaceBorder)
@@ -4892,7 +5334,7 @@ function getCurrentThemeStateKey() {
 
                                         // Left Icon
                                         Rectangle {
-                                            width: 32; height: 32; radius: 16
+                                            width: 32; height: 32; radius: PowerProfileService.quickislandGameMode ? 0 : 16
                                             color: shell.wifiConnectionState === "Failed" ? shell.red : (shell.wifiConnectionState === "Connected" ? shell.accent : shell.surfaceBright)
                                             anchors.verticalCenter: parent.verticalCenter
                                             Image {
@@ -4938,7 +5380,7 @@ function getCurrentThemeStateKey() {
 
                                         // Disconnect / Cancel Button
                                         Rectangle {
-                                            width: 70; height: 28; radius: 6
+                                            width: 70; height: 28; radius: PowerProfileService.quickislandGameMode ? 0 : 6
                                             color: shell.wifiConnectionState === "Failed" ? shell.surfaceBright : (shell.wifiConnectionState === "Connected" ? shell.surfaceBright : shell.red)
                                             border.width: 0
                                             border.color: shell.wifiConnectionState === "Failed" ? shell.surfaceBorder : "transparent"
@@ -4988,7 +5430,7 @@ function getCurrentThemeStateKey() {
                                     model: wifiListModel
 
                                     Rectangle {
-                                        width: wifiCol.width; height: 40; radius: 10
+                                        width: wifiCol.width; height: 40; radius: PowerProfileService.quickislandGameMode ? 0 : 10
                                         color: shell.surfaceAlt
                                         border.width: 0
 
@@ -5049,7 +5491,7 @@ function getCurrentThemeStateKey() {
 
                             // Empty list / Scanning placeholder
                             Rectangle {
-                                width: parent.width; height: 60; radius: 14; color: shell.surfaceAlt
+                                width: parent.width; height: 60; radius: PowerProfileService.quickislandGameMode ? 0 : 14; color: shell.surfaceAlt
                                 visible: shell.wifiEnabled && wifiListModel.count === 0
                                 Column {
                                     anchors.centerIn: parent; spacing: 4
@@ -5065,8 +5507,12 @@ function getCurrentThemeStateKey() {
                         visible: shell.wifiShowPasswordInput
 
                         Column {
-                            anchors.fill: parent; anchors.margins: 14; spacing: 8
+                            anchors.horizontalCenter: parent.horizontalCenter
                             anchors.verticalCenter: parent.verticalCenter
+                            width: PowerProfileService.quickislandGameMode
+                                ? Math.max(0, parent.width - 32)
+                                : parent.width - 28
+                            spacing: 8
 
                             Text {
                                 text: "Password for '" + shell.wifiSelectedSsid + "'"
@@ -5080,7 +5526,7 @@ function getCurrentThemeStateKey() {
 
                                 // Input box
                                 Rectangle {
-                                    width: parent.width - 75 - 65 - 8; height: 32; radius: 8; color: shell.surfaceBright
+                                    width: parent.width - 75 - 65 - 8; height: 32; radius: PowerProfileService.quickislandGameMode ? 0 : 8; color: shell.surfaceBright
                                     border.width: 0
 
                                     TextInput {
@@ -5106,7 +5552,7 @@ function getCurrentThemeStateKey() {
                                 // Connect button
                                 Rectangle {
                                     id: connectWifiBtn
-                                    width: 75; height: 32; radius: 8; color: shell.accent
+                                    width: 75; height: 32; radius: PowerProfileService.quickislandGameMode ? 0 : 8; color: shell.accent
                                     Text {
                                         anchors.centerIn: parent
                                         text: "Connect"; color: shell.surface; font.pixelSize: 11; font.weight: Font.Bold
@@ -5129,7 +5575,7 @@ function getCurrentThemeStateKey() {
 
                                 // Cancel button
                                 Rectangle {
-                                    width: 65; height: 32; radius: 8; color: shell.surfaceBright
+                                    width: 65; height: 32; radius: PowerProfileService.quickislandGameMode ? 0 : 8; color: shell.surfaceBright
                                     border.width: 0; border.color: shell.surfaceBorder
                                     Text {
                                         anchors.centerIn: parent
@@ -5171,7 +5617,10 @@ function getCurrentThemeStateKey() {
                         clip: true; boundsBehavior: Flickable.StopAtBounds
 
                         Column {
-                            id: btCol; width: parent.width; spacing: 12
+                            id: btCol
+                            width: PowerProfileService.quickislandGameMode ? GameModeMenuLayout.contentWidthFor(parent.width) : parent.width
+                            x: PowerProfileService.quickislandGameMode ? GameModeMenuLayout.centeredContentX(parent.width, width) : 0
+                            spacing: 12
 
                             // Header
                             Row {
@@ -5192,14 +5641,14 @@ function getCurrentThemeStateKey() {
 
                             // Switch Card (Bluetooth Toggle)
                             Rectangle {
-                                width: parent.width; height: 50; radius: 14; color: shell.surfaceAlt
+                                width: parent.width; height: 50; radius: PowerProfileService.quickislandGameMode ? 0 : 14; color: shell.surfaceAlt
                                 border.width: 0; border.color: shell.surfaceBorder
 
                                 Row {
                                     anchors.fill: parent; anchors.margins: 12; spacing: 12
 
                                     Rectangle {
-                                        width: 28; height: 28; radius: 14; color: shell.btPowered ? shell.accent : shell.surfaceBright; anchors.verticalCenter: parent.verticalCenter
+                                        width: 28; height: 28; radius: PowerProfileService.quickislandGameMode ? 0 : 14; color: shell.btPowered ? shell.accent : shell.surfaceBright; anchors.verticalCenter: parent.verticalCenter
                                         Image {
                                             anchors.centerIn: parent; width: 14; height: 14
                                             source: "icons/bluetooth.png"
@@ -5243,7 +5692,7 @@ function getCurrentThemeStateKey() {
                                     model: btListModel
 
                                     Rectangle {
-                                        width: btCol.width; height: 40; radius: 10; color: shell.surfaceAlt
+                                        width: btCol.width; height: 40; radius: PowerProfileService.quickislandGameMode ? 0 : 10; color: shell.surfaceAlt
 
                                         Image {
                                             id: btItemIcon
@@ -5277,7 +5726,7 @@ function getCurrentThemeStateKey() {
 
                             // Empty list placeholder
                             Rectangle {
-                                width: parent.width; height: 60; radius: 14; color: shell.surfaceAlt
+                                width: parent.width; height: 60; radius: PowerProfileService.quickislandGameMode ? 0 : 14; color: shell.surfaceAlt
                                 visible: shell.btPowered && btListModel.count === 0
                                 Column {
                                     anchors.centerIn: parent; spacing: 4
@@ -5431,8 +5880,14 @@ function getCurrentThemeStateKey() {
                     }
 
                     Column {
-                        anchors.fill: parent
-                        anchors.margins: 14
+                        x: PowerProfileService.quickislandGameMode
+                            ? 16
+                            : 14
+                        y: 14
+                        width: PowerProfileService.quickislandGameMode
+                            ? Math.max(0, parent.width - 32)
+                            : parent.width - 28
+                        height: parent.height - 28
                         spacing: 12
 
                         // Header
@@ -5467,7 +5922,7 @@ function getCurrentThemeStateKey() {
                                 // View Mode Switcher: Grid vs Centered Card Carousel
                                 Rectangle {
                                     id: viewModeToggleBtn
-                                    width: 58; height: 26; radius: 13
+                                    width: 58; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 13
                                     color: shell.surfaceAlt
                                     border.width: 0
 
@@ -5478,9 +5933,9 @@ function getCurrentThemeStateKey() {
 
                                         // Grid View Button
                                         Rectangle {
-                                            width: 25; height: 22; radius: 11
+                                            width: 25; height: 22; radius: PowerProfileService.quickislandGameMode ? 0 : 11
                                             color: !shell.wallpaperCarouselMode ? shell.surfaceBright : "transparent"
-                                            Behavior on color { ColorAnimation { duration: 150 } }
+                                            Behavior on color { ColorAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 150 } }
 
                                             Grid {
                                                 anchors.centerIn: parent
@@ -5488,9 +5943,9 @@ function getCurrentThemeStateKey() {
                                                 Repeater {
                                                     model: 4
                                                     Rectangle {
-                                                        width: 4; height: 4; radius: 1
+                                                        width: 4; height: 4; radius: PowerProfileService.quickislandGameMode ? 0 : 1
                                                         color: !shell.wallpaperCarouselMode ? shell.accent : shell.textMuted
-                                                        Behavior on color { ColorAnimation { duration: 150 } }
+                                                        Behavior on color { ColorAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 150 } }
                                                     }
                                                 }
                                             }
@@ -5507,32 +5962,32 @@ function getCurrentThemeStateKey() {
 
                                         // Centered Card Carousel View Button
                                         Rectangle {
-                                            width: 25; height: 22; radius: 11
+                                            width: 25; height: 22; radius: PowerProfileService.quickislandGameMode ? 0 : 11
                                             color: shell.wallpaperCarouselMode ? shell.surfaceBright : "transparent"
-                                            Behavior on color { ColorAnimation { duration: 150 } }
+                                            Behavior on color { ColorAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 150 } }
 
                                             Row {
                                                 anchors.centerIn: parent
                                                 spacing: 2
                                                 Rectangle {
                                                     anchors.verticalCenter: parent.verticalCenter
-                                                    width: 2.5; height: 6; radius: 0.8
+                                                    width: 2.5; height: 6; radius: PowerProfileService.quickislandGameMode ? 0 : 0.8
                                                     color: shell.wallpaperCarouselMode ? shell.accent : shell.textMuted
                                                     opacity: 0.55
-                                                    Behavior on color { ColorAnimation { duration: 150 } }
+                                                    Behavior on color { ColorAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 150 } }
                                                 }
                                                 Rectangle {
                                                     anchors.verticalCenter: parent.verticalCenter
-                                                    width: 6; height: 10; radius: 1.5
+                                                    width: 6; height: 10; radius: PowerProfileService.quickislandGameMode ? 0 : 1.5
                                                     color: shell.wallpaperCarouselMode ? shell.accent : shell.textMuted
-                                                    Behavior on color { ColorAnimation { duration: 150 } }
+                                                    Behavior on color { ColorAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 150 } }
                                                 }
                                                 Rectangle {
                                                     anchors.verticalCenter: parent.verticalCenter
-                                                    width: 2.5; height: 6; radius: 0.8
+                                                    width: 2.5; height: 6; radius: PowerProfileService.quickislandGameMode ? 0 : 0.8
                                                     color: shell.wallpaperCarouselMode ? shell.accent : shell.textMuted
                                                     opacity: 0.55
-                                                    Behavior on color { ColorAnimation { duration: 150 } }
+                                                    Behavior on color { ColorAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 150 } }
                                                 }
                                             }
 
@@ -5560,7 +6015,7 @@ function getCurrentThemeStateKey() {
                                 Rectangle {
                                     id: selectFolderBtn
                                     width: folderBtnRow.implicitWidth + 20
-                                    height: 26; radius: 13
+                                    height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 13
                                     color: folderBtnMa.containsMouse ? shell.surfaceBright : shell.surfaceAlt
                                     Behavior on color { ColorAnimation { duration: shell.animFast } }
                                     border.width: 0
@@ -5645,14 +6100,14 @@ function getCurrentThemeStateKey() {
                                         width: 128
                                         height: 78
                                         anchors.centerIn: parent
-                                        radius: 12
+                                        radius: PowerProfileService.quickislandGameMode ? 0 : 12
                                         color: wma.containsMouse ? "#3c3e56" : shell.surfaceBright
-                                        Behavior on color { ColorAnimation { duration: 200 } }
+                                        Behavior on color { ColorAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 200 } }
 
                                         property bool isSelected: modelData === wallpaperSelectorView.activeWallpaperPath
                                         scale: isSelected ? 1.06 : (wma.containsMouse ? 1.02 : 1.0)
                                         z: (isSelected || wma.containsMouse) ? 1 : 0
-                                        Behavior on scale { NumberAnimation { duration: 300; easing.type: Easing.OutBack } }
+                                        Behavior on scale { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 300; easing.type: Easing.OutBack } }
 
                                         Rectangle {
                                             id: imgClip
@@ -5752,7 +6207,7 @@ function getCurrentThemeStateKey() {
                                             anchors.verticalCenterOffset: wpCardDelegate.isSelected ? -2 : 0
                                             width: 168
                                             height: 98
-                                            radius: 14
+                                            radius: PowerProfileService.quickislandGameMode ? 0 : 14
                                             color: wpMa.containsMouse ? shell.surfaceBright : shell.surfaceAlt
                                             border.width: 0
                                             border.color: "transparent"
@@ -5761,17 +6216,17 @@ function getCurrentThemeStateKey() {
                                             // Lively bounce pop on selected card
                                             scale: wpCardDelegate.isSelected ? 1.08 : (wpMa.containsMouse ? 1.02 : 0.94)
 
-                                            Behavior on color { ColorAnimation { duration: 180 } }
+                                            Behavior on color { ColorAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 180 } }
                                             Behavior on scale {
                                                 NumberAnimation {
-                                                    duration: 280
+                                                    duration: PowerProfileService.quickislandGameMode ? 0 : 280
                                                     easing.type: Easing.OutBack
                                                     easing.overshoot: 1.5
                                                 }
                                             }
                                             Behavior on anchors.verticalCenterOffset {
                                                 NumberAnimation {
-                                                    duration: 280
+                                                    duration: PowerProfileService.quickislandGameMode ? 0 : 280
                                                     easing.type: Easing.OutBack
                                                     easing.overshoot: 1.5
                                                 }
@@ -5817,7 +6272,7 @@ function getCurrentThemeStateKey() {
                                                 anchors.margins: 8
                                                 width: 10
                                                 height: 10
-                                                radius: 5
+                                                radius: PowerProfileService.quickislandGameMode ? 0 : 5
                                                 // Show this wallpaper's own extracted accent, not the active theme accent
                                                 color: {
                                                     var p = modelData;
@@ -5840,13 +6295,13 @@ function getCurrentThemeStateKey() {
                                                 anchors.bottomMargin: 8
                                                 height: 20
                                                 width: applyHintText.implicitWidth + 16
-                                                radius: 10
+                                                radius: PowerProfileService.quickislandGameMode ? 0 : 10
                                                 color: Qt.rgba(0, 0, 0, 0.75)
                                                 border.width: 0
                                                 border.color: "transparent"
                                                 visible: wpCardDelegate.isSelected && !wpCardDelegate.isDesktopWallpaper
                                                 opacity: wpMa.containsMouse ? 1.0 : 0.85
-                                                Behavior on opacity { NumberAnimation { duration: 150 } }
+                                                Behavior on opacity { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 150 } }
                                                 z: 3
 
                                                 Text {
@@ -5943,7 +6398,9 @@ function getCurrentThemeStateKey() {
 
                         Column {
                             id: customPaletteCol
-                            width: parent.width; spacing: 12
+                            width: PowerProfileService.quickislandGameMode ? GameModeMenuLayout.contentWidthFor(parent.width) : parent.width
+                            x: PowerProfileService.quickislandGameMode ? GameModeMenuLayout.centeredContentX(parent.width, width) : 0
+                            spacing: 12
 
                             // Header
                             Row {
@@ -5986,14 +6443,14 @@ function getCurrentThemeStateKey() {
                                         { name: "Info / Active", key: "customBlue" }
                                     ]
                                     delegate: Rectangle {
-                                        width: (customPaletteCol.width - 8) / 2; height: 38; radius: 8
+                                        width: (customPaletteCol.width - 8) / 2; height: 38; radius: PowerProfileService.quickislandGameMode ? 0 : 8
                                         color: shell.activeColorKey === modelData.key ? shell.accentDim : shell.surfaceAlt
                                         border.width: 0
                                         border.color: shell.accent
 
                                         Rectangle {
                                             id: colorCircle
-                                            width: 14; height: 14; radius: 7; color: shell[modelData.key]
+                                            width: 14; height: 14; radius: PowerProfileService.quickislandGameMode ? 0 : 7; color: shell[modelData.key]
                                             anchors.left: parent.left; anchors.leftMargin: 8
                                             anchors.verticalCenter: parent.verticalCenter
                                             border.width: 0; border.color: "#585b70"
@@ -6018,7 +6475,7 @@ function getCurrentThemeStateKey() {
 
                             // Active Editor Card
                             Rectangle {
-                                width: parent.width; height: 110; radius: 12; color: shell.surfaceAlt
+                                width: parent.width; height: 110; radius: PowerProfileService.quickislandGameMode ? 0 : 12; color: shell.surfaceAlt
                                 border.width: 0; border.color: shell.surfaceBorder
 
                                 Column {
@@ -6030,7 +6487,7 @@ function getCurrentThemeStateKey() {
                                         
                                         Rectangle {
                                             anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
-                                            width: 45; height: 18; radius: 4
+                                            width: 45; height: 18; radius: PowerProfileService.quickislandGameMode ? 0 : 4
                                             color: shell[shell.activeColorKey]
                                             border.width: 0; border.color: "#585b70"
                                         }
@@ -6042,7 +6499,7 @@ function getCurrentThemeStateKey() {
 
                                         // Hex Input Field
                                         Rectangle {
-                                            width: parent.width - 88; height: 32; radius: 8; color: shell.surfaceBright
+                                            width: parent.width - 88; height: 32; radius: PowerProfileService.quickislandGameMode ? 0 : 8; color: shell.surfaceBright
                                             border.width: 0
                                             border.color: hexInput2.activeFocus ? shell.accent : shell.surfaceBorder
 
@@ -6050,7 +6507,7 @@ function getCurrentThemeStateKey() {
                                                 id: hexInput2
                                                 anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8
                                                 verticalAlignment: Text.AlignVCenter
-                                                color: shell.textPrimary; font.pixelSize: 11; font.family: "monospace"
+                                                color: shell.textPrimary; font.pixelSize: 11; font.family: "SF Pro Rounded"
                                                 text: shell.activeColorHex
                                                 onTextEdited: {
                                                     shell.updateActiveColor(text);
@@ -6066,7 +6523,7 @@ function getCurrentThemeStateKey() {
 
                                         // Eyedropper Button
                                         Rectangle {
-                                            width: 80; height: 32; radius: 8
+                                            width: 80; height: 32; radius: PowerProfileService.quickislandGameMode ? 0 : 8
                                             color: pickerMa2.containsMouse ? shell.accent : shell.surfaceBright
                                             Behavior on color { ColorAnimation { duration: shell.animFast } }
 
@@ -6126,7 +6583,10 @@ function getCurrentThemeStateKey() {
                         clip: true; boundsBehavior: Flickable.StopAtBounds
 
                         Column {
-                            id: personalizationCol; width: parent.width; spacing: 12
+                            id: personalizationCol
+                            width: parent.width
+                            x: 0
+                            spacing: 12
 
                             // Header
                             Row {
@@ -6154,7 +6614,7 @@ function getCurrentThemeStateKey() {
                                 Rectangle {
                                     width: (parent.width - 10) / 2
                                     height: 64
-                                    radius: 14
+                                    radius: PowerProfileService.quickislandGameMode ? 0 : 14
                                     color: wallpaperCardMa.containsMouse ? shell.surfaceBright : shell.surfaceAlt
                                     border.width: 0
                                     border.color: shell.surfaceBorder
@@ -6169,7 +6629,7 @@ function getCurrentThemeStateKey() {
                                             id: wpThumbCard
                                             width: 40
                                             height: 40
-                                            radius: 8
+                                            radius: PowerProfileService.quickislandGameMode ? 0 : 8
                                             color: shell.surfaceBright
                                             anchors.verticalCenter: parent.verticalCenter
 
@@ -6196,7 +6656,11 @@ function getCurrentThemeStateKey() {
                                                 Image {
                                                     id: personalizationWallpaperPreview
                                                     anchors.fill: parent
-                                                    source: (panelWindow && panelWindow.modelData) ? "file://" + WallpaperService.getWallpaper(panelWindow.modelData.name) : ""
+                                                    source: {
+                                                        if (!panelWindow || !panelWindow.modelData) return "";
+                                                        var wp = WallpaperService.getWallpaper(panelWindow.modelData.name);
+                                                        return (wp && wp !== "/" && wp.length > 1) ? ("file://" + wp) : "";
+                                                    }
                                                     fillMode: Image.PreserveAspectCrop
                                                     visible: source.toString() !== ""
 
@@ -6258,7 +6722,7 @@ function getCurrentThemeStateKey() {
                                 Rectangle {
                                     width: (parent.width - 10) / 2
                                     height: 64
-                                    radius: 14
+                                    radius: PowerProfileService.quickislandGameMode ? 0 : 14
                                     color: themePickerCardMa.containsMouse ? shell.surfaceBright : shell.surfaceAlt
                                     border.width: 0
                                     border.color: shell.surfaceBorder
@@ -6272,7 +6736,7 @@ function getCurrentThemeStateKey() {
                                         Rectangle {
                                             width: 40
                                             height: 40
-                                            radius: 8
+                                            radius: PowerProfileService.quickislandGameMode ? 0 : 8
                                             color: shell.surfaceBright
                                             anchors.verticalCenter: parent.verticalCenter
 
@@ -6310,9 +6774,9 @@ function getCurrentThemeStateKey() {
                                                     Rectangle {
                                                         width: 9.5
                                                         height: 9.5
-                                                        radius: 4.75
+                                                        radius: PowerProfileService.quickislandGameMode ? 0 : 4.75
                                                         color: modelData
-                                                        Behavior on color { ColorAnimation { duration: 180 } }
+                                                        Behavior on color { ColorAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 180 } }
                                                     }
                                                 }
                                             }
@@ -6352,7 +6816,7 @@ function getCurrentThemeStateKey() {
 
                             // 2. Color Theme Card
                             Rectangle {
-                                width: parent.width; height: 105; radius: 14; color: shell.surfaceAlt
+                                width: parent.width; height: 105; radius: PowerProfileService.quickislandGameMode ? 0 : 14; color: shell.surfaceAlt
                                 border.width: 0; border.color: shell.surfaceBorder
 
                                 Column {
@@ -6370,7 +6834,7 @@ function getCurrentThemeStateKey() {
 
                                         // Wallpaper Button
                                         Rectangle {
-                                            width: (parent.width - 8) / 2; height: parent.height; radius: 8
+                                            width: (parent.width - 8) / 2; height: parent.height; radius: PowerProfileService.quickislandGameMode ? 0 : 8
                                             color: shell.themeMode === "wallpaper" ? shell.accent : shell.surfaceBright
                                             border.width: 0; border.color: shell.themeMode === "wallpaper" ? "transparent" : shell.surfaceBorder
 
@@ -6395,7 +6859,7 @@ function getCurrentThemeStateKey() {
 
                                         // Custom Button
                                         Rectangle {
-                                            width: (parent.width - 8) / 2; height: parent.height; radius: 8
+                                            width: (parent.width - 8) / 2; height: parent.height; radius: PowerProfileService.quickislandGameMode ? 0 : 8
                                             color: shell.themeMode === "custom" ? shell.accent : shell.surfaceBright
                                             border.width: 0; border.color: shell.themeMode === "custom" ? "transparent" : shell.surfaceBorder
 
@@ -6437,12 +6901,12 @@ function getCurrentThemeStateKey() {
 
                             // 3. Themed Icons Toggle Card
                             Rectangle {
-                                width: parent.width; height: 50; radius: 14; color: shell.surfaceAlt
+                                width: parent.width; height: 50; radius: PowerProfileService.quickislandGameMode ? 0 : 14; color: shell.surfaceAlt
                                 border.width: 0; border.color: shell.surfaceBorder
 
                                 Rectangle {
                                     id: themedIconsIconBox
-                                    width: 28; height: 28; radius: 14
+                                    width: 28; height: 28; radius: PowerProfileService.quickislandGameMode ? 0 : 14
                                     anchors.left: parent.left; anchors.leftMargin: 12
                                     anchors.verticalCenter: parent.verticalCenter
                                     color: Settings.data.colorSchemes.themedIcons ? shell.accent : shell.surfaceBright
@@ -6489,12 +6953,12 @@ function getCurrentThemeStateKey() {
 
                             // 4. Liquid Glass Toggle Card
                             Rectangle {
-                                width: parent.width; height: 50; radius: 14; color: shell.surfaceAlt
+                                width: parent.width; height: 50; radius: PowerProfileService.quickislandGameMode ? 0 : 14; color: shell.surfaceAlt
                                 border.width: 0; border.color: shell.surfaceBorder
 
                                 Rectangle {
                                     id: liquidGlassIconBox
-                                    width: 28; height: 28; radius: 14
+                                    width: 28; height: 28; radius: PowerProfileService.quickislandGameMode ? 0 : 14
                                     anchors.left: parent.left; anchors.leftMargin: 12
                                     anchors.verticalCenter: parent.verticalCenter
                                     color: (Settings.data.colorSchemes.hyprglass || Settings.data.colorSchemes.hyprglassIsland) ? shell.accent : shell.surfaceBright
@@ -6536,7 +7000,7 @@ function getCurrentThemeStateKey() {
                                 // Settings Button (sits immediately to the left of the toggle)
                                 Rectangle {
                                     id: liquidGlassSettingsBtn
-                                    width: 28; height: 28; radius: 14; color: "transparent"
+                                    width: 28; height: 28; radius: PowerProfileService.quickislandGameMode ? 0 : 14; color: "transparent"
                                     anchors.right: liquidGlassToggle.left; anchors.rightMargin: 6
                                     anchors.verticalCenter: parent.verticalCenter
 
@@ -6568,12 +7032,12 @@ function getCurrentThemeStateKey() {
 
                             // 5. Infinite Canvas WM Toggle Card
                             Rectangle {
-                                width: parent.width; height: 50; radius: 14; color: shell.surfaceAlt
+                                width: parent.width; height: 50; radius: PowerProfileService.quickislandGameMode ? 0 : 14; color: shell.surfaceAlt
                                 border.width: 0; border.color: shell.surfaceBorder
 
                                 Rectangle {
                                     id: spatialWmIconBox
-                                    width: 28; height: 28; radius: 14
+                                    width: 28; height: 28; radius: PowerProfileService.quickislandGameMode ? 0 : 14
                                     anchors.left: parent.left; anchors.leftMargin: 12
                                     anchors.verticalCenter: parent.verticalCenter
                                     color: shell.spatialWmEnabled ? shell.accent : shell.surfaceBright
@@ -6631,13 +7095,13 @@ function getCurrentThemeStateKey() {
                         color: Qt.rgba(0, 0, 0, 0.5)
                         opacity: personalizationView.showWallpaperConfirm ? 1 : 0
                         visible: opacity > 0
-                        Behavior on opacity { NumberAnimation { duration: 200 } }
+                        Behavior on opacity { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 200 } }
                         
                         // Block clicks
                         MouseArea { anchors.fill: parent; onClicked: personalizationView.showWallpaperConfirm = false }
 
                         Rectangle {
-                            width: 300; height: 160; radius: 16
+                            width: 300; height: 160; radius: PowerProfileService.quickislandGameMode ? 0 : 16
                             color: shell.surfaceAlt
                             border.width: 0; border.color: shell.surfaceBorder
                             anchors.centerIn: parent
@@ -6650,12 +7114,12 @@ function getCurrentThemeStateKey() {
                                 Row {
                                     spacing: 12; anchors.horizontalCenter: parent.horizontalCenter
                                     Rectangle {
-                                        width: 100; height: 32; radius: 8; color: shell.surfaceBright
+                                        width: 100; height: 32; radius: PowerProfileService.quickislandGameMode ? 0 : 8; color: shell.surfaceBright
                                         Text { anchors.centerIn: parent; text: "Cancel"; color: shell.textPrimary; font.pixelSize: 11; font.weight: Font.Bold }
                                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: personalizationView.showWallpaperConfirm = false }
                                     }
                                     Rectangle {
-                                        width: 100; height: 32; radius: 8; color: shell.red
+                                        width: 100; height: 32; radius: PowerProfileService.quickislandGameMode ? 0 : 8; color: shell.red
                                         Text { anchors.centerIn: parent; text: "Reset"; color: "#11111b"; font.pixelSize: 11; font.weight: Font.Bold }
                                         MouseArea {
                                             anchors.fill: parent; cursorShape: Qt.PointingHandCursor
@@ -6695,7 +7159,10 @@ function getCurrentThemeStateKey() {
                         clip: true; boundsBehavior: Flickable.StopAtBounds
 
                         Column {
-                            id: glassCol; width: parent.width; spacing: 12
+                            id: glassCol
+                            width: PowerProfileService.quickislandGameMode ? GameModeMenuLayout.contentWidthFor(parent.width) : parent.width
+                            x: PowerProfileService.quickislandGameMode ? GameModeMenuLayout.centeredContentX(parent.width, width) : 0
+                            spacing: 12
                             // Header
                             Row {
                                 width: parent.width; spacing: 10
@@ -6715,22 +7182,22 @@ function getCurrentThemeStateKey() {
 
                             // Style Selector
                             Rectangle {
-                                width: parent.width; height: 32; radius: 8; color: shell.surfaceBright
+                                width: parent.width; height: 32; radius: PowerProfileService.quickislandGameMode ? 0 : 8; color: shell.surfaceBright
                                 Row {
                                     anchors.fill: parent; anchors.margins: 4; spacing: 4
                                     
                                     Rectangle {
-                                        width: (parent.width - 4) / 2; height: parent.height; radius: 6
+                                        width: (parent.width - 4) / 2; height: parent.height; radius: PowerProfileService.quickislandGameMode ? 0 : 6
                                         color: Settings.data.colorSchemes.hyprglassStyle === "liquid" ? shell.accent : "transparent"
-                                        Behavior on color { ColorAnimation { duration: 150 } }
+                                        Behavior on color { ColorAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 150 } }
                                         Text { anchors.centerIn: parent; text: "Liquid"; color: Settings.data.colorSchemes.hyprglassStyle === "liquid" ? shell.surface : shell.textPrimary; font.pixelSize: 11; font.weight: Font.Bold }
                                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: Settings.data.colorSchemes.hyprglassStyle = "liquid" }
                                     }
                                     
                                     Rectangle {
-                                        width: (parent.width - 4) / 2; height: parent.height; radius: 6
+                                        width: (parent.width - 4) / 2; height: parent.height; radius: PowerProfileService.quickislandGameMode ? 0 : 6
                                         color: Settings.data.colorSchemes.hyprglassStyle === "frosted" ? shell.accent : "transparent"
-                                        Behavior on color { ColorAnimation { duration: 150 } }
+                                        Behavior on color { ColorAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 150 } }
                                         Text { anchors.centerIn: parent; text: "Frosted"; color: Settings.data.colorSchemes.hyprglassStyle === "frosted" ? shell.surface : shell.textPrimary; font.pixelSize: 11; font.weight: Font.Bold }
                                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: Settings.data.colorSchemes.hyprglassStyle = "frosted" }
                                     }
@@ -6747,19 +7214,19 @@ function getCurrentThemeStateKey() {
                                 Row {
                                     anchors.verticalCenter: parent.verticalCenter; anchors.right: parent.right; spacing: 4
                                     Rectangle {
-                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        width: 20; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 4; color: shell.surfaceAlt
                                         Text { text: "-"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
                                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { var val = Math.max(0.0, Settings.data.colorSchemes.hyprglassBlur - 0.05); Settings.data.colorSchemes.hyprglassBlur = val; blurInput.text = val.toFixed(2); shell.applyHyprglassSettings(Settings.data.colorSchemes.hyprglassBlur, Settings.data.colorSchemes.hyprglassRefraction, Settings.data.colorSchemes.hyprglassChroma, Settings.data.colorSchemes.hyprglassEdge); } }
                                     }
                                     Rectangle {
-                                        width: 60; height: 26; radius: 6; color: shell.surfaceBright
-                                        TextInput { id: blurInput; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignCenter; color: shell.textPrimary; font.pixelSize: 11; font.family: "monospace"; text: Settings.data.colorSchemes.hyprglassBlur.toFixed(2); selectByMouse: true; inputMethodHints: Qt.ImhFormattedNumbersOnly; validator: DoubleValidator { bottom: 0.0; top: 1.0; decimals: 2 }
+                                        width: 60; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 6; color: shell.surfaceBright
+                                        TextInput { id: blurInput; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignCenter; color: shell.textPrimary; font.pixelSize: 11; font.family: "SF Pro Rounded"; text: Settings.data.colorSchemes.hyprglassBlur.toFixed(2); selectByMouse: true; inputMethodHints: Qt.ImhFormattedNumbersOnly; validator: DoubleValidator { bottom: 0.0; top: 1.0; decimals: 2 }
                                             onEditingFinished: { var val = parseFloat(text); if (isNaN(val)) val = 0.0; val = Math.max(0.0, Math.min(1.0, val)); text = val.toFixed(2); Settings.data.colorSchemes.hyprglassBlur = val; shell.applyHyprglassSettings(Settings.data.colorSchemes.hyprglassBlur, Settings.data.colorSchemes.hyprglassRefraction, Settings.data.colorSchemes.hyprglassChroma, Settings.data.colorSchemes.hyprglassEdge); }
                                             Connections { target: Settings.data.colorSchemes; function onHyprglassBlurChanged() { blurInput.text = Settings.data.colorSchemes.hyprglassBlur.toFixed(2); } }
                                         }
                                     }
                                     Rectangle {
-                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        width: 20; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 4; color: shell.surfaceAlt
                                         Text { text: "+"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
                                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { var val = Math.min(1.0, Settings.data.colorSchemes.hyprglassBlur + 0.05); Settings.data.colorSchemes.hyprglassBlur = val; blurInput.text = val.toFixed(2); shell.applyHyprglassSettings(Settings.data.colorSchemes.hyprglassBlur, Settings.data.colorSchemes.hyprglassRefraction, Settings.data.colorSchemes.hyprglassChroma, Settings.data.colorSchemes.hyprglassEdge); } }
                                     }
@@ -6773,19 +7240,19 @@ function getCurrentThemeStateKey() {
                                 Row {
                                     anchors.verticalCenter: parent.verticalCenter; anchors.right: parent.right; spacing: 4
                                     Rectangle {
-                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        width: 20; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 4; color: shell.surfaceAlt
                                         Text { text: "-"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
                                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { var val = Math.max(0.0, Settings.data.colorSchemes.hyprglassRefraction - 0.05); Settings.data.colorSchemes.hyprglassRefraction = val; refrInput.text = val.toFixed(2); shell.applyHyprglassSettings(Settings.data.colorSchemes.hyprglassBlur, Settings.data.colorSchemes.hyprglassRefraction, Settings.data.colorSchemes.hyprglassChroma, Settings.data.colorSchemes.hyprglassEdge); } }
                                     }
                                     Rectangle {
-                                        width: 60; height: 26; radius: 6; color: shell.surfaceBright
-                                        TextInput { id: refrInput; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignCenter; color: shell.textPrimary; font.pixelSize: 11; font.family: "monospace"; text: Settings.data.colorSchemes.hyprglassRefraction.toFixed(2); selectByMouse: true; inputMethodHints: Qt.ImhFormattedNumbersOnly; validator: DoubleValidator { bottom: 0.0; top: 1.0; decimals: 2 }
+                                        width: 60; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 6; color: shell.surfaceBright
+                                        TextInput { id: refrInput; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignCenter; color: shell.textPrimary; font.pixelSize: 11; font.family: "SF Pro Rounded"; text: Settings.data.colorSchemes.hyprglassRefraction.toFixed(2); selectByMouse: true; inputMethodHints: Qt.ImhFormattedNumbersOnly; validator: DoubleValidator { bottom: 0.0; top: 1.0; decimals: 2 }
                                             onEditingFinished: { var val = parseFloat(text); if (isNaN(val)) val = 0.0; val = Math.max(0.0, Math.min(1.0, val)); text = val.toFixed(2); Settings.data.colorSchemes.hyprglassRefraction = val; shell.applyHyprglassSettings(Settings.data.colorSchemes.hyprglassBlur, Settings.data.colorSchemes.hyprglassRefraction, Settings.data.colorSchemes.hyprglassChroma, Settings.data.colorSchemes.hyprglassEdge); }
                                             Connections { target: Settings.data.colorSchemes; function onHyprglassRefractionChanged() { refrInput.text = Settings.data.colorSchemes.hyprglassRefraction.toFixed(2); } }
                                         }
                                     }
                                     Rectangle {
-                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        width: 20; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 4; color: shell.surfaceAlt
                                         Text { text: "+"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
                                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { var val = Math.min(1.0, Settings.data.colorSchemes.hyprglassRefraction + 0.05); Settings.data.colorSchemes.hyprglassRefraction = val; refrInput.text = val.toFixed(2); shell.applyHyprglassSettings(Settings.data.colorSchemes.hyprglassBlur, Settings.data.colorSchemes.hyprglassRefraction, Settings.data.colorSchemes.hyprglassChroma, Settings.data.colorSchemes.hyprglassEdge); } }
                                     }
@@ -6799,19 +7266,19 @@ function getCurrentThemeStateKey() {
                                 Row {
                                     anchors.verticalCenter: parent.verticalCenter; anchors.right: parent.right; spacing: 4
                                     Rectangle {
-                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        width: 20; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 4; color: shell.surfaceAlt
                                         Text { text: "-"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
                                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { var val = Math.max(0.0, Settings.data.colorSchemes.hyprglassChroma - 0.05); Settings.data.colorSchemes.hyprglassChroma = val; chromaInput.text = val.toFixed(2); shell.applyHyprglassSettings(Settings.data.colorSchemes.hyprglassBlur, Settings.data.colorSchemes.hyprglassRefraction, Settings.data.colorSchemes.hyprglassChroma, Settings.data.colorSchemes.hyprglassEdge); } }
                                     }
                                     Rectangle {
-                                        width: 60; height: 26; radius: 6; color: shell.surfaceBright
-                                        TextInput { id: chromaInput; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignCenter; color: shell.textPrimary; font.pixelSize: 11; font.family: "monospace"; text: Settings.data.colorSchemes.hyprglassChroma.toFixed(2); selectByMouse: true; inputMethodHints: Qt.ImhFormattedNumbersOnly; validator: DoubleValidator { bottom: 0.0; top: 1.0; decimals: 2 }
+                                        width: 60; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 6; color: shell.surfaceBright
+                                        TextInput { id: chromaInput; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignCenter; color: shell.textPrimary; font.pixelSize: 11; font.family: "SF Pro Rounded"; text: Settings.data.colorSchemes.hyprglassChroma.toFixed(2); selectByMouse: true; inputMethodHints: Qt.ImhFormattedNumbersOnly; validator: DoubleValidator { bottom: 0.0; top: 1.0; decimals: 2 }
                                             onEditingFinished: { var val = parseFloat(text); if (isNaN(val)) val = 0.0; val = Math.max(0.0, Math.min(1.0, val)); text = val.toFixed(2); Settings.data.colorSchemes.hyprglassChroma = val; shell.applyHyprglassSettings(Settings.data.colorSchemes.hyprglassBlur, Settings.data.colorSchemes.hyprglassRefraction, Settings.data.colorSchemes.hyprglassChroma, Settings.data.colorSchemes.hyprglassEdge); }
                                             Connections { target: Settings.data.colorSchemes; function onHyprglassChromaChanged() { chromaInput.text = Settings.data.colorSchemes.hyprglassChroma.toFixed(2); } }
                                         }
                                     }
                                     Rectangle {
-                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        width: 20; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 4; color: shell.surfaceAlt
                                         Text { text: "+"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
                                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { var val = Math.min(1.0, Settings.data.colorSchemes.hyprglassChroma + 0.05); Settings.data.colorSchemes.hyprglassChroma = val; chromaInput.text = val.toFixed(2); shell.applyHyprglassSettings(Settings.data.colorSchemes.hyprglassBlur, Settings.data.colorSchemes.hyprglassRefraction, Settings.data.colorSchemes.hyprglassChroma, Settings.data.colorSchemes.hyprglassEdge); } }
                                     }
@@ -6825,19 +7292,19 @@ function getCurrentThemeStateKey() {
                                 Row {
                                     anchors.verticalCenter: parent.verticalCenter; anchors.right: parent.right; spacing: 4
                                     Rectangle {
-                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        width: 20; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 4; color: shell.surfaceAlt
                                         Text { text: "-"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
                                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { var val = Math.max(0.0, Settings.data.colorSchemes.hyprglassEdge - 0.05); Settings.data.colorSchemes.hyprglassEdge = val; edgeInput.text = val.toFixed(2); shell.applyHyprglassSettings(Settings.data.colorSchemes.hyprglassBlur, Settings.data.colorSchemes.hyprglassRefraction, Settings.data.colorSchemes.hyprglassChroma, Settings.data.colorSchemes.hyprglassEdge); } }
                                     }
                                     Rectangle {
-                                        width: 60; height: 26; radius: 6; color: shell.surfaceBright
-                                        TextInput { id: edgeInput; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignCenter; color: shell.textPrimary; font.pixelSize: 11; font.family: "monospace"; text: Settings.data.colorSchemes.hyprglassEdge.toFixed(2); selectByMouse: true; inputMethodHints: Qt.ImhFormattedNumbersOnly; validator: DoubleValidator { bottom: 0.0; top: 1.0; decimals: 2 }
+                                        width: 60; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 6; color: shell.surfaceBright
+                                        TextInput { id: edgeInput; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignCenter; color: shell.textPrimary; font.pixelSize: 11; font.family: "SF Pro Rounded"; text: Settings.data.colorSchemes.hyprglassEdge.toFixed(2); selectByMouse: true; inputMethodHints: Qt.ImhFormattedNumbersOnly; validator: DoubleValidator { bottom: 0.0; top: 1.0; decimals: 2 }
                                             onEditingFinished: { var val = parseFloat(text); if (isNaN(val)) val = 0.0; val = Math.max(0.0, Math.min(1.0, val)); text = val.toFixed(2); Settings.data.colorSchemes.hyprglassEdge = val; shell.applyHyprglassSettings(Settings.data.colorSchemes.hyprglassBlur, Settings.data.colorSchemes.hyprglassRefraction, Settings.data.colorSchemes.hyprglassChroma, Settings.data.colorSchemes.hyprglassEdge); }
                                             Connections { target: Settings.data.colorSchemes; function onHyprglassEdgeChanged() { edgeInput.text = Settings.data.colorSchemes.hyprglassEdge.toFixed(2); } }
                                         }
                                     }
                                     Rectangle {
-                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        width: 20; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 4; color: shell.surfaceAlt
                                         Text { text: "+"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
                                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { var val = Math.min(1.0, Settings.data.colorSchemes.hyprglassEdge + 0.05); Settings.data.colorSchemes.hyprglassEdge = val; edgeInput.text = val.toFixed(2); shell.applyHyprglassSettings(Settings.data.colorSchemes.hyprglassBlur, Settings.data.colorSchemes.hyprglassRefraction, Settings.data.colorSchemes.hyprglassChroma, Settings.data.colorSchemes.hyprglassEdge); } }
                                     }
@@ -6851,7 +7318,7 @@ function getCurrentThemeStateKey() {
                                 Row {
                                     anchors.verticalCenter: parent.verticalCenter; anchors.right: parent.right; spacing: 4
                                     Rectangle {
-                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        width: 20; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 4; color: shell.surfaceAlt
                                         Text { text: "-"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
                                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { 
                                             var isFrosted = Settings.data.colorSchemes.hyprglassStyle === "frosted";
@@ -6863,8 +7330,8 @@ function getCurrentThemeStateKey() {
                                         } }
                                     }
                                     Rectangle {
-                                        width: 60; height: 26; radius: 6; color: shell.surfaceBright
-                                        TextInput { id: darknessInput; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignCenter; color: shell.textPrimary; font.pixelSize: 11; font.family: "monospace"; text: (Settings.data.colorSchemes.hyprglassStyle === "frosted" ? Settings.data.colorSchemes.frostedOpacity : Settings.data.colorSchemes.liquidOpacity).toFixed(2); selectByMouse: true; inputMethodHints: Qt.ImhFormattedNumbersOnly; validator: DoubleValidator { bottom: 0.0; top: 1.0; decimals: 2 }
+                                        width: 60; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 6; color: shell.surfaceBright
+                                        TextInput { id: darknessInput; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignCenter; color: shell.textPrimary; font.pixelSize: 11; font.family: "SF Pro Rounded"; text: (Settings.data.colorSchemes.hyprglassStyle === "frosted" ? Settings.data.colorSchemes.frostedOpacity : Settings.data.colorSchemes.liquidOpacity).toFixed(2); selectByMouse: true; inputMethodHints: Qt.ImhFormattedNumbersOnly; validator: DoubleValidator { bottom: 0.0; top: 1.0; decimals: 2 }
                                             onEditingFinished: { 
                                                 var val = parseFloat(text); if (isNaN(val)) val = 0.0; val = Math.max(0.0, Math.min(1.0, val)); text = val.toFixed(2); 
                                                 if (Settings.data.colorSchemes.hyprglassStyle === "frosted") Settings.data.colorSchemes.frostedOpacity = val;
@@ -6878,7 +7345,7 @@ function getCurrentThemeStateKey() {
                                         }
                                     }
                                     Rectangle {
-                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        width: 20; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 4; color: shell.surfaceAlt
                                         Text { text: "+"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
                                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { 
                                             var isFrosted = Settings.data.colorSchemes.hyprglassStyle === "frosted";
@@ -6899,7 +7366,7 @@ function getCurrentThemeStateKey() {
                                 Row {
                                     anchors.verticalCenter: parent.verticalCenter; anchors.right: parent.right; spacing: 4
                                     Rectangle {
-                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        width: 20; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 4; color: shell.surfaceAlt
                                         Text { text: "-"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
                                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { 
                                             var isFrosted = Settings.data.colorSchemes.hyprglassStyle === "frosted";
@@ -6911,8 +7378,8 @@ function getCurrentThemeStateKey() {
                                         } }
                                     }
                                     Rectangle {
-                                        width: 60; height: 26; radius: 6; color: shell.surfaceBright
-                                        TextInput { id: gradOpInput; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignCenter; color: shell.textPrimary; font.pixelSize: 11; font.family: "monospace"; text: (Settings.data.colorSchemes.hyprglassStyle === "frosted" ? Settings.data.colorSchemes.frostedGradientOpacity : Settings.data.colorSchemes.liquidGradientOpacity).toFixed(2); selectByMouse: true; inputMethodHints: Qt.ImhFormattedNumbersOnly; validator: DoubleValidator { bottom: 0.0; top: 1.0; decimals: 2 }
+                                        width: 60; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 6; color: shell.surfaceBright
+                                        TextInput { id: gradOpInput; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignCenter; color: shell.textPrimary; font.pixelSize: 11; font.family: "SF Pro Rounded"; text: (Settings.data.colorSchemes.hyprglassStyle === "frosted" ? Settings.data.colorSchemes.frostedGradientOpacity : Settings.data.colorSchemes.liquidGradientOpacity).toFixed(2); selectByMouse: true; inputMethodHints: Qt.ImhFormattedNumbersOnly; validator: DoubleValidator { bottom: 0.0; top: 1.0; decimals: 2 }
                                             onEditingFinished: { 
                                                 var val = parseFloat(text); if (isNaN(val)) val = 0.0; val = Math.max(0.0, Math.min(1.0, val)); text = val.toFixed(2); 
                                                 if (Settings.data.colorSchemes.hyprglassStyle === "frosted") Settings.data.colorSchemes.frostedGradientOpacity = val;
@@ -6926,7 +7393,7 @@ function getCurrentThemeStateKey() {
                                         }
                                     }
                                     Rectangle {
-                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        width: 20; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 4; color: shell.surfaceAlt
                                         Text { text: "+"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
                                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { 
                                             var isFrosted = Settings.data.colorSchemes.hyprglassStyle === "frosted";
@@ -6947,7 +7414,7 @@ function getCurrentThemeStateKey() {
                                 Row {
                                     anchors.verticalCenter: parent.verticalCenter; anchors.right: parent.right; spacing: 4
                                     Rectangle {
-                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        width: 20; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 4; color: shell.surfaceAlt
                                         Text { text: "-"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
                                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { 
                                             var isFrosted = Settings.data.colorSchemes.hyprglassStyle === "frosted";
@@ -6959,8 +7426,8 @@ function getCurrentThemeStateKey() {
                                         } }
                                     }
                                     Rectangle {
-                                        width: 60; height: 26; radius: 6; color: shell.surfaceBright
-                                        TextInput { id: gradStopInput; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignCenter; color: shell.textPrimary; font.pixelSize: 11; font.family: "monospace"; text: (Settings.data.colorSchemes.hyprglassStyle === "frosted" ? Settings.data.colorSchemes.frostedGradientStop : Settings.data.colorSchemes.liquidGradientStop).toFixed(2); selectByMouse: true; inputMethodHints: Qt.ImhFormattedNumbersOnly; validator: DoubleValidator { bottom: 0.0; top: 1.0; decimals: 2 }
+                                        width: 60; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 6; color: shell.surfaceBright
+                                        TextInput { id: gradStopInput; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignCenter; color: shell.textPrimary; font.pixelSize: 11; font.family: "SF Pro Rounded"; text: (Settings.data.colorSchemes.hyprglassStyle === "frosted" ? Settings.data.colorSchemes.frostedGradientStop : Settings.data.colorSchemes.liquidGradientStop).toFixed(2); selectByMouse: true; inputMethodHints: Qt.ImhFormattedNumbersOnly; validator: DoubleValidator { bottom: 0.0; top: 1.0; decimals: 2 }
                                             onEditingFinished: { 
                                                 var val = parseFloat(text); if (isNaN(val)) val = 0.0; val = Math.max(0.0, Math.min(1.0, val)); text = val.toFixed(2); 
                                                 if (Settings.data.colorSchemes.hyprglassStyle === "frosted") Settings.data.colorSchemes.frostedGradientStop = val;
@@ -6974,7 +7441,7 @@ function getCurrentThemeStateKey() {
                                         }
                                     }
                                     Rectangle {
-                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        width: 20; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 4; color: shell.surfaceAlt
                                         Text { text: "+"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
                                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { 
                                             var isFrosted = Settings.data.colorSchemes.hyprglassStyle === "frosted";
@@ -6994,16 +7461,16 @@ function getCurrentThemeStateKey() {
                                 Text { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; text: "Horizontal Gradient"; color: shell.textPrimary; font.pixelSize: 11; font.weight: Font.Bold }
                                 Rectangle {
                                     anchors.verticalCenter: parent.verticalCenter; anchors.right: parent.right
-                                    width: 44; height: 24; radius: 12
+                                    width: 44; height: 24; radius: PowerProfileService.quickislandGameMode ? 0 : 12
                                     property bool isHoriz: Settings.data.colorSchemes.hyprglassStyle === "frosted" ? Settings.data.colorSchemes.frostedGradientHorizontal : Settings.data.colorSchemes.liquidGradientHorizontal
                                     color: isHoriz ? shell.accent : shell.surfaceAlt
-                                    Behavior on color { ColorAnimation { duration: 150 } }
+                                    Behavior on color { ColorAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 150 } }
                                     Rectangle {
-                                        width: 20; height: 20; radius: 10
+                                        width: 20; height: 20; radius: PowerProfileService.quickislandGameMode ? 0 : 10
                                         anchors.verticalCenter: parent.verticalCenter
                                         x: parent.isHoriz ? parent.width - width - 2 : 2
                                         color: "#ffffff"
-                                        Behavior on x { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+                                        Behavior on x { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 150; easing.type: Easing.OutCubic } }
                                     }
                                     MouseArea {
                                         anchors.fill: parent; cursorShape: Qt.PointingHandCursor
@@ -7022,7 +7489,7 @@ function getCurrentThemeStateKey() {
                             Row {
                                 width: parent.width; spacing: 12; height: 32
                                 Rectangle {
-                                    width: (parent.width - 12) / 2; height: parent.height; radius: 8; color: shell.surfaceBright
+                                    width: (parent.width - 12) / 2; height: parent.height; radius: PowerProfileService.quickislandGameMode ? 0 : 8; color: shell.surfaceBright
                                     Text { anchors.centerIn: parent; text: "Reset to Default"; color: shell.textPrimary; font.pixelSize: 10; font.weight: Font.Bold }
                                     MouseArea {
                                         anchors.fill: parent; cursorShape: Qt.PointingHandCursor
@@ -7045,7 +7512,7 @@ function getCurrentThemeStateKey() {
                                     }
                                 }
                                 Rectangle {
-                                    width: (parent.width - 12) / 2; height: parent.height; radius: 8; color: shell.accent
+                                    width: (parent.width - 12) / 2; height: parent.height; radius: PowerProfileService.quickislandGameMode ? 0 : 8; color: shell.accent
                                     Text { anchors.centerIn: parent; text: "Close"; color: shell.surface; font.pixelSize: 10; font.weight: Font.Bold }
                                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: shell.setState(12) }
                                 }
@@ -7072,7 +7539,10 @@ function getCurrentThemeStateKey() {
                         clip: true; boundsBehavior: Flickable.StopAtBounds
 
                         Column {
-                            id: barIslandCol; width: parent.width; spacing: 12
+                            id: barIslandCol
+                            width: PowerProfileService.quickislandGameMode ? GameModeMenuLayout.contentWidthFor(parent.width) : parent.width
+                            x: PowerProfileService.quickislandGameMode ? GameModeMenuLayout.centeredContentX(parent.width, width) : 0
+                            spacing: 12
                             // Header
                             Row {
                                 width: parent.width; spacing: 10
@@ -7095,16 +7565,16 @@ function getCurrentThemeStateKey() {
                                 width: parent.width; height: 32
                                 Text { text: "Notch mode"; color: "#ffffff"; font.pixelSize: 11; font.weight: Font.Bold; anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter }
                                 Rectangle {
-                                    width: 44; height: 24; radius: 12
+                                    width: 44; height: 24; radius: PowerProfileService.quickislandGameMode ? 0 : 12
                                     anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
                                     color: Settings.data.islandConfig.notchMode ? shell.accent : shell.surfaceAlt
-                                    Behavior on color { ColorAnimation { duration: 150 } }
+                                    Behavior on color { ColorAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 150 } }
                                     Rectangle {
-                                        width: 20; height: 20; radius: 10
+                                        width: 20; height: 20; radius: PowerProfileService.quickislandGameMode ? 0 : 10
                                         anchors.verticalCenter: parent.verticalCenter
                                         x: Settings.data.islandConfig.notchMode ? parent.width - width - 2 : 2
                                         color: "#ffffff"
-                                        Behavior on x { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+                                        Behavior on x { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 150; easing.type: Easing.OutCubic } }
                                     }
                                     MouseArea {
                                         anchors.fill: parent; cursorShape: Qt.PointingHandCursor
@@ -7120,19 +7590,19 @@ function getCurrentThemeStateKey() {
                                 Row {
                                     anchors.verticalCenter: parent.verticalCenter; anchors.right: parent.right; spacing: 4
                                     Rectangle {
-                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        width: 20; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 4; color: shell.surfaceAlt
                                         Text { text: "-"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
                                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { var val = Math.max(0, Settings.data.islandConfig.notchFlare - 1); Settings.data.islandConfig.notchFlare = val; flareInput.text = val; } }
                                     }
                                     Rectangle {
-                                        width: 60; height: 26; radius: 6; color: shell.surfaceBright
-                                        TextInput { id: flareInput; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignCenter; color: shell.textPrimary; font.pixelSize: 11; font.family: "monospace"; text: Settings.data.islandConfig.notchFlare; selectByMouse: true; inputMethodHints: Qt.ImhFormattedNumbersOnly; validator: IntValidator { bottom: 0; top: 100 }
+                                        width: 60; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 6; color: shell.surfaceBright
+                                        TextInput { id: flareInput; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignCenter; color: shell.textPrimary; font.pixelSize: 11; font.family: "SF Pro Rounded"; text: Settings.data.islandConfig.notchFlare; selectByMouse: true; inputMethodHints: Qt.ImhFormattedNumbersOnly; validator: IntValidator { bottom: 0; top: 100 }
                                             onEditingFinished: { var val = parseInt(text); if (isNaN(val)) val = 0; val = Math.max(0, val); text = val; Settings.data.islandConfig.notchFlare = val; }
                                             Connections { target: Settings.data.islandConfig; function onNotchFlareChanged() { flareInput.text = Settings.data.islandConfig.notchFlare; } }
                                         }
                                     }
                                     Rectangle {
-                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        width: 20; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 4; color: shell.surfaceAlt
                                         Text { text: "+"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
                                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { var val = Settings.data.islandConfig.notchFlare + 1; Settings.data.islandConfig.notchFlare = val; flareInput.text = val; } }
                                     }
@@ -7146,19 +7616,19 @@ function getCurrentThemeStateKey() {
                                 Row {
                                     anchors.verticalCenter: parent.verticalCenter; anchors.right: parent.right; spacing: 4
                                     Rectangle {
-                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        width: 20; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 4; color: shell.surfaceAlt
                                         Text { text: "-"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
                                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { var val = Math.max(10, Settings.data.islandConfig.barHeight - 1); Settings.data.islandConfig.barHeight = val; barHeightInput.text = val; } }
                                     }
                                     Rectangle {
-                                        width: 60; height: 26; radius: 6; color: shell.surfaceBright
-                                        TextInput { id: barHeightInput; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignCenter; color: shell.textPrimary; font.pixelSize: 11; font.family: "monospace"; text: Settings.data.islandConfig.barHeight; selectByMouse: true; inputMethodHints: Qt.ImhFormattedNumbersOnly; validator: IntValidator { bottom: 10; top: 100 }
+                                        width: 60; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 6; color: shell.surfaceBright
+                                        TextInput { id: barHeightInput; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignCenter; color: shell.textPrimary; font.pixelSize: 11; font.family: "SF Pro Rounded"; text: Settings.data.islandConfig.barHeight; selectByMouse: true; inputMethodHints: Qt.ImhFormattedNumbersOnly; validator: IntValidator { bottom: 10; top: 100 }
                                             onEditingFinished: { var val = parseInt(text); if (isNaN(val)) val = 34; val = Math.max(10, val); text = val; Settings.data.islandConfig.barHeight = val; }
                                             Connections { target: Settings.data.islandConfig; function onBarHeightChanged() { barHeightInput.text = Settings.data.islandConfig.barHeight; } }
                                         }
                                     }
                                     Rectangle {
-                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        width: 20; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 4; color: shell.surfaceAlt
                                         Text { text: "+"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
                                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { var val = Settings.data.islandConfig.barHeight + 1; Settings.data.islandConfig.barHeight = val; barHeightInput.text = val; } }
                                     }
@@ -7172,19 +7642,19 @@ function getCurrentThemeStateKey() {
                                 Row {
                                     anchors.verticalCenter: parent.verticalCenter; anchors.right: parent.right; spacing: 4
                                     Rectangle {
-                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        width: 20; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 4; color: shell.surfaceAlt
                                         Text { text: "-"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
                                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { var val = Math.max(50, Settings.data.islandConfig.collapsedWidth - 5); Settings.data.islandConfig.collapsedWidth = val; collWidthInput.text = val; } }
                                     }
                                     Rectangle {
-                                        width: 60; height: 26; radius: 6; color: shell.surfaceBright
-                                        TextInput { id: collWidthInput; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignCenter; color: shell.textPrimary; font.pixelSize: 11; font.family: "monospace"; text: Settings.data.islandConfig.collapsedWidth; selectByMouse: true; inputMethodHints: Qt.ImhFormattedNumbersOnly; validator: IntValidator { bottom: 50; top: 1000 }
+                                        width: 60; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 6; color: shell.surfaceBright
+                                        TextInput { id: collWidthInput; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignCenter; color: shell.textPrimary; font.pixelSize: 11; font.family: "SF Pro Rounded"; text: Settings.data.islandConfig.collapsedWidth; selectByMouse: true; inputMethodHints: Qt.ImhFormattedNumbersOnly; validator: IntValidator { bottom: 50; top: 1000 }
                                             onEditingFinished: { var val = parseInt(text); if (isNaN(val)) val = 150; val = Math.max(50, val); text = val; Settings.data.islandConfig.collapsedWidth = val; }
                                             Connections { target: Settings.data.islandConfig; function onCollapsedWidthChanged() { collWidthInput.text = Settings.data.islandConfig.collapsedWidth; } }
                                         }
                                     }
                                     Rectangle {
-                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        width: 20; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 4; color: shell.surfaceAlt
                                         Text { text: "+"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
                                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { var val = Settings.data.islandConfig.collapsedWidth + 5; Settings.data.islandConfig.collapsedWidth = val; collWidthInput.text = val; } }
                                     }
@@ -7198,19 +7668,19 @@ function getCurrentThemeStateKey() {
                                 Row {
                                     anchors.verticalCenter: parent.verticalCenter; anchors.right: parent.right; spacing: 4
                                     Rectangle {
-                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        width: 20; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 4; color: shell.surfaceAlt
                                         Text { text: "-"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
                                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { var val = Math.max(50, Settings.data.islandConfig.expandedHeight - 5); Settings.data.islandConfig.expandedHeight = val; expHeightInput.text = val; } }
                                     }
                                     Rectangle {
-                                        width: 60; height: 26; radius: 6; color: shell.surfaceBright
-                                        TextInput { id: expHeightInput; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignCenter; color: shell.textPrimary; font.pixelSize: 11; font.family: "monospace"; text: Settings.data.islandConfig.expandedHeight; selectByMouse: true; inputMethodHints: Qt.ImhFormattedNumbersOnly; validator: IntValidator { bottom: 50; top: 1000 }
+                                        width: 60; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 6; color: shell.surfaceBright
+                                        TextInput { id: expHeightInput; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignCenter; color: shell.textPrimary; font.pixelSize: 11; font.family: "SF Pro Rounded"; text: Settings.data.islandConfig.expandedHeight; selectByMouse: true; inputMethodHints: Qt.ImhFormattedNumbersOnly; validator: IntValidator { bottom: 50; top: 1000 }
                                             onEditingFinished: { var val = parseInt(text); if (isNaN(val)) val = 135; val = Math.max(50, val); text = val; Settings.data.islandConfig.expandedHeight = val; }
                                             Connections { target: Settings.data.islandConfig; function onExpandedHeightChanged() { expHeightInput.text = Settings.data.islandConfig.expandedHeight; } }
                                         }
                                     }
                                     Rectangle {
-                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        width: 20; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 4; color: shell.surfaceAlt
                                         Text { text: "+"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
                                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { var val = Settings.data.islandConfig.expandedHeight + 5; Settings.data.islandConfig.expandedHeight = val; expHeightInput.text = val; } }
                                     }
@@ -7224,19 +7694,19 @@ function getCurrentThemeStateKey() {
                                 Row {
                                     anchors.verticalCenter: parent.verticalCenter; anchors.right: parent.right; spacing: 4
                                     Rectangle {
-                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        width: 20; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 4; color: shell.surfaceAlt
                                         Text { text: "-"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
                                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { var val = Math.max(50, Settings.data.islandConfig.minExpandedWidth - 5); Settings.data.islandConfig.minExpandedWidth = val; minExpWidthInput.text = val; } }
                                     }
                                     Rectangle {
-                                        width: 60; height: 26; radius: 6; color: shell.surfaceBright
-                                        TextInput { id: minExpWidthInput; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignCenter; color: shell.textPrimary; font.pixelSize: 11; font.family: "monospace"; text: Settings.data.islandConfig.minExpandedWidth; selectByMouse: true; inputMethodHints: Qt.ImhFormattedNumbersOnly; validator: IntValidator { bottom: 50; top: 1500 }
+                                        width: 60; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 6; color: shell.surfaceBright
+                                        TextInput { id: minExpWidthInput; anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignCenter; color: shell.textPrimary; font.pixelSize: 11; font.family: "SF Pro Rounded"; text: Settings.data.islandConfig.minExpandedWidth; selectByMouse: true; inputMethodHints: Qt.ImhFormattedNumbersOnly; validator: IntValidator { bottom: 50; top: 1500 }
                                             onEditingFinished: { var val = parseInt(text); if (isNaN(val)) val = 619; val = Math.max(50, val); text = val; Settings.data.islandConfig.minExpandedWidth = val; }
                                             Connections { target: Settings.data.islandConfig; function onMinExpandedWidthChanged() { minExpWidthInput.text = Settings.data.islandConfig.minExpandedWidth; } }
                                         }
                                     }
                                     Rectangle {
-                                        width: 20; height: 26; radius: 4; color: shell.surfaceAlt
+                                        width: 20; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 4; color: shell.surfaceAlt
                                         Text { text: "+"; anchors.centerIn: parent; color: shell.textPrimary; font.pixelSize: 14; font.weight: Font.Bold }
                                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { var val = Settings.data.islandConfig.minExpandedWidth + 5; Settings.data.islandConfig.minExpandedWidth = val; minExpWidthInput.text = val; } }
                                     }
@@ -7247,7 +7717,7 @@ function getCurrentThemeStateKey() {
                             Row {
                                 width: parent.width; spacing: 12; height: 32
                                 Rectangle {
-                                    width: (parent.width - 12) / 2; height: parent.height; radius: 8; color: shell.surfaceBright
+                                    width: (parent.width - 12) / 2; height: parent.height; radius: PowerProfileService.quickislandGameMode ? 0 : 8; color: shell.surfaceBright
                                     Text { anchors.centerIn: parent; text: "Reset to Default"; color: shell.textPrimary; font.pixelSize: 10; font.weight: Font.Bold }
                                     MouseArea {
                                         anchors.fill: parent; cursorShape: Qt.PointingHandCursor
@@ -7262,7 +7732,7 @@ function getCurrentThemeStateKey() {
                                     }
                                 }
                                 Rectangle {
-                                    width: (parent.width - 12) / 2; height: parent.height; radius: 8; color: shell.accent
+                                    width: (parent.width - 12) / 2; height: parent.height; radius: PowerProfileService.quickislandGameMode ? 0 : 8; color: shell.accent
                                     Text { anchors.centerIn: parent; text: "Close"; color: shell.surface; font.pixelSize: 10; font.weight: Font.Bold }
                                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: shell.setState(5) }
                                 }
@@ -7481,7 +7951,7 @@ function getCurrentThemeStateKey() {
                                         anchors.verticalCenterOffset: cardDelegate.isSelected ? -2 : 0
                                         width: 146
                                         height: 80
-                                        radius: 16
+                                        radius: PowerProfileService.quickislandGameMode ? 0 : 16
                                         border.width: 0
                                         border.color: "transparent"
 
@@ -7490,17 +7960,17 @@ function getCurrentThemeStateKey() {
                                         // Lively bounce pop on selected card
                                         scale: cardDelegate.isSelected ? 1.08 : (cMa.containsMouse ? 1.02 : 0.94)
 
-                                        Behavior on color { ColorAnimation { duration: 180 } }
+                                        Behavior on color { ColorAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 180 } }
                                         Behavior on scale { 
                                             NumberAnimation { 
-                                                duration: 280
+                                                duration: PowerProfileService.quickislandGameMode ? 0 : 280
                                                 easing.type: Easing.OutBack
                                                 easing.overshoot: 1.5
                                             } 
                                         }
                                         Behavior on anchors.verticalCenterOffset { 
                                             NumberAnimation { 
-                                                duration: 280
+                                                duration: PowerProfileService.quickislandGameMode ? 0 : 280
                                                 easing.type: Easing.OutBack
                                                 easing.overshoot: 1.5
                                             } 
@@ -7529,7 +7999,7 @@ function getCurrentThemeStateKey() {
                                                     Rectangle {
                                                         width: 14
                                                         height: 14
-                                                        radius: 7
+                                                        radius: PowerProfileService.quickislandGameMode ? 0 : 7
                                                         color: modelData
                                                         border.width: 1
                                                         border.color: Qt.rgba(0, 0, 0, 0.25)
@@ -7547,7 +8017,7 @@ function getCurrentThemeStateKey() {
                                                 font.weight: cardDelegate.isSelected ? Font.Bold : Font.Medium
                                                 elide: Text.ElideRight
                                                 maximumLineCount: 1
-                                                Behavior on color { ColorAnimation { duration: 150 } }
+                                                Behavior on color { ColorAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 150 } }
                                             }
                                         }
 
@@ -7597,7 +8067,7 @@ function getCurrentThemeStateKey() {
                                     color: shell.themeMode === "wallpaper" ? shell.accent : shell.textMuted
                                     font.pixelSize: 10
                                     font.weight: Font.Medium
-                                    Behavior on color { ColorAnimation { duration: 180 } }
+                                    Behavior on color { ColorAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 180 } }
                                 }
 
                                 // Toggle pill
@@ -7605,24 +8075,24 @@ function getCurrentThemeStateKey() {
                                     id: wpTogglePill
                                     width: 32
                                     height: 16
-                                    radius: 8
+                                    radius: PowerProfileService.quickislandGameMode ? 0 : 8
                                     color: shell.themeMode === "wallpaper"
                                         ? shell.accent
                                         : shell.surfaceBright
                                     anchors.verticalCenter: parent.verticalCenter
 
-                                    Behavior on color { ColorAnimation { duration: 200 } }
+                                    Behavior on color { ColorAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 200 } }
 
                                     // Knob
                                     Rectangle {
                                         width: 12
                                         height: 12
-                                        radius: 6
+                                        radius: PowerProfileService.quickislandGameMode ? 0 : 6
                                         color: "white"
                                         anchors.verticalCenter: parent.verticalCenter
                                         x: shell.themeMode === "wallpaper" ? parent.width - width - 2 : 2
 
-                                        Behavior on x { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+                                        Behavior on x { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 200; easing.type: Easing.OutCubic } }
                                     }
 
                                     MouseArea {
@@ -7681,7 +8151,10 @@ function getCurrentThemeStateKey() {
                         clip: true; boundsBehavior: Flickable.StopAtBounds
 
                         Column {
-                            id: clipboardCol; width: parent.width; spacing: 12
+                            id: clipboardCol
+                            width: PowerProfileService.quickislandGameMode ? GameModeMenuLayout.contentWidthFor(parent.width) : parent.width
+                            x: PowerProfileService.quickislandGameMode ? GameModeMenuLayout.centeredContentX(parent.width, width) : 0
+                            spacing: 12
 
                             // Header
                             Row {
@@ -7710,7 +8183,7 @@ function getCurrentThemeStateKey() {
 
                                 // Clear All button
                                 Rectangle {
-                                    width: 70; height: 26; radius: 13
+                                    width: 70; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 13
                                     anchors.verticalCenter: parent.verticalCenter
                                     color: clearMa.containsMouse ? shell.accent : shell.surfaceBright
                                     border.width: 0; border.color: clearMa.containsMouse ? "transparent" : shell.surfaceBorder
@@ -7743,7 +8216,7 @@ function getCurrentThemeStateKey() {
                                     model: ClipboardService.items.slice(1)
 
                                     Rectangle {
-                                        width: clipboardCol.width; height: 44; radius: 10
+                                        width: clipboardCol.width; height: 44; radius: PowerProfileService.quickislandGameMode ? 0 : 10
                                         color: itemMa.containsMouse ? shell.surfaceBright : shell.surfaceAlt
                                         border.width: 0; border.color: shell.surfaceBorder
                                         Behavior on color { ColorAnimation { duration: shell.animFast } }
@@ -7754,7 +8227,7 @@ function getCurrentThemeStateKey() {
                                             // Content Type Icon / Color Preview / Image Preview
                                             Rectangle {
                                                 id: previewBox
-                                                width: 24; height: 24; radius: 6
+                                                width: 24; height: 24; radius: PowerProfileService.quickislandGameMode ? 0 : 6
                                                 color: modelData.contentType === "color" ? modelData.preview : shell.surfaceBright
                                                 anchors.verticalCenter: parent.verticalCenter
 
@@ -7868,7 +8341,7 @@ function getCurrentThemeStateKey() {
 
                             // Empty Placeholder
                             Rectangle {
-                                width: parent.width; height: 60; radius: 14; color: shell.surfaceAlt
+                                width: parent.width; height: 60; radius: PowerProfileService.quickislandGameMode ? 0 : 14; color: shell.surfaceAlt
                                 border.width: 0; border.color: shell.surfaceBorder
                                 visible: !ClipboardService.active || !ClipboardService.items || ClipboardService.items.length <= 1
 
@@ -7913,7 +8386,10 @@ function getCurrentThemeStateKey() {
                         }
 
                         Column {
-                            id: screenToolkitCol; width: parent.width; spacing: 12
+                            id: screenToolkitCol
+                            width: parent.width
+                            x: 0
+                            spacing: 12
 
 
 
@@ -7926,6 +8402,7 @@ function getCurrentThemeStateKey() {
                                 focus: true
                                 onLoaded: {
                                     item.pluginApi = screenToolkitApi;
+                                    item.gameModeLayout = PowerProfileService.quickislandGameMode;
                                 }
                             }
                         }
@@ -7960,9 +8437,13 @@ function getCurrentThemeStateKey() {
 
                     Column {
                         id: emojiCol
-                        x: 14
+                        x: PowerProfileService.quickislandGameMode
+                            ? GameModeMenuLayout.centeredContentX(parent.width, width)
+                            : 14
                         y: 14
-                        width: parent.width - 28
+                        width: PowerProfileService.quickislandGameMode
+                            ? GameModeMenuLayout.contentWidthFor(parent.width)
+                            : parent.width - 28
                         spacing: 12
 
                         // Header
@@ -7992,7 +8473,7 @@ function getCurrentThemeStateKey() {
 
                         // Search Input Field
                         Rectangle {
-                            width: parent.width; height: 36; radius: 10
+                            width: parent.width; height: 36; radius: PowerProfileService.quickislandGameMode ? 0 : 10
                             color: shell.surfaceAlt
                             border.width: 0; border.color: shell.surfaceBorder
 
@@ -8050,7 +8531,7 @@ function getCurrentThemeStateKey() {
                                 Repeater {
                                     model: ["people", "nature", "food", "travel", "activities", "objects", "symbols", "flags"]
                                     delegate: Rectangle {
-                                        width: 36; height: 30; radius: 8
+                                        width: 36; height: 30; radius: PowerProfileService.quickislandGameMode ? 0 : 8
                                         color: emojiBoardView.activeCategory === modelData ? shell.accent : shell.surfaceBright
                                         border.width: 0; border.color: emojiBoardView.activeCategory === modelData ? shell.accent : shell.surfaceBorder
 
@@ -8103,7 +8584,7 @@ function getCurrentThemeStateKey() {
                             }
 
                             delegate: Rectangle {
-                                width: emojiGrid.cellWidth - 4; height: width; radius: 8
+                                width: emojiGrid.cellWidth - 4; height: width; radius: PowerProfileService.quickislandGameMode ? 0 : 8
                                 color: emojiMa.containsMouse ? shell.surfaceBright : "transparent"
                                 border.width: 0; border.color: emojiMa.containsMouse ? shell.accent : "transparent"
 
@@ -8144,11 +8625,22 @@ function getCurrentThemeStateKey() {
                         onClicked: shell.setState(0)
                     }
 
-                    Column {
+                    Flickable {
+                        anchors.fill: parent
+                        anchors.margins: 14
+                        contentWidth: width
+                        contentHeight: keybindCol.height
+                        clip: true
+                        boundsBehavior: Flickable.StopAtBounds
+
+                        Column {
                         id: keybindCol
-                        x: 14
-                        y: 14
-                        width: parent.width - 28
+                        x: PowerProfileService.quickislandGameMode
+                            ? GameModeMenuLayout.centeredContentX(parent.width, width)
+                            : 0
+                        width: PowerProfileService.quickislandGameMode
+                            ? GameModeMenuLayout.contentWidthFor(parent.width)
+                            : parent.width
                         spacing: 12
 
                         // Header
@@ -8186,6 +8678,7 @@ function getCurrentThemeStateKey() {
                                 model: [
                                     { keys: "Super + A", desc: "App Launcher" },
                                     { keys: "Super + N", desc: "Control Center" },
+                                    { keys: "Super + G", desc: "Game Mode" },
                                     { keys: "Super + Tab", desc: "Workspaces Strip (Live)" },
                                     { keys: "Super + `", desc: "Overview Toggle" },
                                     { keys: "Super + Arrows", desc: "Pan Spatial WS" },
@@ -8205,7 +8698,7 @@ function getCurrentThemeStateKey() {
                                 delegate: Rectangle {
                                     width: (keybindCol.width - 8) / 2
                                     height: 38
-                                    radius: 8
+                                    radius: PowerProfileService.quickislandGameMode ? 0 : 8
                                     color: shell.surfaceAlt
                                     border.width: 0
                                     border.color: shell.surfaceBorder
@@ -8235,6 +8728,7 @@ function getCurrentThemeStateKey() {
                                     }
                                 }
                             }
+                        }
                         }
                     }
                 }
@@ -8578,7 +9072,10 @@ function getCurrentThemeStateKey() {
                         clip: true; boundsBehavior: Flickable.StopAtBounds
 
                         Column {
-                            id: settingsCol; width: parent.width; spacing: 10
+                            id: settingsCol
+                            width: PowerProfileService.quickislandGameMode ? GameModeMenuLayout.contentWidthFor(parent.width) : parent.width
+                            x: PowerProfileService.quickislandGameMode ? GameModeMenuLayout.centeredContentX(parent.width, width) : 0
+                            spacing: 10
 
                             // =========================================================
                             // VIEW 0: MAIN DISPLAY CONFIGURATION VIEW
@@ -8621,7 +9118,7 @@ function getCurrentThemeStateKey() {
                                 // Interactive Snapping Canvas
                                 Rectangle {
                                     id: canvas
-                                    width: parent.width; height: 110; radius: 12
+                                    width: parent.width; height: 110; radius: PowerProfileService.quickislandGameMode ? 0 : 12
                                     color: shell.surfaceAlt
                                     border.width: 0; border.color: shell.surfaceBorder
                                     clip: true
@@ -8698,7 +9195,7 @@ function getCurrentThemeStateKey() {
                                             y: 12 + (tempY - canvas.minY) * canvas.scaleFactor
                                             width: Math.max(20, (modelData.width / modelData.scale) * canvas.scaleFactor)
                                             height: Math.max(20, (modelData.height / modelData.scale) * canvas.scaleFactor)
-                                            radius: 6
+                                            radius: PowerProfileService.quickislandGameMode ? 0 : 6
                                             color: settingsPopupView.selectedMonitorIdx === index ? shell.accent : shell.surfaceBright
                                             border.width: 0
                                             border.color: settingsPopupView.selectedMonitorIdx === index ? "transparent" : shell.surfaceBorder
@@ -8755,7 +9252,7 @@ function getCurrentThemeStateKey() {
                                         id: monitorRow
                                         width: parent.width
                                         height: (shell.monitorsList.length > 1 && !modelData.disabled) ? 68 : 42
-                                        radius: 10
+                                        radius: PowerProfileService.quickislandGameMode ? 0 : 10
                                         color: shell.surfaceAlt
                                         border.width: 0; border.color: shell.surfaceBorder
 
@@ -8764,7 +9261,7 @@ function getCurrentThemeStateKey() {
                                         // Line 1: Configure button (anchored right)
                                         Rectangle {
                                             id: configureBtn
-                                            width: 80; height: 26; radius: 6
+                                            width: 80; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 6
                                             color: shell.accent
                                             anchors.right: parent.right; anchors.rightMargin: 12
                                             anchors.top: (shell.monitorsList.length > 1 && !modelData.disabled) ? parent.top : undefined
@@ -8834,7 +9331,7 @@ function getCurrentThemeStateKey() {
                                                     Repeater {
                                                         model: ["left", "right", "above", "below"]
                                                         delegate: Rectangle {
-                                                            width: 18; height: 18; radius: 9
+                                                            width: 18; height: 18; radius: PowerProfileService.quickislandGameMode ? 0 : 9
                                                             color: ma_dir.containsMouse ? shell.accent : shell.surfaceBright
                                                             Text {
                                                                 anchors.centerIn: parent
@@ -8857,7 +9354,7 @@ function getCurrentThemeStateKey() {
 
                                 // Save & Apply Button
                                 Rectangle {
-                                    width: parent.width; height: 38; radius: 12
+                                    width: parent.width; height: 38; radius: PowerProfileService.quickislandGameMode ? 0 : 12
                                     color: shell.accent
                                     Text {
                                         anchors.centerIn: parent
@@ -8914,7 +9411,7 @@ function getCurrentThemeStateKey() {
 
                                 // Enable Display Status Toggle
                                 Rectangle {
-                                    width: parent.width; height: 42; radius: 12; color: shell.surfaceAlt
+                                    width: parent.width; height: 42; radius: PowerProfileService.quickislandGameMode ? 0 : 12; color: shell.surfaceAlt
                                     border.width: 0; border.color: shell.surfaceBorder
                                     visible: settingsPopupView.getSelectedMonitor() !== null
 
@@ -8946,7 +9443,7 @@ function getCurrentThemeStateKey() {
 
                                 // Mode selection
                                 Rectangle {
-                                    width: parent.width; height: 42; radius: 12; color: shell.surfaceAlt
+                                    width: parent.width; height: 42; radius: PowerProfileService.quickislandGameMode ? 0 : 12; color: shell.surfaceAlt
                                     border.width: 0; border.color: shell.surfaceBorder
                                     visible: settingsPopupView.getSelectedMonitor() !== null && !settingsPopupView.getSelectedMonitor().disabled
 
@@ -8988,7 +9485,7 @@ function getCurrentThemeStateKey() {
 
                                 // Scale Card
                                 Rectangle {
-                                    width: parent.width; height: 42; radius: 12; color: shell.surfaceAlt
+                                    width: parent.width; height: 42; radius: PowerProfileService.quickislandGameMode ? 0 : 12; color: shell.surfaceAlt
                                     border.width: 0; border.color: shell.surfaceBorder
                                     visible: settingsPopupView.getSelectedMonitor() !== null && !settingsPopupView.getSelectedMonitor().disabled
 
@@ -9030,7 +9527,7 @@ function getCurrentThemeStateKey() {
 
                                 // Rotation/Orientation Card
                                 Rectangle {
-                                    width: parent.width; height: 42; radius: 12; color: shell.surfaceAlt
+                                    width: parent.width; height: 42; radius: PowerProfileService.quickislandGameMode ? 0 : 12; color: shell.surfaceAlt
                                     border.width: 0; border.color: shell.surfaceBorder
                                     visible: settingsPopupView.getSelectedMonitor() !== null && !settingsPopupView.getSelectedMonitor().disabled
 
@@ -9072,7 +9569,7 @@ function getCurrentThemeStateKey() {
 
                                 // Mirroring Card
                                 Rectangle {
-                                    width: parent.width; height: 42; radius: 12; color: shell.surfaceAlt
+                                    width: parent.width; height: 42; radius: PowerProfileService.quickislandGameMode ? 0 : 12; color: shell.surfaceAlt
                                     border.width: 0; border.color: shell.surfaceBorder
                                     visible: settingsPopupView.getSelectedMonitor() !== null && !settingsPopupView.getSelectedMonitor().disabled
 
@@ -9114,7 +9611,7 @@ function getCurrentThemeStateKey() {
 
                                 // Apply button to close edit view and go back to main screen
                                 Rectangle {
-                                    width: parent.width; height: 38; radius: 12
+                                    width: parent.width; height: 38; radius: PowerProfileService.quickislandGameMode ? 0 : 12
                                     color: shell.accent
                                     Text {
                                         anchors.centerIn: parent
@@ -9135,6 +9632,20 @@ function getCurrentThemeStateKey() {
                 // =============================================================
                 // INTERACTION LAYER
                 // =============================================================
+                DropArea {
+                    id: notchAirDropDragArea
+                    anchors.fill: parent
+                    enabled: panelWindow.activeState === 0 || shell.notchTab !== 1
+                    onEntered: function(drag) {
+                        if (drag.hasUrls) {
+                            shell.notchTab = 1;
+                            if (panelWindow.activeState === 0) {
+                                shell.setState(1);
+                            }
+                        }
+                    }
+                }
+
                 MouseArea {
                     id: mainHoverArea
                     anchors.fill: parent; hoverEnabled: panelWindow.activeState === 0 || panelWindow.activeState === 1
@@ -9154,9 +9665,22 @@ function getCurrentThemeStateKey() {
                         onTriggered: mainHoverArea.swipeCooldown = false
                     }
 
+                    function gameModeHoverAtTopEdge() {
+                        return !PowerProfileService.quickislandGameMode
+                            || (panelWindow.gameModeBarVisible && mainHoverArea.mouseY <= 2);
+                    }
+
                     onEntered: {
-                        if (panelWindow.activeState === 0 && !shell.hoverCooldown) shell.setState(1);
-                        island.forceActiveFocus();
+                        var canOpen = gameModeHoverAtTopEdge();
+                        if (panelWindow.activeState === 0 && !shell.hoverCooldown && canOpen) shell.setState(1);
+                        if (panelWindow.activeState === 1 || canOpen) island.forceActiveFocus();
+                    }
+                    onPositionChanged: {
+                        if (PowerProfileService.quickislandGameMode && panelWindow.activeState === 0
+                            && !shell.hoverCooldown && gameModeHoverAtTopEdge()) {
+                            shell.setState(1);
+                            island.forceActiveFocus();
+                        }
                     }
                     onExited:  {
                         var elapsed = Date.now() - shell.lastState1Time;
@@ -9246,7 +9770,7 @@ function getCurrentThemeStateKey() {
                     Connections {
                         target: shell
                         function onHoverCooldownChanged() {
-                            if (!shell.hoverCooldown && panelWindow.activeState === 0 && mainHoverArea.containsMouse) {
+                            if (!shell.hoverCooldown && panelWindow.activeState === 0 && mainHoverArea.containsMouse && mainHoverArea.gameModeHoverAtTopEdge()) {
                                 shell.setState(1);
                             }
                         }
@@ -9261,16 +9785,18 @@ function getCurrentThemeStateKey() {
             // =============================================================
                 Rectangle {
                     id: workspaceCircleLeft
-                    z: -1
-                    anchors.right: island.left
-                    anchors.rightMargin: panelWindow.leftWsCircleSpacing
+                    z: (PowerProfileService.quickislandGameMode && panelWindow.gameModeBarVisible) ? 1 : -1
+                    anchors.left: (PowerProfileService.quickislandGameMode && panelWindow.gameModeBarVisible) ? parent.left : undefined
+                    anchors.leftMargin: (PowerProfileService.quickislandGameMode && panelWindow.gameModeBarVisible) ? 8 : 0
+                    anchors.right: (PowerProfileService.quickislandGameMode && panelWindow.gameModeBarVisible) ? undefined : island.left
+                    anchors.rightMargin: (PowerProfileService.quickislandGameMode && panelWindow.gameModeBarVisible) ? 0 : panelWindow.leftWsCircleSpacing
                     anchors.top: island.top
 
                     width: panelWindow.wsCircleWidth
                     height: panelWindow.wsCircleWidth
-                    radius: width / 2
+                    radius: PowerProfileService.quickislandGameMode ? 0 : width / 2
 
-                    color: "transparent"
+                    color: PowerProfileService.quickislandGameMode ? shell.surfaceAlt : "transparent"
                     clip: true
 
                     opacity: panelWindow.leftWsCircleOpacity
@@ -9283,7 +9809,7 @@ function getCurrentThemeStateKey() {
                         surfaceColor: shell.surface
                         accentColor: shell.accent
                         borderColor: "transparent"
-                        active: Settings.isLoaded && Settings.data.colorSchemes.hyprglassIsland
+                        active: !PowerProfileService.quickislandGameMode && Settings.isLoaded && Settings.data.colorSchemes.hyprglassIsland
                     }
 
                     Text {
@@ -9303,16 +9829,19 @@ function getCurrentThemeStateKey() {
             // =============================================================
                 Rectangle {
                     id: workspaceCircle
-                    z: -1
-                    anchors.left: island.right
-                    anchors.leftMargin: panelWindow.wsCircleSpacing
+                    z: (PowerProfileService.quickislandGameMode && panelWindow.gameModeBarVisible) ? 1 : -1
+                    anchors.horizontalCenter: (PowerProfileService.quickislandGameMode && panelWindow.gameModeBarVisible) ? parent.horizontalCenter : undefined
+                    anchors.left: (PowerProfileService.quickislandGameMode && panelWindow.gameModeBarVisible) ? undefined : island.right
+                    anchors.leftMargin: (PowerProfileService.quickislandGameMode && panelWindow.gameModeBarVisible) ? 0 : panelWindow.wsCircleSpacing
+                    anchors.right: undefined
+                    anchors.rightMargin: 0
                     anchors.top: island.top
 
                     width: panelWindow.wsCircleWidth
                     height: panelWindow.wsCircleWidth
-                    radius: width / 2
+                    radius: PowerProfileService.quickislandGameMode ? 0 : width / 2
 
-                    color: "transparent"
+                    color: PowerProfileService.quickislandGameMode ? shell.surfaceAlt : "transparent"
                     clip: true
 
                     opacity: panelWindow.wsCircleOpacity
@@ -9326,7 +9855,7 @@ function getCurrentThemeStateKey() {
                         surfaceColor: shell.surface
                         accentColor: shell.accent
                         borderColor: "transparent"
-                        active: Settings.isLoaded && Settings.data.colorSchemes.hyprglassIsland
+                        active: !PowerProfileService.quickislandGameMode && Settings.isLoaded && Settings.data.colorSchemes.hyprglassIsland
                     }
 
                     // Desktop number text
@@ -9398,7 +9927,7 @@ function getCurrentThemeStateKey() {
             IslandCC.ControlCenterPanel {
                 id: ccPanel
                 anchors.fill: parent
-                screen: parent.screen
+                screen: modelData
                 objectName: "controlCenterPanel-" + (screen ? screen.name : "unknown")
                 
                 Component.onCompleted: {
@@ -9427,7 +9956,7 @@ function getCurrentThemeStateKey() {
             WlrLayershell.layer: WlrLayer.Top
             WlrLayershell.exclusionMode: ExclusionMode.Ignore
             WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
-            BackgroundEffect.blurRegion: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass && Settings.data.colorSchemes.hyprglassStyle === "frosted") ? notchBlurRegion : null
+            BackgroundEffect.blurRegion: (!PowerProfileService.quickislandGameMode && Settings.isLoaded && Settings.data.colorSchemes.hyprglass && Settings.data.colorSchemes.hyprglassStyle === "frosted") ? notchBlurRegion : null
 
             anchors { top: true; left: true; right: true }
             implicitHeight: 720
@@ -9619,7 +10148,7 @@ function getCurrentThemeStateKey() {
                 opacity: (shell.overviewActive && shell.spatialWmEnabled) ? 1.0 : 0.0
                 Behavior on opacity {
                     NumberAnimation {
-                        duration: shell.overviewActive ? 120 : 100
+                        duration: PowerProfileService.quickislandGameMode ? 0 : (shell.overviewActive ? 120 : 100)
                         easing.type: Easing.OutQuad
                     }
                 }
@@ -9728,7 +10257,7 @@ function getCurrentThemeStateKey() {
                     opacity: shell.overviewActive ? 1.0 : 0.0
                     Behavior on opacity {
                         NumberAnimation {
-                            duration: shell.overviewActive ? 130 : 90
+                            duration: PowerProfileService.quickislandGameMode ? 0 : (shell.overviewActive ? 130 : 90)
                             easing.type: Easing.OutQuad
                         }
                     }
@@ -9773,7 +10302,7 @@ function getCurrentThemeStateKey() {
                     y: Math.round((parent.height - cardHeight) / 2 - overviewOverlayWindow.selectedRow * (cardHeight + spacing))
                     Behavior on y {
                         NumberAnimation {
-                            duration: 130
+                            duration: PowerProfileService.quickislandGameMode ? 0 : 130
                             easing.bezierCurve: [0.22, 1.0, 0.36, 1.0]
                         }
                     }
@@ -9787,7 +10316,7 @@ function getCurrentThemeStateKey() {
                     property real exitPanX: 0
                     Behavior on exitPanX {
                         NumberAnimation {
-                            duration: shell.overviewActive ? 160 : 120
+                            duration: PowerProfileService.quickislandGameMode ? 0 : (shell.overviewActive ? 160 : 120)
                             easing.bezierCurve: [0.22, 1.0, 0.36, 1.0]
                         }
                     }
@@ -9798,7 +10327,7 @@ function getCurrentThemeStateKey() {
                     scale: shell.overviewActive ? 1.0 : 1.45
                     Behavior on scale {
                         NumberAnimation {
-                            duration: shell.overviewActive ? 200 : 140
+                            duration: PowerProfileService.quickislandGameMode ? 0 : (shell.overviewActive ? 200 : 140)
                             easing.bezierCurve: shell.overviewActive ? [0.16, 1.0, 0.3, 1.0] : [0.4, 0.0, 0.7, 0.2]
                         }
                     }
@@ -9831,7 +10360,7 @@ function getCurrentThemeStateKey() {
                             }
                             Behavior on trackPanX {
                                 NumberAnimation {
-                                    duration: 130
+                                    duration: PowerProfileService.quickislandGameMode ? 0 : 130
                                     easing.bezierCurve: [0.22, 1.0, 0.36, 1.0]
                                 }
                             }
@@ -9856,7 +10385,7 @@ function getCurrentThemeStateKey() {
                                     Rectangle {
                                         id: cellCardMask
                                         anchors.fill: parent
-                                        radius: 20
+                                        radius: PowerProfileService.quickislandGameMode ? 0 : 20
                                         color: "white"
                                         visible: false
                                         layer.enabled: true
@@ -9865,7 +10394,7 @@ function getCurrentThemeStateKey() {
                                     Rectangle {
                                         id: cellMonitorCard
                                         anchors.fill: parent
-                                        radius: 20
+                                        radius: PowerProfileService.quickislandGameMode ? 0 : 20
                                         color: "transparent"
                                         border.width: 0
 
@@ -9950,12 +10479,12 @@ function getCurrentThemeStateKey() {
                                     height: Math.max(35, Math.round(winData.rel_h * overviewRowsColumn.cardHeight))
                                     z: winTileItem.isWinSelected ? 30 : 10
                                     scale: winTileItem.isWinSelected ? 1.04 : 1.0
-                                    Behavior on scale { NumberAnimation { duration: 100; easing.bezierCurve: [0.2, 0.9, 0.3, 1.0] } }
+                                    Behavior on scale { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 100; easing.bezierCurve: [0.2, 0.9, 0.3, 1.0] } }
 
                                     Rectangle {
                                         id: winTileMask
                                         anchors.fill: parent
-                                        radius: 16
+                                        radius: PowerProfileService.quickislandGameMode ? 0 : 16
                                         color: "white"
                                         visible: false
                                         layer.enabled: true
@@ -9965,7 +10494,7 @@ function getCurrentThemeStateKey() {
                                     Rectangle {
                                         id: winFrame
                                         anchors.fill: parent
-                                        radius: 16
+                                        radius: PowerProfileService.quickislandGameMode ? 0 : 16
                                         color: "#E614161E"
                                         z: 3
                                         border.width: 0
@@ -10187,7 +10716,7 @@ function getCurrentThemeStateKey() {
                 opacity: shell.wsOverviewActive ? 1.0 : 0.0
                 Behavior on opacity {
                     NumberAnimation {
-                        duration: shell.wsOverviewActive ? 120 : 90
+                        duration: PowerProfileService.quickislandGameMode ? 0 : (shell.wsOverviewActive ? 120 : 90)
                         easing.type: Easing.OutQuad
                     }
                 }
@@ -10241,7 +10770,7 @@ function getCurrentThemeStateKey() {
                         var selCardCenter = wsOvWindow.selectedWsIdx * (cardW + cardGap) + cardW / 2;
                         return Math.round(parent.width / 2 - selCardCenter);
                     }
-                    Behavior on panX { NumberAnimation { duration: 140; easing.bezierCurve: [0.22, 1.0, 0.36, 1.0] } }
+                    Behavior on panX { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 140; easing.bezierCurve: [0.22, 1.0, 0.36, 1.0] } }
 
                     anchors.verticalCenter: parent.verticalCenter
                     width: parent.width
@@ -10251,7 +10780,7 @@ function getCurrentThemeStateKey() {
                     scale: shell.wsOverviewActive ? 1.0 : 1.4
                     Behavior on scale {
                         NumberAnimation {
-                            duration: shell.wsOverviewActive ? 200 : 130
+                            duration: PowerProfileService.quickislandGameMode ? 0 : (shell.wsOverviewActive ? 200 : 130)
                             easing.bezierCurve: shell.wsOverviewActive ? [0.16, 1.0, 0.3, 1.0] : [0.4, 0.0, 0.7, 0.2]
                         }
                     }
@@ -10273,16 +10802,16 @@ function getCurrentThemeStateKey() {
                             height: wsOvStrip.cardH
 
                             scale: isSelected ? 1.05 : 1.0
-                            Behavior on scale { NumberAnimation { duration: 100; easing.bezierCurve: [0.2, 0.9, 0.3, 1.0] } }
+                            Behavior on scale { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 100; easing.bezierCurve: [0.2, 0.9, 0.3, 1.0] } }
                             z: isSelected ? 10 : 1
 
                             Rectangle {
-                                id: wsCardMask; anchors.fill: parent; radius: 20
+                                id: wsCardMask; anchors.fill: parent; radius: PowerProfileService.quickislandGameMode ? 0 : 20
                                 color: "white"; visible: false; layer.enabled: true
                             }
 
                             Rectangle {
-                                id: wsCard; anchors.fill: parent; radius: 20
+                                id: wsCard; anchors.fill: parent; radius: PowerProfileService.quickislandGameMode ? 0 : 20
                                 color: "#1A1B26"; border.width: 0
                                 layer.enabled: true; layer.smooth: true
                                 layer.effect: MultiEffect { maskEnabled: true; maskSource: wsCardMask }
@@ -10322,15 +10851,15 @@ function getCurrentThemeStateKey() {
                                 // Active workspace pulsing dot
                                 Rectangle {
                                     visible: wsCardItem.isFocused
-                                    width: 10; height: 10; radius: 5
+                                    width: 10; height: 10; radius: PowerProfileService.quickislandGameMode ? 0 : 5
                                     color: shell.cPrimary ? shell.cPrimary : "#7aa2f7"
                                     anchors { top: parent.top; right: parent.right; margins: 10 }
                                     z: 4
                                     SequentialAnimation on opacity {
-                                        running: wsCardItem.isFocused && shell.wsOverviewActive
+                                        running: wsCardItem.isFocused && shell.wsOverviewActive && !PowerProfileService.quickislandGameMode
                                         loops: Animation.Infinite
-                                        NumberAnimation { to: 0.5; duration: 900 }
-                                        NumberAnimation { to: 1.0; duration: 900 }
+                                        NumberAnimation { to: 0.5; duration: PowerProfileService.quickislandGameMode ? 0 : 900 }
+                                        NumberAnimation { to: 1.0; duration: PowerProfileService.quickislandGameMode ? 0 : 900 }
                                     }
                                 }
 
@@ -10338,19 +10867,19 @@ function getCurrentThemeStateKey() {
                                 Rectangle {
                                     anchors { left: parent.left; bottom: parent.bottom; margins: 10 }
                                     width: wsLabel.implicitWidth + 14; height: wsLabel.implicitHeight + 8
-                                    radius: 8; color: "#AA000000"; z: 4
+                                    radius: PowerProfileService.quickislandGameMode ? 0 : 8; color: "#AA000000"; z: 4
                                     Text {
                                         id: wsLabel; anchors.centerIn: parent
                                         text: wsCardItem.wsData.name !== "" ? wsCardItem.wsData.name : wsCardItem.wsData.id
-                                        color: "white"; font.pixelSize: 13; font.family: "Inter"; font.weight: Font.Medium
+                                        color: "white"; font.pixelSize: 13; font.family: "SF Pro Rounded"; font.weight: Font.Medium
                                     }
                                 }
 
                                 // Dim overlay for non-selected
                                 Rectangle {
-                                    anchors.fill: parent; radius: 20; z: 3
+                                    anchors.fill: parent; radius: PowerProfileService.quickislandGameMode ? 0 : 20; z: 3
                                     color: wsCardItem.isSelected ? "transparent" : "#2A000000"
-                                    Behavior on color { ColorAnimation { duration: 100 } }
+                                    Behavior on color { ColorAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 100 } }
                                 }
                             }
 
@@ -10367,9 +10896,9 @@ function getCurrentThemeStateKey() {
                 Text {
                     anchors { bottom: parent.bottom; horizontalCenter: parent.horizontalCenter; bottomMargin: 32 }
                     text: "← → navigate   Enter switch   Esc dismiss"
-                    color: "#99ffffff"; font.pixelSize: 12; font.family: "Inter"
+                    color: "#99ffffff"; font.pixelSize: 12; font.family: "SF Pro Rounded"
                     opacity: shell.wsOverviewActive ? 0.7 : 0.0
-                    Behavior on opacity { NumberAnimation { duration: 200 } }
+                    Behavior on opacity { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 200 } }
                 }
             }
         }

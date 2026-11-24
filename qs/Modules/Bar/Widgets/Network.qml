@@ -81,8 +81,8 @@ Item {
     id: pill
     screen: root.screen
     oppositeDirection: BarService.getPillDirection(root)
-    customIconColor: Color.resolveColorKeyOptional(root.iconColorKey)
-    customTextColor: Color.resolveColorKeyOptional(root.textColorKey)
+    customIconColor: QuickIslandPalette.resolveColorKeyOptional(root.iconColorKey)
+    customTextColor: QuickIslandPalette.resolveColorKeyOptional(root.textColorKey)
     icon: NetworkService.getIcon()
     text: NetworkService.getStatusText(false)
     autoHide: false

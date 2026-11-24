@@ -1,4 +1,5 @@
 import QtQuick
+import qs.Services.Power
 import QtQuick.Effects
 
 Item {
@@ -28,7 +29,7 @@ Item {
 
     property real animatedBatteryRatio: batteryRatio
     Behavior on animatedBatteryRatio {
-        NumberAnimation { duration: 300; easing.type: Easing.OutCubic }
+        NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 300; easing.type: Easing.OutCubic }
     }
 
     onAnimatedBatteryRatioChanged: ringCanvas.requestPaint()
@@ -39,7 +40,7 @@ Item {
 
     scale: ringMouse.containsMouse ? 1.08 : 1.0
     Behavior on scale {
-        NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
+        NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 150; easing.type: Easing.OutCubic }
     }
 
     // Circular Ring Container
@@ -143,7 +144,7 @@ Item {
 
         Text {
             text: "󰂄"
-            font.family: "JetBrainsMono Nerd Font"
+            font.family: "SF Pro Rounded"
             font.pixelSize: 8
             color: root.activeColor
             visible: root.isCharging

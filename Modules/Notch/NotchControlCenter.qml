@@ -1,4 +1,5 @@
 import QtQuick
+import qs.Services.Power
 import QtQuick.Effects
 import QtQuick.Shapes
 import Quickshell
@@ -60,7 +61,7 @@ Item {
                                 width: parent.width; spacing: 8
 
                                 Rectangle {
-                                    width: 130; height: 45; radius: 22.5
+                                    width: 130; height: 45; radius: PowerProfileService.quickislandGameMode ? 0 : 22.5
                                     color: wma.containsMouse ? shell.surfaceBright : (shell.wifiEnabled ? shell.accentDim : shell.surfaceAlt)
                                     border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (shell.wifiEnabled ? 1 : 0)
                                     border.color: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.2)
@@ -68,7 +69,7 @@ Item {
                                     Row {
                                         anchors.fill: parent; anchors.margins: 8; spacing: 8
                                         Rectangle {
-                                            width: 28; height: 28; radius: 14; anchors.verticalCenter: parent.verticalCenter
+                                            width: 28; height: 28; radius: PowerProfileService.quickislandGameMode ? 0 : 14; anchors.verticalCenter: parent.verticalCenter
                                             color: shell.wifiEnabled ? shell.accent : shell.surfaceBright
                                             Image {
                                                 anchors.centerIn: parent; width: 16; height: 16
@@ -99,7 +100,7 @@ Item {
                                 }
 
                                 Rectangle {
-                                    width: parent.width - 130 - parent.spacing; height: 45; radius: 22.5
+                                    width: parent.width - 130 - parent.spacing; height: 45; radius: PowerProfileService.quickislandGameMode ? 0 : 22.5
                                     color: audma.containsMouse ? shell.surfaceBright : (!shell.sysMuted ? shell.accentDim : shell.surfaceAlt)
                                     border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (!shell.sysMuted ? 1 : 0)
                                     border.color: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.2)
@@ -107,7 +108,7 @@ Item {
                                     Row {
                                         anchors.fill: parent; anchors.margins: 8; spacing: 8
                                         Rectangle {
-                                            width: 28; height: 28; radius: 14; anchors.verticalCenter: parent.verticalCenter
+                                            width: 28; height: 28; radius: PowerProfileService.quickislandGameMode ? 0 : 14; anchors.verticalCenter: parent.verticalCenter
                                             color: !shell.sysMuted ? shell.accent : shell.surfaceBright
                                             Image {
                                                 anchors.centerIn: parent; width: 16; height: 16
@@ -144,7 +145,7 @@ Item {
 
                                 Rectangle {
                                     id: btBtn
-                                    width: Math.floor((parent.width - (parent.spacing * 2)) / 3); height: 45; radius: 22.5
+                                    width: Math.floor((parent.width - (parent.spacing * 2)) / 3); height: 45; radius: PowerProfileService.quickislandGameMode ? 0 : 22.5
                                     color: bta.containsMouse ? shell.surfaceBright : (shell.btPowered ? shell.accentDim : shell.surfaceAlt)
                                     border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (shell.btPowered ? 1 : 0)
                                     border.color: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.2)
@@ -152,7 +153,7 @@ Item {
                                     Row {
                                         anchors.fill: parent; anchors.margins: 8; spacing: 6
                                         Rectangle {
-                                            width: 26; height: 26; radius: 13; color: shell.btPowered ? shell.accent : shell.surfaceBright; anchors.verticalCenter: parent.verticalCenter
+                                            width: 26; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 13; color: shell.btPowered ? shell.accent : shell.surfaceBright; anchors.verticalCenter: parent.verticalCenter
                                             Image {
                                                 anchors.centerIn: parent; width: 14; height: 14
                                                 source: "../../icons/bluetooth.png"
@@ -178,7 +179,7 @@ Item {
                                 }
                                 Rectangle {
                                     id: peaceBtn
-                                    width: Math.floor((parent.width - (parent.spacing * 2)) / 3); height: 45; radius: 22.5
+                                    width: Math.floor((parent.width - (parent.spacing * 2)) / 3); height: 45; radius: PowerProfileService.quickislandGameMode ? 0 : 22.5
                                     color: pea.containsMouse ? shell.surfaceBright : (shell.peaceMode ? shell.accentDim : shell.surfaceAlt)
                                     border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (shell.peaceMode ? 1 : 0)
                                     border.color: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.2)
@@ -186,7 +187,7 @@ Item {
                                     Row {
                                         anchors.fill: parent; anchors.margins: 8; spacing: 6
                                         Rectangle {
-                                            width: 26; height: 26; radius: 13; color: shell.peaceMode ? shell.accent : shell.surfaceBright; anchors.verticalCenter: parent.verticalCenter
+                                            width: 26; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 13; color: shell.peaceMode ? shell.accent : shell.surfaceBright; anchors.verticalCenter: parent.verticalCenter
                                             Image {
                                                 anchors.centerIn: parent; width: 14; height: 14
                                                 source: "../../icons/peace(dnd).png"
@@ -211,7 +212,7 @@ Item {
                                     }
                                 }
                                 Rectangle {
-                                    width: parent.width - btBtn.width - peaceBtn.width - (parent.spacing * 2); height: 45; radius: 22.5
+                                    width: parent.width - btBtn.width - peaceBtn.width - (parent.spacing * 2); height: 45; radius: PowerProfileService.quickislandGameMode ? 0 : 22.5
                                     color: nia.containsMouse ? shell.surfaceBright : (shell.nightMode ? shell.accentDim : shell.surfaceAlt)
                                     border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (shell.nightMode ? 1 : 0)
                                     border.color: Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.2)
@@ -219,7 +220,7 @@ Item {
                                     Row {
                                         anchors.fill: parent; anchors.margins: 8; spacing: 6
                                         Rectangle {
-                                            width: 26; height: 26; radius: 13; color: shell.nightMode ? shell.accent : shell.surfaceBright; anchors.verticalCenter: parent.verticalCenter
+                                            width: 26; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 13; color: shell.nightMode ? shell.accent : shell.surfaceBright; anchors.verticalCenter: parent.verticalCenter
                                             Image {
                                                 anchors.centerIn: parent; width: 14; height: 14
                                                 source: "../../icons/night.png"
@@ -251,7 +252,7 @@ Item {
 
                                  // Personalization (Left)
                                  Rectangle {
-                                     width: (parent.width - 8) / 2; height: 45; radius: 22.5
+                                     width: (parent.width - 8) / 2; height: 45; radius: PowerProfileService.quickislandGameMode ? 0 : 22.5
                                      color: persBtnMa.containsMouse ? shell.surfaceBright : ((shell.currentState === 12 || shell.currentState === 11) ? shell.accentDim : shell.surfaceAlt)
                                      border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1)
                                      border.color: (shell.currentState === 12 || shell.currentState === 11) ? Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.2) : shell.surfaceBorder
@@ -260,7 +261,7 @@ Item {
                                      Row {
                                          anchors.fill: parent; anchors.margins: 8; spacing: 6
                                          Rectangle {
-                                             width: 28; height: 28; radius: 14; anchors.verticalCenter: parent.verticalCenter
+                                             width: 28; height: 28; radius: PowerProfileService.quickislandGameMode ? 0 : 14; anchors.verticalCenter: parent.verticalCenter
                                              color: (shell.currentState === 12 || shell.currentState === 11) ? shell.accent : shell.surfaceBright
                                              Image {
                                                  anchors.centerIn: parent; width: 16; height: 16
@@ -292,7 +293,7 @@ Item {
 
                                  // Screen Toolkit (Right)
                                  Rectangle {
-                                     width: (parent.width - 8) / 2; height: 45; radius: 22.5
+                                     width: (parent.width - 8) / 2; height: 45; radius: PowerProfileService.quickislandGameMode ? 0 : 22.5
                                      color: screenToolkitBtnMa.containsMouse ? shell.surfaceBright : (shell.currentState === 14 ? shell.accentDim : shell.surfaceAlt)
                                      border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : (1)
                                      border.color: shell.currentState === 14 ? Qt.rgba(shell.accent.r, shell.accent.g, shell.accent.b, 0.2) : shell.surfaceBorder
@@ -301,7 +302,7 @@ Item {
                                      Row {
                                          anchors.fill: parent; anchors.margins: 8; spacing: 6
                                          Rectangle {
-                                             width: 28; height: 28; radius: 14; anchors.verticalCenter: parent.verticalCenter
+                                             width: 28; height: 28; radius: PowerProfileService.quickislandGameMode ? 0 : 14; anchors.verticalCenter: parent.verticalCenter
                                              color: shell.currentState === 14 ? shell.accent : shell.surfaceBright
                                               Image {
                                                   anchors.centerIn: parent; width: 16; height: 16
@@ -334,14 +335,14 @@ Item {
                          
                          // Audio Slider
                          Rectangle {
-                             width: parent.width; height: 36; radius: 18
+                             width: parent.width; height: 36; radius: PowerProfileService.quickislandGameMode ? 0 : 18
                              color: shell.surfaceAlt
                              border.width: (Settings.isLoaded && Settings.data.colorSchemes.hyprglass) ? 0 : 1
                              border.color: shell.surfaceBorder
 
                              Rectangle {
                                  width: Math.max(18, parent.width * shell.sysVolume)
-                                 height: parent.height; radius: 18
+                                 height: parent.height; radius: PowerProfileService.quickislandGameMode ? 0 : 18
                                  color: shell.accent
                                  Behavior on width { NumberAnimation { duration: shell.animFast; easing.type: Easing.OutCubic } }
                              }
@@ -396,7 +397,7 @@ Item {
 
                             // Brightness Slider (real)
                             Rectangle {
-                                width: parent.width; height: 30; radius: 15; color: shell.surfaceBright; clip: true
+                                width: parent.width; height: 30; radius: PowerProfileService.quickislandGameMode ? 0 : 15; color: shell.surfaceBright; clip: true
 
                                 // Fill
                                 Rectangle {
@@ -406,7 +407,7 @@ Item {
                                     color: shell.peach
                                     Behavior on width {
                                         enabled: !brightMouseArea.pressed
-                                        NumberAnimation { duration: 100; easing.type: Easing.OutCubic }
+                                        NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 100; easing.type: Easing.OutCubic }
                                     }
                                 }
 
@@ -456,7 +457,7 @@ Item {
 
                             // Media Card (real)
                             Rectangle {
-                                width: parent.width; height: 115; radius: 16; color: shell.surfaceAlt; clip: true
+                                width: parent.width; height: 115; radius: PowerProfileService.quickislandGameMode ? 0 : 16; color: shell.surfaceAlt; clip: true
                                 visible: shell.mediaTitle !== ""
 
                                 Rectangle {
@@ -475,7 +476,7 @@ Item {
                                     // Album Art / Fallback
                                     Rectangle {
                                         id: albumArtContainer
-                                        width: 85; height: 85; radius: 10; color: shell.surfaceBright
+                                        width: 85; height: 85; radius: PowerProfileService.quickislandGameMode ? 0 : 10; color: shell.surfaceBright
                                         anchors.verticalCenter: parent.verticalCenter
 
                                         layer.enabled: ccView.ccActive
@@ -486,7 +487,7 @@ Item {
                                                 sourceItem: Rectangle {
                                                     width: 85
                                                     height: 85
-                                                    radius: 10
+                                                    radius: PowerProfileService.quickislandGameMode ? 0 : 10
                                                     color: "white"
                                                 }
                                             }
@@ -523,11 +524,11 @@ Item {
                                         Item {
                                             width: parent.width; height: 4
                                             Rectangle {
-                                                width: parent.width; height: 4; radius: 2; color: Qt.rgba(1, 1, 1, 0.1)
+                                                width: parent.width; height: 4; radius: PowerProfileService.quickislandGameMode ? 0 : 2; color: Qt.rgba(1, 1, 1, 0.1)
                                                 Rectangle {
                                                     width: shell.mediaLength > 0 ? parent.width * (shell.mediaPosition / shell.mediaLength) : 0
                                                     height: parent.height; radius: parent.radius; color: shell.accent
-                                                    Behavior on width { NumberAnimation { duration: 500; easing.type: Easing.Linear } }
+                                                    Behavior on width { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 500; easing.type: Easing.Linear } }
                                                 }
                                             }
                                         }
@@ -566,7 +567,7 @@ Item {
 
                                             // Play/Pause
                                             Rectangle {
-                                                width: 26; height: 26; radius: 13; color: shell.textPrimary
+                                                width: 26; height: 26; radius: PowerProfileService.quickislandGameMode ? 0 : 13; color: shell.textPrimary
                                                 anchors.verticalCenter: parent.verticalCenter
                                                 Image {
                                                     anchors.centerIn: parent
@@ -597,7 +598,7 @@ Item {
 
                             // No media placeholder
                             Rectangle {
-                                width: parent.width; height: 48; radius: 14; color: shell.surfaceAlt
+                                width: parent.width; height: 48; radius: PowerProfileService.quickislandGameMode ? 0 : 14; color: shell.surfaceAlt
                                 visible: false
                                 Text { anchors.centerIn: parent; text: "No media playing"; color: shell.textMuted; font.pixelSize: 11 }
                             }
@@ -623,7 +624,7 @@ Item {
                                     model: Math.min(shell.notifHistory.count, 5)
 
                                     Rectangle {
-                                        width: ccColumn.width; height: nCol.height + 20; radius: 14; color: shell.surfaceAlt
+                                        width: ccColumn.width; height: nCol.height + 20; radius: PowerProfileService.quickislandGameMode ? 0 : 14; color: shell.surfaceAlt
 
                                         Column {
                                             id: nCol
@@ -633,7 +634,7 @@ Item {
                                             Row {
                                                 spacing: 8
                                                 Rectangle {
-                                                    width: 22; height: 22; radius: 11; anchors.verticalCenter: parent.verticalCenter
+                                                    width: 22; height: 22; radius: PowerProfileService.quickislandGameMode ? 0 : 11; anchors.verticalCenter: parent.verticalCenter
                                                     color: {
                                                         var palette = [shell.wpAccent, shell.wpBlue, shell.wpGreen, shell.wpPeach, shell.wpRed];
                                                         return palette[index % palette.length];

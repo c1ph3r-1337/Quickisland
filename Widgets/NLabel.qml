@@ -9,9 +9,9 @@ ColumnLayout {
   property string label: ""
   property string description: ""
   property string icon: ""
-  property color labelColor: Color.mOnSurface
-  property color descriptionColor: Color.mOnSurfaceVariant
-  property color iconColor: Color.mOnSurface
+  property color labelColor: QuickIslandPalette.mOnSurface
+  property color descriptionColor: QuickIslandPalette.mOnSurfaceVariant
+  property color iconColor: QuickIslandPalette.mOnSurface
   property bool showIndicator: false
   property string indicatorTooltip: ""
   property real labelSize: Style.fontSizeL

@@ -709,7 +709,7 @@ Rectangle {
         horizontalPolicy: ScrollBar.AlwaysOff
         verticalPolicy: ScrollBar.AlwaysOff
         reserveScrollbarSpace: false
-        gradientColor: Color.mSurface
+        gradientColor: QuickIslandPalette.mSurface
         gradientHeight: 40
         wheelScrollMultiplier: 4.0
 
@@ -745,7 +745,7 @@ Rectangle {
 
         NBox {
           anchors.fill: parent
-          color: Color.mSurfaceVariant
+          color: QuickIslandPalette.mSurfaceVariant
           forceOpaque: true
           Layout.fillWidth: true
           Layout.fillHeight: true
@@ -762,7 +762,7 @@ Rectangle {
                 text: root.results.length > 0 ? root.results[0].name : ""
                 pointSize: Style.fontSizeL
                 font.weight: Font.Bold
-                color: Color.mPrimary
+                color: QuickIslandPalette.mPrimary
               }
             }
 
@@ -780,7 +780,7 @@ Rectangle {
                 text: root.results.length > 0 ? root.results[0].description : ""
                 pointSize: Style.fontSizeM
                 font.weight: Font.Bold
-                color: Color.mOnSurface
+                color: QuickIslandPalette.mOnSurface
                 horizontalAlignment: Text.AlignHLeft
                 verticalAlignment: Text.AlignTop
                 wrapMode: Text.Wrap
@@ -802,7 +802,7 @@ Rectangle {
         horizontalPolicy: ScrollBar.AlwaysOff
         verticalPolicy: ScrollBar.AlwaysOff
         reserveScrollbarSpace: false
-        gradientColor: Color.mSurface
+        gradientColor: QuickIslandPalette.mSurface
         gradientHeight: 40
         wheelScrollMultiplier: 4.0
         trackedSelectionIndex: root.selectedIndex
@@ -883,7 +883,7 @@ Rectangle {
           return prefix + I18n.trp("common.result-count", root.results.length);
         }
         pointSize: Style.fontSizeXS
-        color: Color.mOnSurfaceVariant
+        color: QuickIslandPalette.mOnSurfaceVariant
         horizontalAlignment: Text.AlignCenter
       }
     }

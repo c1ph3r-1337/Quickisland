@@ -1,4 +1,5 @@
 import QtQuick
+import qs.Services.Power
 import QtQuick.Effects
 
 // Content used only by the notch's hover state.  It is separate from the
@@ -43,7 +44,7 @@ Item {
             id: artwork
             width: 64
             height: 64
-            radius: 14
+            radius: PowerProfileService.quickislandGameMode ? 0 : 14
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
             color: shell && shell.mediaArtUrl ? "transparent" : Qt.alpha(shell ? shell.surfaceBright : "#303030", 0.72)
@@ -131,7 +132,7 @@ Item {
                 font.pixelSize: 29
                 font.weight: Font.Bold
                 font.letterSpacing: 0.5
-                font.family: "Varela Round"
+                font.family: "SF Pro Rounded"
             }
 
             Row {

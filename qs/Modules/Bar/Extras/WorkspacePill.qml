@@ -84,14 +84,14 @@ Item {
 
     color: {
       if (pillMouseArea.containsMouse)
-        return Color.mHover;
+        return QuickIslandPalette.mHover;
       if (workspace.isFocused)
-        return Color.resolveColorKey(focusedColor);
+        return QuickIslandPalette.resolveColorKey(focusedColor);
       if (workspace.isUrgent)
-        return Color.mError;
+        return QuickIslandPalette.mError;
       if (workspace.isOccupied)
-        return Color.resolveColorKey(occupiedColor);
-      return Qt.alpha(Color.resolveColorKey(emptyColor), 0.3);
+        return QuickIslandPalette.resolveColorKey(occupiedColor);
+      return Qt.alpha(QuickIslandPalette.resolveColorKey(emptyColor), 0.3);
     }
 
     Loader {
@@ -126,18 +126,18 @@ Item {
           wrapMode: Text.Wrap
           color: {
             if (pillMouseArea.containsMouse)
-              return Color.mOnHover;
+              return QuickIslandPalette.mOnHover;
             if (workspace.isFocused)
-              return Color.resolveOnColorKey(focusedColor);
+              return QuickIslandPalette.resolveOnColorKey(focusedColor);
             if (workspace.isUrgent)
-              return Color.mOnError;
+              return QuickIslandPalette.mOnError;
             if (workspace.isOccupied)
-              return Color.resolveOnColorKey(occupiedColor);
-            return Color.resolveOnColorKey(emptyColor);
+              return QuickIslandPalette.resolveOnColorKey(occupiedColor);
+            return QuickIslandPalette.resolveOnColorKey(emptyColor);
           }
 
           Behavior on color {
-            enabled: !Color.isTransitioning
+            enabled: !QuickIslandPalette.isTransitioning
             ColorAnimation {
               duration: Style.animationFast
               easing.type: Easing.InOutQuad
@@ -155,7 +155,7 @@ Item {
       }
     }
     Behavior on color {
-      enabled: !Color.isTransitioning
+      enabled: !QuickIslandPalette.isTransitioning
       ColorAnimation {
         duration: Style.animationFast
         easing.type: Easing.InOutQuad

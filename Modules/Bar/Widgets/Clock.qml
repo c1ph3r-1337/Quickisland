@@ -6,6 +6,7 @@ import qs.Commons
 import qs.Modules.Bar.Extras
 import qs.Services.UI
 import qs.Widgets
+import "../../GameMode" as GameMode
 
 Item {
   id: root
@@ -44,8 +45,12 @@ Item {
   readonly property string formatHorizontal: widgetSettings.formatHorizontal !== undefined ? widgetSettings.formatHorizontal : widgetMetadata.formatHorizontal
   readonly property string formatVertical: widgetSettings.formatVertical !== undefined ? widgetSettings.formatVertical : widgetMetadata.formatVertical
   readonly property string tooltipFormat: widgetSettings.tooltipFormat !== undefined ? widgetSettings.tooltipFormat : widgetMetadata.tooltipFormat
+  readonly property string formattedHorizontal: I18n.locale.toString(now, formatHorizontal.trim())
+  readonly property string formattedVertical: I18n.locale.toString(now, formatVertical.trim())
+  readonly property int horizontalLineCount: formattedHorizontal.split("\\n").length
+  readonly property int verticalLineCount: formattedVertical.split(" ").length
 
-  readonly property color textColor: Color.resolveColorKey(clockColor)
+  readonly property color textColor: QuickIslandPalette.resolveColorKey(clockColor)
 
   // Content dimensions for implicit sizing
   readonly property real contentWidth: isBarVertical ? capsuleHeight : Math.round((isBarVertical ? verticalLoader.implicitWidth : horizontalLoader.implicitWidth) + Style.margin2M)
@@ -82,17 +87,17 @@ Item {
           spacing: Settings.data.bar.showCapsule ? -5 : -3
           Repeater {
             id: repeater
-            model: I18n.locale.toString(now, formatHorizontal.trim()).split("\\n")
-            NText {
+            model: root.horizontalLineCount
+            GameMode.AdaptiveClockText {
               visible: text !== ""
-              text: modelData
+              text: root.formattedHorizontal.split("\\n")[index]
               family: useCustomFont && customFont ? customFont : Settings.data.ui.fontDefault
               Binding on pointSize {
                 value: {
-                  if (repeater.model.length == 1) {
+                  if (repeater.count === 1) {
                     // Single line: Full size
                     return barFontSize;
-                  } else if (repeater.model.length == 2) {
+                  } else if (repeater.count === 2) {
                     // Two lines: First line is bigger than the second
                     return (index == 0) ? Math.round(barFontSize * 0.9) : Math.round(barFontSize * 0.75);
                   } else {
@@ -101,7 +106,6 @@ Item {
                   }
                 }
               }
-              applyUiScale: false
               color: textColor
               wrapMode: Text.WordWrap
               Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
@@ -122,13 +126,12 @@ Item {
           anchors.centerIn: parent
           spacing: -2
           Repeater {
-            model: I18n.locale.toString(now, formatVertical.trim()).split(" ")
-            delegate: NText {
+            model: root.verticalLineCount
+            delegate: GameMode.AdaptiveClockText {
               visible: text !== ""
-              text: modelData
+              text: root.formattedVertical.split(" ")[index]
               family: useCustomFont && customFont ? customFont : Settings.data.ui.fontDefault
               pointSize: barFontSize
-              applyUiScale: false
               color: textColor
               wrapMode: Text.WordWrap
               Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter

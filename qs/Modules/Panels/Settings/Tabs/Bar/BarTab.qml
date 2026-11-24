@@ -114,13 +114,13 @@ ColumnLayout {
     if (isPlugin) {
       badges.push({
                     "icon": "plugin",
-                    "color": Color.mSecondary
+                    "color": QuickIslandPalette.mSecondary
                   });
     }
     locations.forEach(function (location) {
       badges.push({
                     "icon": location,
-                    "color": Color.mOnSurfaceVariant
+                    "color": QuickIslandPalette.mOnSurfaceVariant
                   });
     });
     return badges;

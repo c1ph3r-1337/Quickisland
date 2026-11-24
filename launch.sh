@@ -7,16 +7,24 @@ killall -q dunst 2>/dev/null
 killall -q quickshell qs 2>/dev/null
 sleep 0.3
 
+# Make sure the wallpaper daemon is ready before QuickIsland restores its cache.
+if command -v awww >/dev/null 2>&1 && ! awww query >/dev/null 2>&1; then
+    if command -v awww-daemon >/dev/null 2>&1 && ! pgrep -x awww-daemon >/dev/null 2>&1; then
+        awww-daemon --no-cache >/dev/null 2>&1 &
+    fi
+    for attempt in {1..40}; do
+        awww query >/dev/null 2>&1 && break
+        sleep 0.25
+    done
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # GPU Selection:
-# If on battery, do NOT force rendering through the dGPU over a throttled PCIe bus.
-# Running on integrated GPU ensures 120+ FPS smoothness and saves significant battery life.
-if [ -f /sys/class/power_supply/ADP0/online ] && [ "$(cat /sys/class/power_supply/ADP0/online 2>/dev/null)" = "0" ]; then
-    unset DRI_PRIME
-else
-    export DRI_PRIME=pci-0000_03_00_0
-fi
+# Always render QuickIsland on the integrated Cezanne GPU (APU).
+# This avoids holding the discrete Radeon RX 6800M awake at idle,
+# eliminates PCIe cross-GPU transfer overhead, and reduces heat generation.
+unset DRI_PRIME
 
 # Ensure user icon themes (~/.local/share/icons) are always found by Qt
 export XDG_DATA_DIRS="$HOME/.local/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"

@@ -17,12 +17,12 @@ Item {
   property bool handleWheel: false
   property bool hovering: false
 
-  property color colorBg: Color.smartAlpha(Color.mSurfaceVariant)
-  property color colorFg: Color.mPrimary
-  property color colorBgHover: Color.mHover
-  property color colorFgHover: Color.mOnHover
-  property color colorBorder: Color.mOutline
-  property color colorBorderHover: Color.mOutline
+  property color colorBg: QuickIslandPalette.smartAlpha(QuickIslandPalette.mSurfaceVariant)
+  property color colorFg: QuickIslandPalette.mPrimary
+  property color colorBgHover: QuickIslandPalette.mHover
+  property color colorFgHover: QuickIslandPalette.mOnHover
+  property color colorBorder: QuickIslandPalette.mOutline
+  property color colorBorderHover: QuickIslandPalette.mOutline
   property real customRadius: -1 // -1 means use default (iRadiusL), otherwise use this value
 
   // Expose border properties for backwards compatibility (aliases to visualButton)
@@ -60,7 +60,7 @@ Item {
     border.width: Style.borderS
 
     Behavior on color {
-      enabled: !Color.isTransitioning
+      enabled: !QuickIslandPalette.isTransitioning
       ColorAnimation {
         duration: Style.animationFast
         easing.type: Easing.InOutQuad
@@ -77,7 +77,7 @@ Item {
       y: Style.pixelAlignCenter(visualButton.height, contentHeight)
 
       Behavior on color {
-        enabled: !Color.isTransitioning
+        enabled: !QuickIslandPalette.isTransitioning
         ColorAnimation {
           duration: Style.animationFast
           easing.type: Easing.InOutQuad

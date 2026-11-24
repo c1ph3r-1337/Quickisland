@@ -107,7 +107,7 @@ ColumnLayout {
             NText {
                 text:      pluginApi?.tr("settings.filenameFormatDesc")
                 pointSize: Style.fontSizeXS
-                color:     Color.mOnSurfaceVariant
+                color:     QuickIslandPalette.mOnSurfaceVariant
                 wrapMode:  Text.WordWrap
                 Layout.fillWidth: true
             }
@@ -130,23 +130,23 @@ ColumnLayout {
                     height: 28
                     width:  tokenRow.implicitWidth + Style.marginM * 2
                     radius: Style.radiusM
-                    color:  tokenMA.containsMouse ? Color.mPrimary : Color.mSurfaceVariant
+                    color:  tokenMA.containsMouse ? QuickIslandPalette.mPrimary : QuickIslandPalette.mSurfaceVariant
                     Behavior on color { ColorAnimation { duration: 120 } }
                     Row {
                         id: tokenRow
                         anchors.centerIn: parent
                         spacing: Style.marginXS
                         NText {
-                            text:        modelData.label
+                            text:        (modelData && modelData.label) ? modelData.label : ""
                             pointSize:   Style.fontSizeXS
                             font.weight: Font.Medium
-                            color:       tokenMA.containsMouse ? Color.mOnPrimary : Color.mOnSurface
+                            color:       tokenMA.containsMouse ? QuickIslandPalette.mOnPrimary : QuickIslandPalette.mOnSurface
                             anchors.verticalCenter: parent.verticalCenter
                         }
                         NText {
-                            text:      modelData.value
+                            text:      (modelData && modelData.value) ? modelData.value : ""
                             pointSize: Style.fontSizeXS
-                            color:     tokenMA.containsMouse ? Qt.rgba(1,1,1,0.65) : Color.mOnSurfaceVariant
+                            color:     tokenMA.containsMouse ? Qt.rgba(1,1,1,0.65) : QuickIslandPalette.mOnSurfaceVariant
                             anchors.verticalCenter: parent.verticalCenter
                         }
                     }
@@ -179,7 +179,7 @@ ColumnLayout {
             Layout.fillWidth: true
             height:  previewRow.implicitHeight + Style.marginM * 2
             radius:  Style.radiusM
-            color:   Color.mSurfaceVariant
+            color:   QuickIslandPalette.mSurfaceVariant
             opacity: 0.7
             Row {
                 id: previewRow
@@ -190,14 +190,14 @@ ColumnLayout {
                 }
                 spacing: Style.marginS
                 NIcon {
-                    icon:  "file"; color: Color.mOnSurfaceVariant; scale: 0.85
+                    icon:  "file"; color: QuickIslandPalette.mOnSurfaceVariant; scale: 0.85
                     anchors.verticalCenter: parent.verticalCenter
                 }
                 NText {
                     text:        root.buildPreview(root.filenameFormat) + ".ext"
                     pointSize:   Style.fontSizeXS
-                    color:       Color.mOnSurface
-                    font.family: "monospace"
+                    color:       QuickIslandPalette.mOnSurface
+                    font.family: "SF Pro Rounded"
                     elide:       Text.ElideRight
                     width:       parent.width - Style.marginM * 2
                     anchors.verticalCenter: parent.verticalCenter
@@ -215,7 +215,7 @@ ColumnLayout {
 
         RowLayout {
             spacing: Style.marginS
-            NIcon  { icon: "share"; color: Color.mPrimary }
+            NIcon  { icon: "share"; color: QuickIslandPalette.mPrimary }
             NLabel { label: pluginApi?.tr("settings.shareSection") }
         }
 
@@ -239,7 +239,7 @@ ColumnLayout {
             NText {
                 text:      pluginApi?.tr("settings.x02ExpiryDesc")
                 pointSize: Style.fontSizeXS
-                color:     Color.mOnSurfaceVariant
+                color:     QuickIslandPalette.mOnSurfaceVariant
                 wrapMode:  Text.WordWrap
                 Layout.fillWidth: true
             }
@@ -264,18 +264,18 @@ ColumnLayout {
                         radius:  Style.radiusM
                         enabled: root.x02ApiKey.trim() !== ""
                         color:   root.x02Expiry === modelData.id
-                            ? Color.mPrimary
-                            : (_expMA.containsMouse ? Color.mHover : Color.mSurfaceVariant)
+                            ? QuickIslandPalette.mPrimary
+                            : (_expMA.containsMouse ? QuickIslandPalette.mHover : QuickIslandPalette.mSurfaceVariant)
                         Behavior on color { ColorAnimation { duration: 120 } }
                         NText {
                             id: _expLabel
                             anchors.centerIn: parent
-                            text:        modelData.label
+                            text:        (modelData && modelData.label) ? modelData.label : ""
                             pointSize:   Style.fontSizeXS
                             font.weight: root.x02Expiry === modelData.id ? Font.Bold : Font.Normal
                             color:       root.x02Expiry === modelData.id
-                                ? Color.mOnPrimary
-                                : (_expMA.containsMouse ? Color.mOnHover : Color.mOnSurface)
+                                ? QuickIslandPalette.mOnPrimary
+                                : (_expMA.containsMouse ? QuickIslandPalette.mOnHover : QuickIslandPalette.mOnSurface)
                         }
                         MouseArea {
                             id: _expMA
@@ -344,7 +344,7 @@ ColumnLayout {
 
         RowLayout {
             spacing: Style.marginS
-            NIcon  { icon: "scan"; color: Color.mPrimary }
+            NIcon  { icon: "scan"; color: QuickIslandPalette.mPrimary }
             NLabel { label: pluginApi?.tr("settings.ocrSection") }
         }
 

@@ -180,13 +180,13 @@ Item {
     const baseColor = (function () {
       switch (colorName) {
       case "primary":
-        return Color.mPrimary;
+        return QuickIslandPalette.mPrimary;
       case "secondary":
-        return Color.mSecondary;
+        return QuickIslandPalette.mSecondary;
       case "tertiary":
-        return Color.mTertiary;
+        return QuickIslandPalette.mTertiary;
       case "error":
-        return Color.mError;
+        return QuickIslandPalette.mError;
       default:
         return null;
       }
@@ -198,7 +198,7 @@ Item {
   function _resolveIconColor(dynamicColorName, staticColorName, isHover) {
     if (dynamicColorName && dynamicColorName !== "") {
       if (dynamicColorName === "none") {
-        return isHover ? Color.mOnHover : Color.mOnSurface;
+        return isHover ? QuickIslandPalette.mOnHover : QuickIslandPalette.mOnSurface;
       }
       const color = _getColorValue(dynamicColorName, isHover);
       if (color !== null)
@@ -211,7 +211,7 @@ Item {
         return color;
     }
 
-    return isHover ? Color.mOnHover : Color.mOnSurface;
+    return isHover ? QuickIslandPalette.mOnHover : QuickIslandPalette.mOnSurface;
   }
 
   readonly property color iconColor: _resolveIconColor(_dynamicIconColor || _dynamicColor, colorizeSystemIcon, false)

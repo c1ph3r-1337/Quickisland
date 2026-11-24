@@ -195,7 +195,7 @@ Rectangle {
           elide: Text.ElideRight
           font.weight: Style.fontWeightBold
           pointSize: Style.fontSizeL
-          color: Color.mOnSurface
+          color: QuickIslandPalette.mOnSurface
         }
       }
     }
@@ -341,7 +341,7 @@ Rectangle {
     NText {
       anchors.centerIn: parent
       text: "Search: " + root.searchText
-      color: Color.mOnSurface
+      color: QuickIslandPalette.mOnSurface
       font.italic: true
       pointSize: Style.fontSizeS
     }

@@ -95,7 +95,7 @@ Singleton {
                             "name": I18n.tr("panels.indicator.system-default")
                           });
     monospaceFonts.append({
-                            "key": "monospace",
+                            "key": "SF Pro Rounded",
                             "name": I18n.tr("panels.indicator.system-default")
                           });
 
@@ -106,7 +106,7 @@ Singleton {
 
     fontsLoaded = true;
     isLoading = false;
-    Logger.i("Font", "Loaded", availableFonts.count, "fonts,", monospaceFonts.count, "monospace");
+    Logger.i("Font", "Loaded", availableFonts.count, "fonts,", monospaceFonts.count, "SF Pro Rounded");
   }
 
   // Temporary storage for process outputs

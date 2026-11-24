@@ -5,7 +5,9 @@ import qs.Modules.Bar.Widgets as BarWidgets
 import "../../" as Root
 import "../../Commons"
 import qs.Services.UI
+import qs.Services.Power
 import Quickshell.Hyprland
+import "../GameMode" as GameMode
 
 // =============================================================================
 // MacNotchBar — A large, centered top notch containing media and calendar.
@@ -87,6 +89,8 @@ Item {
     }
 
     property real notchWidth: {
+        if (PowerProfileService.quickislandGameMode && sr.fullscreenMode) return 0;
+        if (PowerProfileService.quickislandGameMode && BarService.effectivelyVisible && screen) return screen.width;
         if (isExpanded) return 500;
         if (notchWorkspaceActive) {
             var labelW = (typeof notchWorkspaceLabel !== "undefined" && notchWorkspaceLabel.implicitWidth > 0) ? notchWorkspaceLabel.implicitWidth : 12;
@@ -94,14 +98,18 @@ Item {
         }
         return 160;
     }
-    property real notchHeight: isExpanded ? 110 : 28
+    property real notchHeight: (PowerProfileService.quickislandGameMode && sr.fullscreenMode)
+                               ? 0
+                               : (PowerProfileService.quickislandGameMode && BarService.effectivelyVisible)
+                               ? (Settings.isLoaded && Settings.data.islandConfig.barHeight ? Settings.data.islandConfig.barHeight : 30)
+                               : (isExpanded ? 110 : 28)
     
-    Behavior on notchWidth { NumberAnimation { duration: 350; easing.type: Easing.OutExpo } }
-    Behavior on notchHeight { NumberAnimation { duration: 350; easing.type: Easing.OutExpo } }
+    Behavior on notchWidth { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 150; easing.type: Easing.OutCubic } }
+    Behavior on notchHeight { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 150; easing.type: Easing.OutCubic } }
 
-    readonly property real notchRadius: 18 // slightly smaller radius for collapsed mode compatibility
-    property real flareRadius: isExpanded ? ((typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchFlare) ? Settings.data.islandConfig.notchFlare : 12) : 5
-    Behavior on flareRadius { NumberAnimation { duration: 350; easing.type: Easing.OutExpo } }
+    readonly property real notchRadius: PowerProfileService.quickislandGameMode ? 0 : 18
+    property real flareRadius: PowerProfileService.quickislandGameMode ? 0 : (isExpanded ? ((typeof Settings !== "undefined" && Settings.isLoaded && Settings.data.islandConfig.notchFlare) ? Settings.data.islandConfig.notchFlare : 12) : 5)
+    Behavior on flareRadius { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 150; easing.type: Easing.OutCubic } }
 
     readonly property color bgColor: sr.surface
     readonly property color accentColor: sr.accent
@@ -197,7 +205,7 @@ Item {
             }
             Root.LiquidGlassBackground {
                 anchors.fill: parent
-                radius: 0
+                radius: PowerProfileService.quickislandGameMode ? 0 : 0
                 surfaceColor: sr.surface
                 accentColor: sr.accent
                 borderColor: "transparent"
@@ -230,8 +238,8 @@ Item {
                     width: sr.mediaPlaying ? 18.5 : 0
                     opacity: sr.mediaPlaying ? 1 : 0
 
-                    Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.InOutQuad } }
-                    Behavior on opacity { NumberAnimation { duration: 250; easing.type: Easing.InOutQuad } }
+                    Behavior on width { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 300; easing.type: Easing.InOutQuad } }
+                    Behavior on opacity { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 250; easing.type: Easing.InOutQuad } }
 
                     Row {
                         spacing: 1.5
@@ -249,11 +257,11 @@ Item {
                             Item {
                                 width: 2; height: 12
                                 Rectangle {
-                                    width: 2; radius: 1; color: sr.accent
+                                    width: 2; radius: PowerProfileService.quickislandGameMode ? 0 : 1; color: sr.accent
                                     anchors.bottom: parent.bottom; anchors.horizontalCenter: parent.horizontalCenter
                                     height: sr.mediaPlaying ? 5 : 2
                                     SequentialAnimation on height {
-                                        loops: Animation.Infinite; running: sr.mediaPlaying
+                                        loops: Animation.Infinite; running: sr.mediaPlaying && !PowerProfileService.quickislandGameMode
                                         NumberAnimation { to: modelData.h1; duration: modelData.d1; easing.type: Easing.InOutSine }
                                         NumberAnimation { to: modelData.h2; duration: modelData.d2; easing.type: Easing.InOutSine }
                                     }
@@ -269,21 +277,22 @@ Item {
                     height: Math.max(notchIdleClock.implicitHeight, notchWorkspaceLabel.implicitHeight)
                     anchors.verticalCenter: parent.verticalCenter
 
-                    Behavior on width { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+                    Behavior on width { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 200; easing.type: Easing.OutCubic } }
 
-                    Text {
+                    GameMode.AdaptiveTime {
                         id: notchIdleClock
                         anchors.centerIn: parent
                         text: sr.currentTime12h
+                        rollingEnabled: PowerProfileService.quickislandGameMode
                         color: textColor
                         font.pixelSize: 13
                         font.weight: Font.Bold
                         font.letterSpacing: 0.5
-                        font.family: "Varela Round"
+                        font.family: "SF Pro Rounded"
                         opacity: notchWorkspaceActive ? 0.0 : 1.0
                         scale: notchWorkspaceActive ? 0.8 : 1.0
-                        Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
-                        Behavior on scale   { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+                        Behavior on opacity { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 200; easing.type: Easing.OutCubic } }
+                        Behavior on scale   { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 200; easing.type: Easing.OutCubic } }
                     }
 
                     Text {
@@ -294,11 +303,11 @@ Item {
                         font.pixelSize: 13
                         font.weight: Font.Bold
                         font.letterSpacing: 0.5
-                        font.family: "Varela Round"
+                        font.family: "SF Pro Rounded"
                         opacity: notchWorkspaceActive ? 1.0 : 0.0
                         scale: notchWorkspaceActive ? 1.0 : 0.8
-                        Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
-                        Behavior on scale   { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+                        Behavior on opacity { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 200; easing.type: Easing.OutCubic } }
+                        Behavior on scale   { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 200; easing.type: Easing.OutCubic } }
                     }
                 }
             }
@@ -357,7 +366,7 @@ Item {
                     height: 18
                     opacity: sr.mediaPlaying ? 1.0 : ((sr.mediaTitle && sr.mediaTitle !== "") ? 0.35 : 0.0)
                     visible: opacity > 0
-                    Behavior on opacity { NumberAnimation { duration: 250; easing.type: Easing.InOutQuad } }
+                    Behavior on opacity { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 250; easing.type: Easing.InOutQuad } }
 
                     Row {
                         anchors.centerIn: parent
@@ -373,14 +382,14 @@ Item {
                             Item {
                                 width: 2.5; height: 16
                                 Rectangle {
-                                width: 2.5; radius: 1.25
+                                width: 2.5; radius: PowerProfileService.quickislandGameMode ? 0 : 1.25
                                 color: sr.accent || textColor
                                 anchors.bottom: parent.bottom
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 height: sr.mediaPlaying ? 5 : 2
                                 SequentialAnimation on height {
                                     loops: Animation.Infinite
-                                    running: sr.mediaPlaying
+                                    running: sr.mediaPlaying && !PowerProfileService.quickislandGameMode
                                     NumberAnimation { to: modelData.h1; duration: modelData.d1; easing.type: Easing.InOutSine }
                                     NumberAnimation { to: modelData.h2; duration: modelData.d2; easing.type: Easing.InOutSine }
                                 }
@@ -428,14 +437,14 @@ Item {
                     Rectangle {
                         id: albumMask; layer.enabled: true
                         anchors.fill: parent
-                        radius: 14
+                        radius: PowerProfileService.quickislandGameMode ? 0 : 14
                         visible: false
                     }
 
                     Rectangle {
                         anchors.fill: parent
                         color: sr.mediaArtUrl ? "transparent" : Qt.rgba(1, 1, 1, 0.08)
-                        radius: 14
+                        radius: PowerProfileService.quickislandGameMode ? 0 : 14
 
                         Image {
                             anchors.fill: parent
@@ -486,7 +495,7 @@ Item {
                     Row {
                         spacing: 12
                         Rectangle {
-                            width: 24; height: 24; radius: 12; color: prevArea.containsMouse ? Qt.rgba(1, 1, 1, 0.15) : "transparent"
+                            width: 24; height: 24; radius: PowerProfileService.quickislandGameMode ? 0 : 12; color: prevArea.containsMouse ? Qt.rgba(1, 1, 1, 0.15) : "transparent"
                             Image {
                                 anchors.centerIn: parent; width: 12; height: 12
                                 source: "../../icons/previous.png"; layer.enabled: true
@@ -495,7 +504,7 @@ Item {
                             MouseArea { id: prevArea; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: { if (sr.mediaPlayer) sr.mediaPlayer.previous(); } }
                         }
                         Rectangle {
-                            width: 24; height: 24; radius: 12; color: playArea.containsMouse ? Qt.rgba(1, 1, 1, 0.15) : "transparent"
+                            width: 24; height: 24; radius: PowerProfileService.quickislandGameMode ? 0 : 12; color: playArea.containsMouse ? Qt.rgba(1, 1, 1, 0.15) : "transparent"
                             Image {
                                 anchors.centerIn: parent; width: 12; height: 12
                                 source: sr.mediaPlaying ? "../../icons/pause.png" : "../../icons/play-button.png"; layer.enabled: true
@@ -504,7 +513,7 @@ Item {
                             MouseArea { id: playArea; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: { if (sr.mediaPlayer) { if (sr.mediaPlaying) sr.mediaPlayer.pause(); else sr.mediaPlayer.play(); } } }
                         }
                         Rectangle {
-                            width: 24; height: 24; radius: 12; color: nextArea.containsMouse ? Qt.rgba(1, 1, 1, 0.15) : "transparent"
+                            width: 24; height: 24; radius: PowerProfileService.quickislandGameMode ? 0 : 12; color: nextArea.containsMouse ? Qt.rgba(1, 1, 1, 0.15) : "transparent"
                             Image {
                                 anchors.centerIn: parent; width: 12; height: 12
                                 source: "../../icons/next.png"; layer.enabled: true
@@ -535,14 +544,15 @@ Item {
                     spacing: 4
 
                     // Clock
-                    Text {
+                    GameMode.AdaptiveTime {
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: sr.currentTime12h
+                        rollingEnabled: PowerProfileService.quickislandGameMode
                         color: textColor
                         font.pixelSize: 28
                         font.weight: Font.Bold
                         font.letterSpacing: 0.5
-                        font.family: "Varela Round"
+                        font.family: "SF Pro Rounded"
                     }
 
                     // Mini Calendar Row

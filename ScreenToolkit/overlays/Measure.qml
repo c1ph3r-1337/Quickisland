@@ -290,7 +290,7 @@ Variants {
             width: activeRow.implicitWidth + Style.marginL * 2
             height: activeRow.implicitHeight + Style.marginM * 2
             radius: Style.radiusL
-            color: Color.mSurface
+            color: QuickIslandPalette.mSurface
             border.color: "white"; border.width: 2
             Row {
                 id: activeRow
@@ -298,13 +298,13 @@ Variants {
                 spacing: Style.marginS
                 Column {
                     spacing: 1; anchors.verticalCenter: parent.verticalCenter
-                    NText { text: overlayWin.curDist + " px"; color: Color.mOnSurface; font.weight: Font.Bold; pointSize: Style.fontSizeM; anchors.horizontalCenter: parent.horizontalCenter }
-                    NText { text: Math.round(overlayWin.curW) + " × " + Math.round(overlayWin.curH); color: Color.mOnSurfaceVariant; pointSize: Style.fontSizeXS; anchors.horizontalCenter: parent.horizontalCenter }
+                    NText { text: overlayWin.curDist + " px"; color: QuickIslandPalette.mOnSurface; font.weight: Font.Bold; pointSize: Style.fontSizeM; anchors.horizontalCenter: parent.horizontalCenter }
+                    NText { text: Math.round(overlayWin.curW) + " × " + Math.round(overlayWin.curH); color: QuickIslandPalette.mOnSurfaceVariant; pointSize: Style.fontSizeXS; anchors.horizontalCenter: parent.horizontalCenter }
                 }
                 Rectangle {
                     width: 28; height: 28; radius: Style.radiusS; anchors.verticalCenter: parent.verticalCenter
-                    color: acopyBtn.containsMouse ? Color.mPrimary : Color.mSurfaceVariant
-                    NIcon { anchors.centerIn: parent; icon: "copy"; color: acopyBtn.containsMouse ? Color.mOnPrimary : Color.mOnSurface; scale: 0.85 }
+                    color: acopyBtn.containsMouse ? QuickIslandPalette.mPrimary : QuickIslandPalette.mSurfaceVariant
+                    NIcon { anchors.centerIn: parent; icon: "copy"; color: acopyBtn.containsMouse ? QuickIslandPalette.mOnPrimary : QuickIslandPalette.mOnSurface; scale: 0.85 }
                     MouseArea { id: acopyBtn; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                         onClicked: { measureVariants.copyResult(overlayWin.curDist + "px (" + Math.round(overlayWin.curW) + "×" + Math.round(overlayWin.curH) + ")"); ToastService.showNotice(_tr("messages.measure-copied")) }
                         onEntered: TooltipService.show(acopyBtn, _tr("measure.copyMeasurement")); onExited: TooltipService.hide()
@@ -312,8 +312,8 @@ Variants {
                 }
                 Rectangle {
                     width: 28; height: 28; radius: Style.radiusS; anchors.verticalCenter: parent.verticalCenter
-                    color: ascreenshotBtn.containsMouse ? Color.mPrimary : Color.mSurfaceVariant
-                    NIcon { anchors.centerIn: parent; icon: "camera"; color: ascreenshotBtn.containsMouse ? Color.mOnPrimary : Color.mOnSurface; scale: 0.85 }
+                    color: ascreenshotBtn.containsMouse ? QuickIslandPalette.mPrimary : QuickIslandPalette.mSurfaceVariant
+                    NIcon { anchors.centerIn: parent; icon: "camera"; color: ascreenshotBtn.containsMouse ? QuickIslandPalette.mOnPrimary : QuickIslandPalette.mOnSurface; scale: 0.85 }
                     MouseArea { id: ascreenshotBtn; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                         onClicked: overlayWin.doScreenshot(overlayWin.current, "#ffffff")
                         onEntered: TooltipService.show(ascreenshotBtn, _tr("measure.screenshot")); onExited: TooltipService.hide()
@@ -321,8 +321,8 @@ Variants {
                 }
                 Rectangle {
                     width: 28; height: 28; radius: Style.radiusS; anchors.verticalCenter: parent.verticalCenter
-                    color: pinBtn.containsMouse ? Color.mPrimary : Color.mSurfaceVariant
-                    NIcon { anchors.centerIn: parent; icon: "pin"; color: pinBtn.containsMouse ? Color.mOnPrimary : Color.mOnSurface; scale: 0.85 }
+                    color: pinBtn.containsMouse ? QuickIslandPalette.mPrimary : QuickIslandPalette.mSurfaceVariant
+                    NIcon { anchors.centerIn: parent; icon: "pin"; color: pinBtn.containsMouse ? QuickIslandPalette.mOnPrimary : QuickIslandPalette.mOnSurface; scale: 0.85 }
                     MouseArea { id: pinBtn; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                         onClicked: { overlayWin.doPin(); ToastService.showNotice(_tr("messages.measure-pinned")) }
                         onEntered: TooltipService.show(pinBtn, _tr("measure.pin")); onExited: TooltipService.hide()
@@ -330,8 +330,8 @@ Variants {
                 }
                 Rectangle {
                     width: 28; height: 28; radius: Style.radiusS; anchors.verticalCenter: parent.verticalCenter
-                    color: discardBtn.containsMouse ? Qt.alpha(Color.mError, 0.15) : Color.mSurfaceVariant
-                    NIcon { anchors.centerIn: parent; icon: "x"; color: discardBtn.containsMouse ? Color.mError : Color.mOnSurface; scale: 0.85 }
+                    color: discardBtn.containsMouse ? Qt.alpha(QuickIslandPalette.mError, 0.15) : QuickIslandPalette.mSurfaceVariant
+                    NIcon { anchors.centerIn: parent; icon: "x"; color: discardBtn.containsMouse ? QuickIslandPalette.mError : QuickIslandPalette.mOnSurface; scale: 0.85 }
                     MouseArea { id: discardBtn; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                         onClicked: { overlayWin.current = null; if (overlayWin.pinned.length === 0) measureVariants.hide() }
                         onEntered: TooltipService.show(discardBtn, _tr("measure.discard")); onExited: TooltipService.hide()
@@ -360,7 +360,7 @@ Variants {
                 width: pinnedRow.implicitWidth + Style.marginL * 2
                 height: pinnedRow.implicitHeight + Style.marginM * 2
                 radius: Style.radiusL
-                color: Color.mSurface
+                color: QuickIslandPalette.mSurface
                 border.color: mdata.color; border.width: 2
                 Row {
                     id: pinnedRow
@@ -369,13 +369,13 @@ Variants {
                     Rectangle { width: 10; height: 10; radius: 5; color: mdata.color; anchors.verticalCenter: parent.verticalCenter }
                     Column {
                         spacing: 1; anchors.verticalCenter: parent.verticalCenter
-                        NText { text: mdist + " px"; color: Color.mOnSurface; font.weight: Font.Bold; pointSize: Style.fontSizeM; anchors.horizontalCenter: parent.horizontalCenter }
-                        NText { text: Math.round(mw) + " × " + Math.round(mh); color: Color.mOnSurfaceVariant; pointSize: Style.fontSizeXS; anchors.horizontalCenter: parent.horizontalCenter }
+                        NText { text: mdist + " px"; color: QuickIslandPalette.mOnSurface; font.weight: Font.Bold; pointSize: Style.fontSizeM; anchors.horizontalCenter: parent.horizontalCenter }
+                        NText { text: Math.round(mw) + " × " + Math.round(mh); color: QuickIslandPalette.mOnSurfaceVariant; pointSize: Style.fontSizeXS; anchors.horizontalCenter: parent.horizontalCenter }
                     }
                     Rectangle {
                         width: 26; height: 26; radius: Style.radiusS; anchors.verticalCenter: parent.verticalCenter
-                        color: pcopyBtn.containsMouse ? Color.mPrimary : Color.mSurfaceVariant
-                        NIcon { anchors.centerIn: parent; icon: "copy"; color: pcopyBtn.containsMouse ? Color.mOnPrimary : Color.mOnSurface; scale: 0.8 }
+                        color: pcopyBtn.containsMouse ? QuickIslandPalette.mPrimary : QuickIslandPalette.mSurfaceVariant
+                        NIcon { anchors.centerIn: parent; icon: "copy"; color: pcopyBtn.containsMouse ? QuickIslandPalette.mOnPrimary : QuickIslandPalette.mOnSurface; scale: 0.8 }
                         MouseArea { id: pcopyBtn; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                             onClicked: { measureVariants.copyResult(mdist + "px (" + Math.round(mw) + "×" + Math.round(mh) + ")"); ToastService.showNotice(_tr("messages.measure-copied")) }
                             onEntered: TooltipService.show(pcopyBtn, _tr("measure.copy")); onExited: TooltipService.hide()
@@ -383,8 +383,8 @@ Variants {
                     }
                     Rectangle {
                         width: 26; height: 26; radius: Style.radiusS; anchors.verticalCenter: parent.verticalCenter
-                        color: pscreenshotBtn.containsMouse ? Color.mPrimary : Color.mSurfaceVariant
-                        NIcon { anchors.centerIn: parent; icon: "camera"; color: pscreenshotBtn.containsMouse ? Color.mOnPrimary : Color.mOnSurface; scale: 0.8 }
+                        color: pscreenshotBtn.containsMouse ? QuickIslandPalette.mPrimary : QuickIslandPalette.mSurfaceVariant
+                        NIcon { anchors.centerIn: parent; icon: "camera"; color: pscreenshotBtn.containsMouse ? QuickIslandPalette.mOnPrimary : QuickIslandPalette.mOnSurface; scale: 0.8 }
                         MouseArea { id: pscreenshotBtn; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                             onClicked: overlayWin.doScreenshot(mdata, mdata.color)
                             onEntered: TooltipService.show(pscreenshotBtn, _tr("measure.screenshot")); onExited: TooltipService.hide()
@@ -392,8 +392,8 @@ Variants {
                     }
                     Rectangle {
                         width: 26; height: 26; radius: Style.radiusS; anchors.verticalCenter: parent.verticalCenter
-                        color: premoveBtn.containsMouse ? Qt.alpha(Color.mError, 0.15) : Color.mSurfaceVariant
-                        NIcon { anchors.centerIn: parent; icon: "x"; color: premoveBtn.containsMouse ? Color.mError : Color.mOnSurface; scale: 0.8 }
+                        color: premoveBtn.containsMouse ? Qt.alpha(QuickIslandPalette.mError, 0.15) : QuickIslandPalette.mSurfaceVariant
+                        NIcon { anchors.centerIn: parent; icon: "x"; color: premoveBtn.containsMouse ? QuickIslandPalette.mError : QuickIslandPalette.mOnSurface; scale: 0.8 }
                         MouseArea { id: premoveBtn; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                             onClicked: overlayWin.removePinned(myIdx)
                             onEntered: TooltipService.show(premoveBtn, _tr("measure.remove")); onExited: TooltipService.hide()
@@ -409,12 +409,12 @@ Variants {
             anchors.bottomMargin: 32
             width: clearRow.implicitWidth + Style.marginL * 2
             height: 38; radius: Style.radiusM
-            color: clearAllBtn.containsMouse ? Qt.alpha(Color.mError, 0.15) : Color.mSurface
-            border.color: Color.mError; border.width: Style.borderS
+            color: clearAllBtn.containsMouse ? Qt.alpha(QuickIslandPalette.mError, 0.15) : QuickIslandPalette.mSurface
+            border.color: QuickIslandPalette.mError; border.width: Style.borderS
             Row {
                 id: clearRow; anchors.centerIn: parent; spacing: Style.marginS
-                NIcon { icon: "trash"; color: Color.mError }
-                NText { text: _tr("measure.clearAll"); color: Color.mError; font.weight: Font.Bold; pointSize: Style.fontSizeS }
+                NIcon { icon: "trash"; color: QuickIslandPalette.mError }
+                NText { text: _tr("measure.clearAll"); color: QuickIslandPalette.mError; font.weight: Font.Bold; pointSize: Style.fontSizeS }
             }
             MouseArea { id: clearAllBtn; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                 onClicked: overlayWin.clearAll()

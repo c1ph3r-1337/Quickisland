@@ -106,7 +106,7 @@ SmartPanel {
         Layout.fillWidth: true
         Layout.fillHeight: true
         radius: Style.radiusL * 1.2
-        color: Color.mSurface
+        color: QuickIslandPalette.mSurface
         scale: (root.selectedIndex === 0) ? 1.04 : 1.0
 
         Behavior on scale { NumberAnimation { duration: Style.animationFast; easing.type: Easing.OutBack } }
@@ -134,14 +134,14 @@ SmartPanel {
             width: 54
             height: 54
             radius: width / 2
-            color: Color.mSurfaceVariant
+            color: QuickIslandPalette.mSurfaceVariant
             opacity: 0.8
             Layout.alignment: Qt.AlignHCenter
 
             NIcon {
               icon: "device-desktop"
               pointSize: Style.fontSizeXL
-              color: Color.mOnSurfaceVariant
+              color: QuickIslandPalette.mOnSurfaceVariant
               anchors.centerIn: parent
             }
           }
@@ -150,14 +150,14 @@ SmartPanel {
             text: "Quickisland Only"
             pointSize: Style.fontSizeL
             font.weight: Style.fontWeightBold
-            color: Color.mOnSurface
+            color: QuickIslandPalette.mOnSurface
             Layout.alignment: Qt.AlignHCenter
           }
 
           NText {
             text: "Full desktop overlay"
             pointSize: Style.fontSizeS
-            color: Color.mOnSurfaceVariant
+            color: QuickIslandPalette.mOnSurfaceVariant
             wrapMode: Text.WordWrap
             horizontalAlignment: Text.AlignHCenter
             Layout.fillWidth: true
@@ -171,7 +171,7 @@ SmartPanel {
         Layout.fillWidth: true
         Layout.fillHeight: true
         radius: Style.radiusL * 1.2
-        color: Color.mSurface
+        color: QuickIslandPalette.mSurface
         scale: (root.selectedIndex === 1) ? 1.04 : 1.0
 
         Behavior on scale { NumberAnimation { duration: Style.animationFast; easing.type: Easing.OutBack } }
@@ -198,14 +198,14 @@ SmartPanel {
             width: 54
             height: 54
             radius: width / 2
-            color: Color.mSurfaceVariant
+            color: QuickIslandPalette.mSurfaceVariant
             opacity: 0.8
             Layout.alignment: Qt.AlignHCenter
 
             NIcon {
               icon: "feather"
               pointSize: Style.fontSizeXL
-              color: Color.mOnSurfaceVariant
+              color: QuickIslandPalette.mOnSurfaceVariant
               anchors.centerIn: parent
             }
           }
@@ -214,14 +214,14 @@ SmartPanel {
             text: "Quickisland"
             pointSize: Style.fontSizeL
             font.weight: Style.fontWeightBold
-            color: Color.mOnSurface
+            color: QuickIslandPalette.mOnSurface
             Layout.alignment: Qt.AlignHCenter
           }
 
           NText {
             text: "Minimal desktop"
             pointSize: Style.fontSizeS
-            color: Color.mOnSurfaceVariant
+            color: QuickIslandPalette.mOnSurfaceVariant
             wrapMode: Text.WordWrap
             horizontalAlignment: Text.AlignHCenter
             Layout.fillWidth: true

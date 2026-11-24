@@ -81,7 +81,7 @@ PanelWindow {
 
   color: {
     if (dimmerOpacity > 0 && isPanelOpen && !isPanelClosing) {
-      return Qt.alpha(Color.mShadow, dimmerOpacity);
+      return Qt.alpha(QuickIslandPalette.mShadow, dimmerOpacity);
     }
     return "transparent";
   }

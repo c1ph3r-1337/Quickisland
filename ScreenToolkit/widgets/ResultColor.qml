@@ -50,19 +50,19 @@ Item {
             width: parent.width
             height: 36
             radius: Style.radiusM
-            color: pickAgainBtn.containsMouse ? Color.mPrimary : Color.mSurface
-            border.color: Color.mPrimary
+            color: pickAgainBtn.containsMouse ? QuickIslandPalette.mPrimary : QuickIslandPalette.mSurface
+            border.color: QuickIslandPalette.mPrimary
             border.width: Style.capsuleBorderWidth
             Row {
                 anchors.centerIn: parent
                 spacing: Style.marginS
                 NIcon {
                     icon: "color-picker"
-                    color: pickAgainBtn.containsMouse ? Color.mOnPrimary : Color.mPrimary
+                    color: pickAgainBtn.containsMouse ? QuickIslandPalette.mOnPrimary : QuickIslandPalette.mPrimary
                 }
                 NText {
                     text: pluginApi?.tr("panel.pickAgain")
-                    color: pickAgainBtn.containsMouse ? Color.mOnPrimary : Color.mPrimary
+                    color: pickAgainBtn.containsMouse ? QuickIslandPalette.mOnPrimary : QuickIslandPalette.mPrimary
                     pointSize: Style.fontSizeS
                 }
             }
@@ -85,7 +85,7 @@ Item {
                     width: 110
                     height: 110
                     radius: Style.radiusM
-                    color: Color.mSurfaceVariant
+                    color: QuickIslandPalette.mSurfaceVariant
                     clip: true
                     border.color: Style.capsuleBorderColor
                     border.width: Style.capsuleBorderWidth
@@ -118,7 +118,7 @@ Item {
                         anchors.centerIn: parent
                         visible: pixelImg.status !== Image.Ready
                         text: pluginApi?.tr("panel.loading")
-                        color: Color.mOnSurfaceVariant
+                        color: QuickIslandPalette.mOnSurfaceVariant
                         pointSize: Style.fontSizeS
                     }
                 }
@@ -148,7 +148,7 @@ Item {
                     NText {
                         width: parent.width
                         text: root.pickedHex.toUpperCase()
-                        color: Color.mOnSurface
+                        color: QuickIslandPalette.mOnSurface
                         font.weight: Font.Bold
                         pointSize: Style.fontSizeM
                         horizontalAlignment: Text.AlignHCenter
@@ -166,7 +166,7 @@ Item {
                     width: root.width
                     height: 36
                     radius: Style.radiusM
-                    color: rh.containsMouse ? Color.mHover : Color.mSurface
+                    color: rh.containsMouse ? QuickIslandPalette.mHover : QuickIslandPalette.mSurface
                     border.color: Style.capsuleBorderColor
                     border.width: Style.capsuleBorderWidth
                     Row {
@@ -175,8 +175,8 @@ Item {
                         anchors.rightMargin: Style.marginS
                         spacing: Style.marginS
                         NText {
-                            text: modelData.label
-                            color: Color.mPrimary
+                            text: (modelData && modelData.label) ? modelData.label : ""
+                            color: QuickIslandPalette.mPrimary
                             font.weight: Font.Bold
                             pointSize: Style.fontSizeS
                             width: 36
@@ -185,7 +185,7 @@ Item {
                         }
                         NText {
                             text: modelData.value || "—"
-                            color: Color.mOnSurface
+                            color: QuickIslandPalette.mOnSurface
                             pointSize: Style.fontSizeS
                             width: root.width - 90
                             height: parent.height
@@ -195,7 +195,7 @@ Item {
                     }
                     NIcon {
                         icon: "copy"
-                        color: rh.containsMouse ? Color.mPrimary : Color.mOnSurfaceVariant
+                        color: rh.containsMouse ? QuickIslandPalette.mPrimary : QuickIslandPalette.mOnSurfaceVariant
                         anchors.right: parent.right
                         anchors.rightMargin: Style.marginS
                         anchors.verticalCenter: parent.verticalCenter
@@ -219,7 +219,7 @@ Item {
                     width: parent.width
                     height: 36
                     radius: Style.radiusM
-                    color: cah.containsMouse ? Color.mSurfaceVariant : Color.mSurface
+                    color: cah.containsMouse ? QuickIslandPalette.mSurfaceVariant : QuickIslandPalette.mSurface
                     border.color: Style.capsuleBorderColor
                     border.width: Style.capsuleBorderWidth
                     Row {
@@ -227,11 +227,11 @@ Item {
                         spacing: Style.marginS
                         NIcon {
                             icon: "copy"
-                            color: cah.containsMouse ? Color.mOnSurface : Color.mOnSurfaceVariant
+                            color: cah.containsMouse ? QuickIslandPalette.mOnSurface : QuickIslandPalette.mOnSurfaceVariant
                         }
                         NText {
                             text: pluginApi?.tr("panel.copyAll")
-                            color: cah.containsMouse ? Color.mOnSurface : Color.mOnSurfaceVariant
+                            color: cah.containsMouse ? QuickIslandPalette.mOnSurface : QuickIslandPalette.mOnSurfaceVariant
                             pointSize: Style.fontSizeS
                         }
                     }
@@ -250,19 +250,19 @@ Item {
                     width: parent.width
                     height: 36
                     radius: Style.radiusM
-                    color: clrh.containsMouse ? Qt.alpha(Color.mError, 0.15) : Color.mSurface
-                    border.color: clrh.containsMouse ? Color.mError : Style.capsuleBorderColor
+                    color: clrh.containsMouse ? Qt.alpha(QuickIslandPalette.mError, 0.15) : QuickIslandPalette.mSurface
+                    border.color: clrh.containsMouse ? QuickIslandPalette.mError : Style.capsuleBorderColor
                     border.width: Style.capsuleBorderWidth
                     Row {
                         anchors.centerIn: parent
                         spacing: Style.marginS
                         NIcon {
                             icon: "trash"
-                            color: clrh.containsMouse ? Color.mError : Color.mOnSurfaceVariant
+                            color: clrh.containsMouse ? QuickIslandPalette.mError : QuickIslandPalette.mOnSurfaceVariant
                         }
                         NText {
                             text: pluginApi?.tr("panel.clearResult")
-                            color: clrh.containsMouse ? Color.mError : Color.mOnSurfaceVariant
+                            color: clrh.containsMouse ? QuickIslandPalette.mError : QuickIslandPalette.mOnSurfaceVariant
                             pointSize: Style.fontSizeS
                         }
                     }
@@ -291,7 +291,7 @@ Item {
                     anchors.rightMargin:    Style.marginS
                     anchors.verticalCenter: parent.verticalCenter
                     height:  1
-                    color:   Color.mOnSurfaceVariant
+                    color:   QuickIslandPalette.mOnSurfaceVariant
                     opacity: 0.3
                 }
 
@@ -299,7 +299,7 @@ Item {
                     id:              historyLabel
                     anchors.centerIn: parent
                     text:             pluginApi?.tr("panel.history")
-                    color:            Color.mOnSurfaceVariant
+                    color:            QuickIslandPalette.mOnSurfaceVariant
                     pointSize:        Style.fontSizeXS
                 }
 
@@ -310,7 +310,7 @@ Item {
                     anchors.rightMargin:    Style.marginS
                     anchors.verticalCenter: parent.verticalCenter
                     height:  1
-                    color:   Color.mOnSurfaceVariant
+                    color:   QuickIslandPalette.mOnSurfaceVariant
                     opacity: 0.3
                 }
 
@@ -320,12 +320,12 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     width:  22; height: 22
                     radius: Style.radiusS
-                    color:  hhc.containsMouse ? Color.mError : "transparent"
+                    color:  hhc.containsMouse ? QuickIslandPalette.mError : "transparent"
                     NIcon {
                         anchors.centerIn: parent
                         icon:  "trash"
                         scale: 0.75
-                        color: hhc.containsMouse ? Color.mError : Color.mOnSurfaceVariant
+                        color: hhc.containsMouse ? QuickIslandPalette.mError : QuickIslandPalette.mOnSurfaceVariant
                     }
                     MouseArea {
                         id:          hhc
@@ -348,7 +348,7 @@ Item {
                         width: 28
                         height: 28
                         radius: Style.radiusS
-                        border.color: hh.containsMouse ? Color.mPrimary : Style.capsuleBorderColor
+                        border.color: hh.containsMouse ? QuickIslandPalette.mPrimary : Style.capsuleBorderColor
                         border.width: hh.containsMouse ? 2 : Style.capsuleBorderWidth
                         Component.onCompleted: color = modelData
                         MouseArea {

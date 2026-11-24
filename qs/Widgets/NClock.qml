@@ -4,6 +4,8 @@ import Quickshell
 import "../Helpers/ColorsConvert.js" as ColorsConvert
 import qs.Commons
 import qs.Widgets
+import qs.Services.Power
+import "../Modules/GameMode" as GameMode
 
 Item {
   id: root
@@ -17,14 +19,14 @@ Item {
   property bool showProgress: true
 
   // Color properties
-  property color backgroundColor: Color.mPrimary
-  property color clockColor: Color.mOnPrimary
+  property color backgroundColor: QuickIslandPalette.mPrimary
+  property color clockColor: QuickIslandPalette.mOnPrimary
 
   property color secondHandColor: {
-    var defaultColor = Color.mError;
+    var defaultColor = QuickIslandPalette.mError;
     var bestContrast = 1.0; // 1.0 is "no contrast"
     var bestColor = defaultColor;
-    var candidates = [Color.mSecondary, Color.mTertiary, Color.mError];
+    var candidates = [QuickIslandPalette.mSecondary, QuickIslandPalette.mTertiary, QuickIslandPalette.mError];
 
     const minContrast = 1.149;
 
@@ -132,9 +134,9 @@ Item {
   // Analog Clock Component
   component NClockAnalog: Item {
     property var now
-    property color backgroundColor: Color.mPrimary
-    property color clockColor: Color.mOnPrimary
-    property color secondHandColor: Color.mError
+    property color backgroundColor: QuickIslandPalette.mPrimary
+    property color clockColor: QuickIslandPalette.mOnPrimary
+    property color secondHandColor: QuickIslandPalette.mError
     property real scaleRatio: Style.uiScaleRatio
     anchors.fill: parent
 
@@ -233,15 +235,19 @@ Item {
   // Digital Clock Component
   component NClockDigital: Item {
     property var now
-    property color backgroundColor: Color.mPrimary
-    property color clockColor: Color.mOnPrimary
-    property color progressColor: Color.mError
+    property color backgroundColor: QuickIslandPalette.mPrimary
+    property color clockColor: QuickIslandPalette.mOnPrimary
+    property color progressColor: QuickIslandPalette.mError
     property real hoursFontSize: Style.fontSizeXS
     property real minutesFontSize: Style.fontSizeXXS
     property int hoursFontWeight: Style.fontWeightBold
     property int minutesFontWeight: Style.fontWeightBold
     property real scaleRatio: Style.uiScaleRatio
     property bool showProgress: true
+    readonly property string hourValue: {
+      var t = Settings.data.location.use12hourFormat ? I18n.locale.toString(now, "hh AP") : I18n.locale.toString(now, "HH");
+      return t.split(" ")[0];
+    }
 
     anchors.fill: parent
 
@@ -289,10 +295,8 @@ Item {
       spacing: -Style.marginXXS
 
       NText {
-        text: {
-          var t = Settings.data.location.use12hourFormat ? I18n.locale.toString(now, "hh AP") : I18n.locale.toString(now, "HH");
-          return t.split(" ")[0];
-        }
+        visible: !PowerProfileService.quickislandGameMode
+        text: hourValue
 
         pointSize: hoursFontSize
         font.weight: hoursFontWeight
@@ -301,12 +305,39 @@ Item {
         Layout.alignment: Qt.AlignHCenter
       }
 
+      GameMode.RollingTime {
+        visible: PowerProfileService.quickislandGameMode
+        rollingEnabled: true
+        text: hourValue
+        color: clockColor
+        font: Qt.font({
+          family: Settings.data.ui.fontFixed,
+          pointSize: hoursFontSize * Settings.data.ui.fontFixedScale * Style.uiScaleRatio,
+          weight: hoursFontWeight
+        })
+        Layout.alignment: Qt.AlignHCenter
+      }
+
       NText {
+        visible: !PowerProfileService.quickislandGameMode
         text: Qt.formatTime(now, "mm")
         pointSize: minutesFontSize
         font.weight: minutesFontWeight
         color: clockColor
         family: Settings.data.ui.fontFixed
+        Layout.alignment: Qt.AlignHCenter
+      }
+
+      GameMode.RollingTime {
+        visible: PowerProfileService.quickislandGameMode
+        rollingEnabled: true
+        text: Qt.formatTime(now, "mm")
+        color: clockColor
+        font: Qt.font({
+          family: Settings.data.ui.fontFixed,
+          pointSize: minutesFontSize * Settings.data.ui.fontFixedScale * Style.uiScaleRatio,
+          weight: minutesFontWeight
+        })
         Layout.alignment: Qt.AlignHCenter
       }
     }
@@ -316,7 +347,7 @@ Item {
   component NClockBinary: Item {
     property var now
     property color backgroundColor
-    property color clockColor: Color.mOnPrimary
+    property color clockColor: QuickIslandPalette.mOnPrimary
 
     anchors.fill: parent
 

@@ -11,10 +11,10 @@ Item {
   property string text: ""
   property string icon: ""
   property var tooltipText
-  property color backgroundColor: Color.mPrimary
-  property color textColor: Color.mOnPrimary
-  property color hoverColor: Color.mHover
-  property color textHoverColor: Color.mOnHover
+  property color backgroundColor: QuickIslandPalette.mPrimary
+  property color textColor: QuickIslandPalette.mOnPrimary
+  property color hoverColor: QuickIslandPalette.mHover
+  property color textHoverColor: QuickIslandPalette.mOnHover
   property real fontSize: Style.fontSizeM
   property int fontWeight: Style.fontWeightSemiBold
   property real iconSize: Style.fontSizeL
@@ -33,7 +33,7 @@ Item {
   property bool hovered: false
   readonly property color contentColor: {
     if (!root.enabled) {
-      return Color.mOnSurfaceVariant;
+      return QuickIslandPalette.mOnSurfaceVariant;
     }
     if (root.hovered) {
       return root.textHoverColor;
@@ -61,7 +61,7 @@ Item {
     radius: root.buttonRadius
     color: {
       if (!root.enabled)
-        return root.outlined ? "transparent" : Qt.lighter(Color.mSurfaceVariant, 1.2);
+        return root.outlined ? "transparent" : Qt.lighter(QuickIslandPalette.mSurfaceVariant, 1.2);
       if (root.hovered)
         return root.hoverColor;
       return root.outlined ? "transparent" : root.backgroundColor;
@@ -70,14 +70,14 @@ Item {
     border.width: root.outlined ? Style.borderS : 0
     border.color: {
       if (!root.enabled)
-        return Color.mOutline;
+        return QuickIslandPalette.mOutline;
       if (root.hovered)
         return root.hoverColor;
       return root.outlined ? root.backgroundColor : "transparent";
     }
 
     Behavior on color {
-      enabled: !Color.isTransitioning
+      enabled: !QuickIslandPalette.isTransitioning
       ColorAnimation {
         duration: Style.animationFast
         easing.type: Easing.OutCubic
@@ -85,7 +85,7 @@ Item {
     }
 
     Behavior on border.color {
-      enabled: !Color.isTransitioning
+      enabled: !QuickIslandPalette.isTransitioning
       ColorAnimation {
         duration: Style.animationFast
         easing.type: Easing.OutCubic
@@ -110,7 +110,7 @@ Item {
         color: root.contentColor
 
         Behavior on color {
-          enabled: !Color.isTransitioning
+          enabled: !QuickIslandPalette.isTransitioning
           ColorAnimation {
             duration: Style.animationFast
             easing.type: Easing.OutCubic
@@ -128,7 +128,7 @@ Item {
         color: root.contentColor
 
         Behavior on color {
-          enabled: !Color.isTransitioning
+          enabled: !QuickIslandPalette.isTransitioning
           ColorAnimation {
             duration: Style.animationFast
             easing.type: Easing.OutCubic

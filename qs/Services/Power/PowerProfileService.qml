@@ -15,6 +15,7 @@ Singleton {
 
   // Not a power profile but a volatile property to quickly disable shadows, animations, etc..
   property bool quickislandPerformanceMode: false
+  property bool quickislandGameMode: false
 
   function getName(p) {
     if (!available)

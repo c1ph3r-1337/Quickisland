@@ -86,7 +86,7 @@ Singleton {
     adapter.general.avatarImage = defaultAvatar;
     adapter.wallpaper.directory = defaultWallpapersDirectory;
     adapter.ui.fontDefault = Qt.application.font.family;
-    adapter.ui.fontFixed = "monospace";
+    adapter.ui.fontFixed = "SF Pro Rounded";
 
     // Set the adapter to the settingsFileView to trigger the real settings load
     settingsFileView.adapter = adapter;

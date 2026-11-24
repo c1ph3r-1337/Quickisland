@@ -25,7 +25,7 @@ ColumnLayout {
   property string valueFormatVertical: widgetData.formatVertical !== undefined ? widgetData.formatVertical : widgetMetadata.formatVertical
   property string valueTooltipFormat: widgetData.tooltipFormat !== undefined ? widgetData.tooltipFormat : widgetMetadata.tooltipFormat
 
-  readonly property color textColor: Color.resolveColorKey(valueClockColor)
+  readonly property color textColor: QuickIslandPalette.resolveColorKey(valueClockColor)
 
   // Track the currently focused input field
   property var focusedInput: null
@@ -223,9 +223,9 @@ ColumnLayout {
         Layout.preferredWidth: 320
         Layout.preferredHeight: 160 // Fixed height instead of fillHeight
 
-        color: Color.mSurfaceVariant
+        color: QuickIslandPalette.mSurfaceVariant
         radius: Style.radiusM
-        border.color: Color.mSecondary
+        border.color: QuickIslandPalette.mSecondary
         border.width: Style.borderS
 
         Behavior on border.color {

@@ -97,24 +97,24 @@ Item {
     anchors.fill: parent
     anchors.margins: shadowPadding
     radius: Style.radiusL
-    color: Qt.alpha(Color.mSurface, Color.adaptiveOpacity(Settings.data.notifications.backgroundOpacity) || 1.0)
+    color: Qt.alpha(QuickIslandPalette.mSurface, QuickIslandPalette.adaptiveOpacity(Settings.data.notifications.backgroundOpacity) || 1.0)
 
     // Colored border based on type
     border.width: Style.borderS
     border.color: {
       if (root.isColorType) {
-        return Qt.alpha(root.type, Color.adaptiveOpacity(Settings.data.notifications.backgroundOpacity) || 1.0);
+        return Qt.alpha(root.type, QuickIslandPalette.adaptiveOpacity(Settings.data.notifications.backgroundOpacity) || 1.0);
       }
       var baseColor;
       switch (root.type) {
       case "error":
-        baseColor = Color.mError;
+        baseColor = QuickIslandPalette.mError;
         break;
       default:
-        baseColor = Color.mOutline;
+        baseColor = QuickIslandPalette.mOutline;
         break;
       }
-      return Qt.alpha(baseColor, Color.adaptiveOpacity(Settings.data.notifications.backgroundOpacity) || 1.0);
+      return Qt.alpha(baseColor, QuickIslandPalette.adaptiveOpacity(Settings.data.notifications.backgroundOpacity) || 1.0);
     }
 
     // Progress bar
@@ -135,21 +135,21 @@ Item {
 
         color: {
           if (root.isColorType) {
-            return Qt.alpha(root.type, Color.adaptiveOpacity(Settings.data.notifications.backgroundOpacity) || 1.0);
+            return Qt.alpha(root.type, QuickIslandPalette.adaptiveOpacity(Settings.data.notifications.backgroundOpacity) || 1.0);
           }
           var baseColor;
           switch (root.type) {
           case "warning":
-            baseColor = Color.mPrimary;
+            baseColor = QuickIslandPalette.mPrimary;
             break;
           case "error":
-            baseColor = Color.mError;
+            baseColor = QuickIslandPalette.mError;
             break;
           default:
-            baseColor = Color.mPrimary; // Match standard notification color
+            baseColor = QuickIslandPalette.mPrimary; // Match standard notification color
             break;
           }
-          return Qt.alpha(baseColor, Color.adaptiveOpacity(Settings.data.notifications.backgroundOpacity) || 1.0);
+          return Qt.alpha(baseColor, QuickIslandPalette.adaptiveOpacity(Settings.data.notifications.backgroundOpacity) || 1.0);
         }
       }
     }
@@ -313,11 +313,11 @@ Item {
         }
         switch (type) {
         case "warning":
-          return Color.mPrimary;
+          return QuickIslandPalette.mPrimary;
         case "error":
-          return Color.mError;
+          return QuickIslandPalette.mError;
         default:
-          return Color.mOnSurface;
+          return QuickIslandPalette.mOnSurface;
         }
       }
       pointSize: isCompact ? Style.fontSizeXL : Style.fontSizeXXL * 1.5
@@ -333,7 +333,7 @@ Item {
       NText {
         Layout.fillWidth: true
         text: root.title
-        color: Color.mOnSurface
+        color: QuickIslandPalette.mOnSurface
         pointSize: isCompact ? Style.fontSizeM : Style.fontSizeL
         font.weight: Style.fontWeightBold
         wrapMode: Text.WordWrap
@@ -343,7 +343,7 @@ Item {
       NText {
         Layout.fillWidth: true
         text: root.description
-        color: Color.mOnSurface
+        color: QuickIslandPalette.mOnSurface
         pointSize: isCompact ? Style.fontSizeS : Style.fontSizeM
         wrapMode: Text.WordWrap
         maximumLineCount: isCompact ? 2 : 20
@@ -357,9 +357,9 @@ Item {
         visible: root.actionLabel.length > 0 && root.actionCallback !== null
         Layout.topMargin: Style.marginXS
         fontSize: Style.fontSizeS
-        backgroundColor: Color.mPrimary
-        textColor: hovered ? Color.mOnHover : Color.mOnPrimary
-        hoverColor: Color.mHover
+        backgroundColor: QuickIslandPalette.mPrimary
+        textColor: hovered ? QuickIslandPalette.mOnHover : QuickIslandPalette.mOnPrimary
+        hoverColor: QuickIslandPalette.mHover
         outlined: false
         implicitHeight: 24
 

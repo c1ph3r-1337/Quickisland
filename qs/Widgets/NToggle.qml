@@ -33,7 +33,7 @@ RowLayout {
     label: root.label
     description: root.description
     icon: root.icon
-    iconColor: root.checked ? Color.mPrimary : Color.mOnSurface
+    iconColor: root.checked ? QuickIslandPalette.mPrimary : QuickIslandPalette.mOnSurface
     visible: root.label !== "" || root.description !== ""
     showIndicator: root.isValueChanged
     indicatorTooltip: root.indicatorTooltip
@@ -48,8 +48,8 @@ RowLayout {
     implicitWidth: Math.round(root.baseSize * .85) * 2
     implicitHeight: Math.round(root.baseSize * .5) * 2
     radius: Math.min(Style.iRadiusL, height / 2)
-    color: root.checked ? Color.mPrimary : Color.mSurface
-    border.color: Color.mOutline
+    color: root.checked ? QuickIslandPalette.mPrimary : QuickIslandPalette.mSurface
+    border.color: QuickIslandPalette.mOutline
     border.width: Style.borderS
 
     Behavior on color {
@@ -68,8 +68,8 @@ RowLayout {
       implicitWidth: Math.round(root.baseSize * 0.4) * 2
       implicitHeight: Math.round(root.baseSize * 0.4) * 2
       radius: Math.min(Style.iRadiusL, height / 2)
-      color: root.checked ? Color.mOnPrimary : Color.mPrimary
-      border.color: root.checked ? Color.mSurface : Color.mSurface
+      color: root.checked ? QuickIslandPalette.mOnPrimary : QuickIslandPalette.mPrimary
+      border.color: root.checked ? QuickIslandPalette.mSurface : QuickIslandPalette.mSurface
       border.width: Style.borderM
       anchors.verticalCenter: parent.verticalCenter
       anchors.verticalCenterOffset: 0

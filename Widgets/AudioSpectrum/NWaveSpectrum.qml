@@ -4,8 +4,8 @@ import qs.Commons
 
 Item {
   id: root
-  property color fillColor: Color.mPrimary
-  property color strokeColor: Color.mOnSurface
+  property color fillColor: QuickIslandPalette.mPrimary
+  property color strokeColor: QuickIslandPalette.mOnSurface
   property int strokeWidth: 0
   property var values: []
   property bool vertical: false
