@@ -2081,7 +2081,7 @@
     "panel": {
       "apikey-help": "An API key is required to access NSFW content.",
       "apikey-label": "API Key",
-      "apikey-managed-by-env": "Managed via NOCTALIA_WALLHAVEN_API_KEY environment variable.",
+      "apikey-managed-by-env": "Managed via QUICKISLAND_WALLHAVEN_API_KEY environment variable.",
       "apikey-placeholder": "Enter your Wallhaven API Key",
       "appearance-dark-tab": "Dark",
       "appearance-light-tab": "Light",

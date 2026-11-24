@@ -274,8 +274,8 @@ Item {
 
                 Item {
                     id: notchCenterInfo
-                    width: notchWorkspaceActive ? notchWorkspaceLabel.implicitWidth : notchIdleClock.implicitWidth
-                    height: Math.max(notchIdleClock.implicitHeight, notchWorkspaceLabel.implicitHeight)
+                    width: notchWorkspaceActive ? notchWorkspaceLabel.implicitWidth : Math.max(notchIdleClock.implicitWidth, gameModeNotice.implicitWidth)
+                    height: Math.max(notchIdleClock.implicitHeight, Math.max(notchWorkspaceLabel.implicitHeight, gameModeNotice.implicitHeight))
                     anchors.verticalCenter: parent.verticalCenter
 
                     Behavior on width { NumberAnimation { duration: Style.quickIslandAnimationDuration(200); easing.type: Easing.OutCubic } }
@@ -290,10 +290,23 @@ Item {
                         font.weight: Font.Bold
                         font.letterSpacing: 0.5
                         font.family: Settings.data.ui.fontDefault
-                        opacity: notchWorkspaceActive ? 0.0 : 1.0
+                        visible: !notchWorkspaceActive && !sr.gameModeNoticeVisible
+                        opacity: notchWorkspaceActive || sr.gameModeNoticeVisible ? 0.0 : 1.0
                         scale: notchWorkspaceActive ? 0.8 : 1.0
                         Behavior on opacity { NumberAnimation { duration: Style.quickIslandAnimationDuration(200); easing.type: Easing.OutCubic } }
                         Behavior on scale   { NumberAnimation { duration: Style.quickIslandAnimationDuration(200); easing.type: Easing.OutCubic } }
+                    }
+
+                    Text {
+                        id: gameModeNotice
+                        anchors.centerIn: parent
+                        text: "Game Mode"
+                        color: textColor
+                        font.pixelSize: 13
+                        font.weight: Font.Bold
+                        font.letterSpacing: 0.5
+                        font.family: Settings.data.ui.fontDefault
+                        visible: sr.gameModeNoticeVisible && !notchWorkspaceActive
                     }
 
                     Text {

@@ -83,7 +83,6 @@ Singleton {
 
   // Settings IPC helpers (outside IpcHandler to avoid QVariant IPC warnings)
   readonly property var _settingsTabMap: ({
-                                            "about": SettingsPanel.Tab.About,
                                             "audio": SettingsPanel.Tab.Audio,
                                             "bar": SettingsPanel.Tab.Bar,
                                             "colorscheme": SettingsPanel.Tab.ColorScheme,
@@ -94,18 +93,17 @@ Singleton {
                                             "display": SettingsPanel.Tab.Display,
                                             "dock": SettingsPanel.Tab.Dock,
                                             "general": SettingsPanel.Tab.General,
-                                            "hooks": SettingsPanel.Tab.Hooks,
                                             "launcher": SettingsPanel.Tab.Launcher,
                                             "location": SettingsPanel.Tab.Location,
                                             "connections": SettingsPanel.Tab.Connections,
                                             "notifications": SettingsPanel.Tab.Notifications,
-                                            "plugins": SettingsPanel.Tab.Plugins,
                                             "sessionmenu": SettingsPanel.Tab.SessionMenu,
                                             "system": SettingsPanel.Tab.System,
                                             "systemmonitor": SettingsPanel.Tab.System,
                                             "userinterface": SettingsPanel.Tab.UserInterface,
                                             "wallpaper": SettingsPanel.Tab.Wallpaper,
-                                            "idle": SettingsPanel.Tab.Idle
+                                            "idle": SettingsPanel.Tab.Idle,
+                                            "quickisland": SettingsPanel.Tab.QuickIsland
                                           })
 
   function _parseSettingsTabArg(tabArg) {
@@ -120,12 +118,12 @@ Singleton {
 
   function _resolveSettingsTab(tabName) {
     if (!tabName)
-      return SettingsPanel.Tab.General;
+      return SettingsPanel.Tab.QuickIsland;
     var key = tabName.toLowerCase().replace(/[-_]/g, "");
     if (key in _settingsTabMap)
       return _settingsTabMap[key];
     Logger.w("IPC", "Unknown settings tab: " + tabName);
-    return SettingsPanel.Tab.General;
+    return SettingsPanel.Tab.QuickIsland;
   }
 
   function _settingsToggle(tabId, subTabId) {
@@ -144,7 +142,7 @@ Singleton {
     target: "settings"
 
     function toggle() {
-      root._settingsToggle(SettingsPanel.Tab.General, -1);
+      root._settingsToggle(SettingsPanel.Tab.QuickIsland, -1);
     }
 
     function toggleTab(tab: string) {
@@ -153,7 +151,7 @@ Singleton {
     }
 
     function open() {
-      root._settingsOpen(SettingsPanel.Tab.General, -1);
+      root._settingsOpen(SettingsPanel.Tab.QuickIsland, -1);
     }
 
     function openTab(tab: string) {

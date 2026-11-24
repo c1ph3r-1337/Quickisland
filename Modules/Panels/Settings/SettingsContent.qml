@@ -1,10 +1,10 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Effects
 import QtQuick.Layouts
 import Quickshell
 import qs.Commons
 import qs.Modules.Panels.Settings.Tabs
-import qs.Modules.Panels.Settings.Tabs.About
 import qs.Modules.Panels.Settings.Tabs.Audio
 import qs.Modules.Panels.Settings.Tabs.Bar
 import qs.Modules.Panels.Settings.Tabs.ColorScheme
@@ -12,13 +12,11 @@ import qs.Modules.Panels.Settings.Tabs.Connections
 import qs.Modules.Panels.Settings.Tabs.ControlCenter
 import qs.Modules.Panels.Settings.Tabs.Display
 import qs.Modules.Panels.Settings.Tabs.Dock
-import qs.Modules.Panels.Settings.Tabs.Hooks
 import qs.Modules.Panels.Settings.Tabs.Idle
 import qs.Modules.Panels.Settings.Tabs.Launcher
 import qs.Modules.Panels.Settings.Tabs.LockScreen
 import qs.Modules.Panels.Settings.Tabs.Notifications
 import qs.Modules.Panels.Settings.Tabs.Osd
-import qs.Modules.Panels.Settings.Tabs.Plugins
 import qs.Modules.Panels.Settings.Tabs.QuickIsland
 import qs.Modules.Panels.Settings.Tabs.Region
 import qs.Modules.Panels.Settings.Tabs.SessionMenu
@@ -65,6 +63,43 @@ Item {
   property bool _mouseInitialized: false
 
   readonly property bool sidebarCardStyle: Settings.data.ui.settingsPanelSideBarCardStyle
+  readonly property bool gameModeUi: PowerProfileService.quickislandGameMode
+
+  // The generated search index keeps the tab order it was built against.
+  // Resolve its legacy indices to stable tab IDs so inserted QuickIsland pages
+  // and hidden unsupported pages cannot send a result to the wrong section.
+  readonly property var legacySearchTabIds: [
+    SettingsPanel.Tab.General,
+    SettingsPanel.Tab.UserInterface,
+    SettingsPanel.Tab.ColorScheme,
+    SettingsPanel.Tab.Wallpaper,
+    SettingsPanel.Tab.Bar,
+    SettingsPanel.Tab.Dock,
+    SettingsPanel.Tab.DesktopWidgets,
+    SettingsPanel.Tab.ControlCenter,
+    SettingsPanel.Tab.Launcher,
+    SettingsPanel.Tab.Notifications,
+    SettingsPanel.Tab.OSD,
+    SettingsPanel.Tab.LockScreen,
+    SettingsPanel.Tab.SessionMenu,
+    SettingsPanel.Tab.Idle,
+    SettingsPanel.Tab.Audio,
+    SettingsPanel.Tab.Display,
+    SettingsPanel.Tab.Connections,
+    SettingsPanel.Tab.Location,
+    SettingsPanel.Tab.System,
+    null,
+    null,
+    null
+  ]
+
+  function tabIndexForId(tabId) {
+    for (let i = 0; i < tabsModel.length; i++) {
+      if (tabsModel[i].id === tabId)
+        return i;
+    }
+    return -1;
+  }
 
   onSearchResultsChanged: {
     searchSelectedIndex = 0;
@@ -104,11 +139,15 @@ Item {
       const entry = SettingsSearchService.searchIndex[j];
       if (!SettingsSearchService.isEntryVisible(entry))
         continue;
+      const tabId = root.legacySearchTabIds[entry.tab];
+      if (tabId === undefined || root.tabIndexForId(tabId) < 0)
+        continue;
       items.push({
                    "labelKey": entry.labelKey,
                    "descriptionKey": entry.descriptionKey,
                    "widget": entry.widget,
                    "tab": entry.tab,
+                   "tabId": tabId,
                    "tabLabel": entry.tabLabel,
                    "subTab": entry.subTab,
                    "subTabLabel": entry.subTabLabel || null,
@@ -142,15 +181,17 @@ Item {
   property int _pendingSubTab: -1
 
   function navigateToResult(entry) {
-    if (entry.tab < 0 || entry.tab >= tabsModel.length)
+    const tabId = entry.tabId !== undefined ? entry.tabId : root.legacySearchTabIds[entry.tab];
+    const tabIndex = root.tabIndexForId(tabId);
+    if (tabIndex < 0)
       return;
 
     highlightLabelKey = entry.labelKey;
     _pendingSubTab = (entry.subTab !== null && entry.subTab !== undefined) ? entry.subTab : -1;
 
-    const alreadyOnTab = (currentTabIndex === entry.tab);
+    const alreadyOnTab = (currentTabIndex === tabIndex);
     navigatingFromSearch = true;
-    currentTabIndex = entry.tab;
+    currentTabIndex = tabIndex;
     navigatingFromSearch = false;
 
     if (alreadyOnTab && activeTabContent) {
@@ -377,7 +418,8 @@ Item {
             highlightOverlay.y = overlayPos.y - Style.marginM;
             highlightOverlay.width = widget.width + Style.margin2M;
             highlightOverlay.height = widget.height + Style.margin2M;
-            highlightAnimation.restart();
+            if (!root.gameModeUi)
+              highlightAnimation.restart();
           });
         }
       }
@@ -452,14 +494,6 @@ Item {
     WallpaperTab {}
   }
   Component {
-    id: aboutTab
-    AboutTab {}
-  }
-  Component {
-    id: hooksTab
-    HooksTab {}
-  }
-  Component {
     id: idleTab
     IdleTab {}
   }
@@ -492,10 +526,6 @@ Item {
     SystemMonitorTab {}
   }
   Component {
-    id: pluginsTab
-    PluginsTab {}
-  }
-  Component {
     id: desktopWidgetsTab
     DesktopWidgetsTab {}
   }
@@ -507,16 +537,16 @@ Item {
   function updateTabsModel() {
     let newTabs = [
           {
+            "id": SettingsPanel.Tab.QuickIsland,
+            "label": "panels.quickisland.title",
+            "icon": "",
+            "source": quickIslandTab
+          },
+          {
             "id": SettingsPanel.Tab.General,
             "label": "common.general",
             "icon": "settings-general",
             "source": generalTab
-          },
-          {
-            "id": SettingsPanel.Tab.QuickIsland,
-            "label": "panels.quickisland.title",
-            "icon": "quickisland",
-            "source": quickIslandTab
           },
           {
             "id": SettingsPanel.Tab.UserInterface,
@@ -626,24 +656,6 @@ Item {
             "icon": "settings-system-monitor",
             "source": systemMonitorTab
           },
-          {
-            "id": SettingsPanel.Tab.Plugins,
-            "label": "panels.plugins.title",
-            "icon": "plugin",
-            "source": pluginsTab
-          },
-          {
-            "id": SettingsPanel.Tab.Hooks,
-            "label": "panels.hooks.title",
-            "icon": "settings-hooks",
-            "source": hooksTab
-          },
-          {
-            "id": SettingsPanel.Tab.About,
-            "label": "panels.about.title",
-            "icon": "settings-about",
-            "source": aboutTab
-          }
         ];
 
     root.tabsModel = newTabs;
@@ -987,7 +999,7 @@ Item {
                 radius: Style.iRadiusS
                 readonly property bool selected: index === root.searchSelectedIndex
                 readonly property bool effectiveHover: !root.ignoreMouseHover && resultMouseArea.containsMouse
-                color: (effectiveHover || selected) ? QuickIslandPalette.mHover : "transparent"
+                color: root.gameModeUi ? "transparent" : ((effectiveHover || selected) ? QuickIslandPalette.mHover : "transparent")
 
                 Behavior on color {
                   enabled: !QuickIslandPalette.isTransitioning
@@ -1010,7 +1022,7 @@ Item {
                     text: I18n.tr(modelData.labelKey)
                     pointSize: Style.fontSizeM
                     font.weight: Style.fontWeightSemiBold
-                    color: (resultItem.effectiveHover || resultItem.selected) ? QuickIslandPalette.mOnHover : QuickIslandPalette.mOnSurface
+                    color: !root.gameModeUi && (resultItem.effectiveHover || resultItem.selected) ? QuickIslandPalette.mOnHover : QuickIslandPalette.mOnSurface
                     Layout.fillWidth: true
                     elide: Text.ElideRight
                     maximumLineCount: 1
@@ -1024,7 +1036,7 @@ Item {
                       return t;
                     }
                     pointSize: Style.fontSizeXS
-                    color: (resultItem.effectiveHover || resultItem.selected) ? QuickIslandPalette.mOnHover : QuickIslandPalette.mOnSurfaceVariant
+                    color: !root.gameModeUi && (resultItem.effectiveHover || resultItem.selected) ? QuickIslandPalette.mOnHover : QuickIslandPalette.mOnSurfaceVariant
                     Layout.fillWidth: true
                     elide: Text.ElideRight
                     maximumLineCount: 1
@@ -1067,10 +1079,10 @@ Item {
                 width: sidebarList.width
                 height: tabEntryRow.implicitHeight + Style.margin2XS
                 radius: Style.iRadiusS
-                color: selected ? QuickIslandPalette.mPrimary : (tabItem.hovering ? QuickIslandPalette.mHover : "transparent")
+                color: root.gameModeUi ? "transparent" : (selected ? QuickIslandPalette.mPrimary : (tabItem.hovering ? QuickIslandPalette.mHover : "transparent"))
                 readonly property bool selected: index === root.currentTabIndex
                 property bool hovering: false
-                property color tabTextColor: selected ? QuickIslandPalette.mOnPrimary : (tabItem.hovering ? QuickIslandPalette.mOnHover : QuickIslandPalette.mOnSurface)
+                property color tabTextColor: root.gameModeUi ? QuickIslandPalette.mOnSurface : (selected ? QuickIslandPalette.mOnPrimary : (tabItem.hovering ? QuickIslandPalette.mOnHover : QuickIslandPalette.mOnSurface))
 
                 Behavior on color {
                   enabled: !QuickIslandPalette.isTransitioning
@@ -1095,11 +1107,32 @@ Item {
                   anchors.rightMargin: Style.marginS
                   spacing: Style.marginM
 
+                  Item {
+                    Layout.preferredWidth: Style.fontSizeXL
+                    Layout.preferredHeight: Style.fontSizeXL
+                    Layout.alignment: Qt.AlignVCenter
+                    visible: modelData.id === SettingsPanel.Tab.QuickIsland
+
+                    Image {
+                      anchors.fill: parent
+                      source: Qt.resolvedUrl(Quickshell.shellDir + "/island.png")
+                      fillMode: Image.PreserveAspectFit
+                      smooth: true
+                      layer.enabled: true
+                      layer.effect: MultiEffect {
+                        brightness: 1.0
+                        colorization: 1.0
+                        colorizationColor: tabTextColor
+                      }
+                    }
+                  }
+
                   NIcon {
                     icon: modelData.icon
                     color: tabTextColor
                     pointSize: Style.fontSizeXL
                     Layout.alignment: Qt.AlignVCenter
+                    visible: modelData.id !== SettingsPanel.Tab.QuickIsland
                   }
 
                   NText {
@@ -1200,10 +1233,30 @@ Item {
             Layout.fillWidth: true
             spacing: Style.marginS
 
+            Item {
+              Layout.preferredWidth: Style.fontSizeXXL
+              Layout.preferredHeight: Style.fontSizeXXL
+              visible: root.tabsModel[currentTabIndex]?.id === SettingsPanel.Tab.QuickIsland
+
+              Image {
+                anchors.fill: parent
+                source: Qt.resolvedUrl(Quickshell.shellDir + "/island.png")
+                fillMode: Image.PreserveAspectFit
+                smooth: true
+                layer.enabled: true
+                layer.effect: MultiEffect {
+                  brightness: 1.0
+                  colorization: 1.0
+                  colorizationColor: QuickIslandPalette.mPrimary
+                }
+              }
+            }
+
             NIcon {
               icon: root.tabsModel[currentTabIndex]?.icon ?? ""
               color: QuickIslandPalette.mPrimary
               pointSize: Style.fontSizeXXL
+              visible: root.tabsModel[currentTabIndex]?.id !== SettingsPanel.Tab.QuickIsland
             }
 
             NText {
@@ -1302,11 +1355,11 @@ Item {
             // Highlight overlay for search results
             Rectangle {
               id: highlightOverlay
-              visible: opacity > 0
+              visible: opacity > 0 && !root.gameModeUi
               opacity: 0
-              color: Qt.alpha(QuickIslandPalette.mSecondary, 0.2)
-              border.color: Qt.alpha(QuickIslandPalette.mSecondary, 0.6)
-              border.width: Style.borderM
+              color: root.gameModeUi ? "transparent" : Qt.alpha(QuickIslandPalette.mSecondary, 0.2)
+              border.color: root.gameModeUi ? "transparent" : Qt.alpha(QuickIslandPalette.mSecondary, 0.6)
+              border.width: root.gameModeUi ? 0 : Style.borderM
               radius: Style.radiusS
               z: 100
 

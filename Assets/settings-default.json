@@ -605,6 +605,7 @@
         "gameModeBarHeight": 30,
         "gameModeKeybind": "Super+G",
         "gameModeWorkspaceIndicatorDuration": 500,
+        "gameModeLabelDuration": 750,
         "launcherKeybind": "Super+A",
         "keybinds": {
             "airdrop": "Super+D",
@@ -643,7 +644,7 @@
         },
         "workspaceIndicatorDuration": 350
     },
-    "settingsVersion": 60,
+    "settingsVersion": 61,
     "systemMonitor": {
         "batteryCriticalThreshold": 5,
         "batteryWarningThreshold": 20,

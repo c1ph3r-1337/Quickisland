@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Effects
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
@@ -186,9 +187,15 @@ SmartPanel {
                   anchors.centerIn: parent
                   width: 110
                   height: 110
-                  source: Qt.resolvedUrl(Quickshell.shellDir + "/Assets/quickisland.svg")
+                  source: Qt.resolvedUrl(Quickshell.shellDir + "/island.png")
                   fillMode: Image.PreserveAspectFit
                   smooth: true
+                  layer.enabled: true
+                  layer.effect: MultiEffect {
+                    brightness: 1.0
+                    colorization: 1.0
+                    colorizationColor: QuickIslandPalette.mPrimary
+                  }
 
                   Rectangle {
                     anchors.fill: parent

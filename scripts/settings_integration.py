@@ -125,7 +125,7 @@ def main() -> None:
     action = parser.parse_args().action
     if action == "install":
         install()
-        settings_file = Path(os.environ.get("NOCTALIA_SETTINGS_FILE", str(HOME / ".config/quickisland/settings.json")))
+        settings_file = Path(os.environ.get("QUICKISLAND_SETTINGS_FILE", os.environ.get("NOCTALIA_SETTINGS_FILE", str(HOME / ".config/quickisland/settings.json"))))
         shell_dir = Path(__file__).resolve().parent.parent
         subprocess.run([
             "python3", str(Path(__file__).with_name("sync_settings.py")),

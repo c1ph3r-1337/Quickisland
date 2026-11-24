@@ -35,7 +35,7 @@ Item {
     if (!root.enabled) {
       return QuickIslandPalette.mOnSurfaceVariant;
     }
-    if (root.hovered) {
+    if (root.hovered && !Style.gameModeSettingsUiActive) {
       return root.textHoverColor;
     }
     if (root.outlined) {
@@ -62,7 +62,7 @@ Item {
     color: {
       if (!root.enabled)
         return root.outlined ? "transparent" : Qt.lighter(QuickIslandPalette.mSurfaceVariant, 1.2);
-      if (root.hovered)
+      if (root.hovered && !Style.gameModeSettingsUiActive)
         return root.hoverColor;
       return root.outlined ? "transparent" : root.backgroundColor;
     }
@@ -71,7 +71,7 @@ Item {
     border.color: {
       if (!root.enabled)
         return QuickIslandPalette.mOutline;
-      if (root.hovered)
+      if (root.hovered && !Style.gameModeSettingsUiActive)
         return root.hoverColor;
       return root.outlined ? root.backgroundColor : "transparent";
     }

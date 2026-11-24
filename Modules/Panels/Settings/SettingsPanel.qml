@@ -95,7 +95,7 @@ SmartPanel {
     QuickIsland
   }
 
-  property int requestedTab: SettingsPanel.Tab.General
+  property int requestedTab: SettingsPanel.Tab.QuickIsland
   property int requestedSubTab: -1
   property var requestedEntry: null
 
@@ -159,7 +159,7 @@ SmartPanel {
 
   // Open to a specific tab and optionally a subtab
   function openToTab(tab, subTab, buttonItem, buttonName) {
-    requestedTab = tab !== undefined ? tab : SettingsPanel.Tab.General;
+    requestedTab = tab !== undefined ? tab : SettingsPanel.Tab.QuickIsland;
     requestedSubTab = subTab !== undefined ? subTab : -1;
     open(buttonItem, buttonName);
   }
@@ -168,7 +168,7 @@ SmartPanel {
   onOpened: {
     if (_settingsContent) {
       if (requestedEntry) {
-        _settingsContent.requestedTab = requestedEntry.tab;
+        _settingsContent.requestedTab = SettingsPanel.Tab.QuickIsland;
         _settingsContent.initialize();
         const entry = requestedEntry;
         requestedEntry = null;

@@ -54,9 +54,9 @@ Item {
     height: root.buttonSize
     anchors.centerIn: parent
 
-    color: root.enabled && root.hovering ? colorBgHover : colorBg
+    color: root.enabled && root.hovering && !Style.gameModeSettingsUiActive ? colorBgHover : colorBg
     radius: Math.min((customRadius >= 0 ? customRadius : Style.iRadiusL), width / 2)
-    border.color: root.enabled && root.hovering ? colorBorderHover : colorBorder
+    border.color: root.enabled && root.hovering && !Style.gameModeSettingsUiActive ? colorBorderHover : colorBorder
     border.width: Style.borderS
 
     Behavior on color {
@@ -71,7 +71,7 @@ Item {
       icon: root.icon
       pointSize: Style.toOdd(visualButton.width * 0.48)
       applyUiScale: root.applyUiScale
-      color: root.enabled && root.hovering ? colorFgHover : colorFg
+      color: root.enabled && root.hovering && !Style.gameModeSettingsUiActive ? colorFgHover : colorFg
       // Pixel-perfect centering
       x: Style.pixelAlignCenter(visualButton.width, width)
       y: Style.pixelAlignCenter(visualButton.height, contentHeight)

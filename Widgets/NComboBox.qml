@@ -272,7 +272,7 @@ RowLayout {
           width: listView.availableWidth
           height: delegateText.implicitHeight + Style.margin2S
           radius: Style.iRadiusS
-          color: isHighlighted ? QuickIslandPalette.mHover : "transparent"
+          color: Style.gameModeSettingsUiActive ? "transparent" : (isHighlighted ? QuickIslandPalette.mHover : "transparent")
 
           NText {
             id: delegateText
@@ -282,7 +282,7 @@ RowLayout {
             verticalAlignment: Text.AlignVCenter
             elide: Text.ElideRight
             pointSize: Style.fontSizeM
-            color: delegateRect.isHighlighted ? QuickIslandPalette.mOnHover : QuickIslandPalette.mOnSurface
+            color: !Style.gameModeSettingsUiActive && delegateRect.isHighlighted ? QuickIslandPalette.mOnHover : QuickIslandPalette.mOnSurface
             text: {
               var item = root.getItem(delegateRect.index);
               return item && item.name ? item.name : "";

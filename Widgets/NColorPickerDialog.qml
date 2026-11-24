@@ -569,7 +569,7 @@ Popup {
                 radius: Math.min(Style.iRadiusXS, width / 2)
                 color: "transparent"
                 border.color: root.selectedColor.hsvValue < 0.5 ? "white" : "black"
-                border.width: 1
+                border.width: Style.borderS
 
                 // Find position based on the current color
                 readonly property point selectedPos: {
@@ -671,7 +671,7 @@ Popup {
                 radius: Style.iRadiusXXS
                 color: modelData.color
                 border.color: root.selectedColor.toString() === modelData.color.toString() ? QuickIslandPalette.mPrimary : QuickIslandPalette.mOutline
-                border.width: Math.max(1, root.selectedColor.toString() === modelData.color.toString() ? Style.borderM : Style.borderS)
+                border.width: Style.gameModeSettingsUiActive ? 0 : Math.max(1, root.selectedColor.toString() === modelData.color.toString() ? Style.borderM : Style.borderS)
 
                 MouseArea {
                   anchors.fill: parent
@@ -714,7 +714,7 @@ Popup {
                 radius: Math.min(Style.iRadiusXS, width / 2)
                 color: modelData.color
                 border.color: root.selectedColor.toString() === modelData.color.toString() ? QuickIslandPalette.mPrimary : QuickIslandPalette.mOutline
-                border.width: root.selectedColor.toString() === modelData.color.toString() ? 2 : 1
+                border.width: Style.gameModeSettingsUiActive ? 0 : (root.selectedColor.toString() === modelData.color.toString() ? 2 : 1)
 
                 MouseArea {
                   anchors.fill: parent

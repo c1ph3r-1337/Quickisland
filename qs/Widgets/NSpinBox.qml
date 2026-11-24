@@ -96,7 +96,7 @@ RowLayout {
     implicitHeight: Math.round((root.baseSize - 4) / 2) * 2
     radius: Style.iRadiusS
     color: QuickIslandPalette.mSurfaceVariant
-    border.color: (root.hovering || decreaseArea.containsMouse || increaseArea.containsMouse) ? QuickIslandPalette.mHover : QuickIslandPalette.mOutline
+    border.color: !Style.gameModeSettingsUiActive && (root.hovering || decreaseArea.containsMouse || increaseArea.containsMouse) ? QuickIslandPalette.mHover : QuickIslandPalette.mOutline
     border.width: Style.borderS
 
     Behavior on border.color {
@@ -147,7 +147,7 @@ RowLayout {
         height: width
         radius: spinBoxContainer.radius
         color: QuickIslandPalette.mHover
-        opacity: decreaseArea.containsMouse ? 1.0 : 0.0
+        opacity: decreaseArea.containsMouse && !Style.gameModeSettingsUiActive ? 1.0 : 0.0
         Behavior on opacity {
           NumberAnimation {
             duration: Style.animationFast
@@ -159,7 +159,7 @@ RowLayout {
         anchors.centerIn: parent
         icon: "chevron-left"
         pointSize: Style.fontSizeS
-        color: decreaseArea.containsMouse ? QuickIslandPalette.mOnHover : QuickIslandPalette.mPrimary
+        color: decreaseArea.containsMouse && !Style.gameModeSettingsUiActive ? QuickIslandPalette.mOnHover : QuickIslandPalette.mPrimary
       }
 
       MouseArea {
@@ -194,7 +194,7 @@ RowLayout {
         height: width
         radius: spinBoxContainer.radius
         color: QuickIslandPalette.mHover
-        opacity: increaseArea.containsMouse ? 1.0 : 0.0
+        opacity: increaseArea.containsMouse && !Style.gameModeSettingsUiActive ? 1.0 : 0.0
         Behavior on opacity {
           NumberAnimation {
             duration: Style.animationFast
@@ -206,7 +206,7 @@ RowLayout {
         anchors.centerIn: parent
         icon: "chevron-right"
         pointSize: Style.fontSizeS
-        color: increaseArea.containsMouse ? QuickIslandPalette.mOnHover : QuickIslandPalette.mPrimary
+        color: increaseArea.containsMouse && !Style.gameModeSettingsUiActive ? QuickIslandPalette.mOnHover : QuickIslandPalette.mPrimary
       }
 
       MouseArea {

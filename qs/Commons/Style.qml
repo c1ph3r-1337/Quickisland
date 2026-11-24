@@ -23,37 +23,43 @@ Singleton {
   readonly property int fontWeightSemiBold: 600
   readonly property int fontWeightBold: 700
 
+  // Game Mode uses the same square, borderless geometry throughout the UI.
+  readonly property bool gameModeStyleActive: PowerProfileService.quickislandGameMode
+  property bool settingsWindowOpen: false
+  readonly property bool gameModeSettingsUiActive: settingsWindowOpen && PowerProfileService.quickislandGameMode
+  readonly property bool gameModeCompactSpacingActive: PowerProfileService.quickislandGameMode && !settingsWindowOpen
+
   // Container Radii: major layout sections (sidebars, cards, content panels)
-  readonly property int radiusXXXS: PowerProfileService.quickislandGameMode ? 0 : Math.round(3 * Settings.data.general.radiusRatio)
-  readonly property int radiusXXS: PowerProfileService.quickislandGameMode ? 0 : Math.round(4 * Settings.data.general.radiusRatio)
-  readonly property int radiusXS: PowerProfileService.quickislandGameMode ? 0 : Math.round(8 * Settings.data.general.radiusRatio)
-  readonly property int radiusS: PowerProfileService.quickislandGameMode ? 0 : Math.round(12 * Settings.data.general.radiusRatio)
-  readonly property int radiusM: PowerProfileService.quickislandGameMode ? 0 : Math.round(16 * Settings.data.general.radiusRatio)
-  readonly property int radiusL: PowerProfileService.quickislandGameMode ? 0 : Math.round(20 * Settings.data.general.radiusRatio)
+  readonly property int radiusXXXS: root.gameModeStyleActive ? 0 : Math.round(3 * Settings.data.general.radiusRatio)
+  readonly property int radiusXXS: root.gameModeStyleActive ? 0 : Math.round(4 * Settings.data.general.radiusRatio)
+  readonly property int radiusXS: root.gameModeStyleActive ? 0 : Math.round(8 * Settings.data.general.radiusRatio)
+  readonly property int radiusS: root.gameModeStyleActive ? 0 : Math.round(12 * Settings.data.general.radiusRatio)
+  readonly property int radiusM: root.gameModeStyleActive ? 0 : Math.round(16 * Settings.data.general.radiusRatio)
+  readonly property int radiusL: root.gameModeStyleActive ? 0 : Math.round(20 * Settings.data.general.radiusRatio)
 
   // Input radii: interactive elements (buttons, toggles, text fields)
-  readonly property int iRadiusXXXS: PowerProfileService.quickislandGameMode ? 0 : Math.round(3 * Settings.data.general.iRadiusRatio)
-  readonly property int iRadiusXXS: PowerProfileService.quickislandGameMode ? 0 : Math.round(4 * Settings.data.general.iRadiusRatio)
-  readonly property int iRadiusXS: PowerProfileService.quickislandGameMode ? 0 : Math.round(8 * Settings.data.general.iRadiusRatio)
-  readonly property int iRadiusS: PowerProfileService.quickislandGameMode ? 0 : Math.round(12 * Settings.data.general.iRadiusRatio)
-  readonly property int iRadiusM: PowerProfileService.quickislandGameMode ? 0 : Math.round(16 * Settings.data.general.iRadiusRatio)
-  readonly property int iRadiusL: PowerProfileService.quickislandGameMode ? 0 : Math.round(20 * Settings.data.general.iRadiusRatio)
+  readonly property int iRadiusXXXS: root.gameModeStyleActive ? 0 : Math.round(3 * Settings.data.general.iRadiusRatio)
+  readonly property int iRadiusXXS: root.gameModeStyleActive ? 0 : Math.round(4 * Settings.data.general.iRadiusRatio)
+  readonly property int iRadiusXS: root.gameModeStyleActive ? 0 : Math.round(8 * Settings.data.general.iRadiusRatio)
+  readonly property int iRadiusS: root.gameModeStyleActive ? 0 : Math.round(12 * Settings.data.general.iRadiusRatio)
+  readonly property int iRadiusM: root.gameModeStyleActive ? 0 : Math.round(16 * Settings.data.general.iRadiusRatio)
+  readonly property int iRadiusL: root.gameModeStyleActive ? 0 : Math.round(20 * Settings.data.general.iRadiusRatio)
 
-  readonly property int screenRadius: PowerProfileService.quickislandGameMode ? 0 : Math.round(20 * Settings.data.general.screenRadiusRatio)
+  readonly property int screenRadius: root.gameModeStyleActive ? 0 : Math.round(20 * Settings.data.general.screenRadiusRatio)
 
   // Border
-  readonly property int borderS: PowerProfileService.quickislandGameMode ? 0 : Math.max(1, Math.round(1 * uiScaleRatio))
-  readonly property int borderM: PowerProfileService.quickislandGameMode ? 0 : Math.max(1, Math.round(2 * uiScaleRatio))
-  readonly property int borderL: PowerProfileService.quickislandGameMode ? 0 : Math.max(1, Math.round(3 * uiScaleRatio))
+  readonly property int borderS: root.gameModeStyleActive ? 0 : Math.max(1, Math.round(1 * uiScaleRatio))
+  readonly property int borderM: root.gameModeStyleActive ? 0 : Math.max(1, Math.round(2 * uiScaleRatio))
+  readonly property int borderL: root.gameModeStyleActive ? 0 : Math.max(1, Math.round(3 * uiScaleRatio))
 
   // Margins (for margins and spacing)
-  readonly property int marginXXXS: PowerProfileService.quickislandGameMode ? 0 : Math.round(1 * uiScaleRatio)
-  readonly property int marginXXS: PowerProfileService.quickislandGameMode ? 0 : Math.round(2 * uiScaleRatio)
-  readonly property int marginXS: PowerProfileService.quickislandGameMode ? 0 : Math.round(4 * uiScaleRatio)
-  readonly property int marginS: PowerProfileService.quickislandGameMode ? 0 : Math.round(6 * uiScaleRatio)
-  readonly property int marginM: PowerProfileService.quickislandGameMode ? 0 : Math.round(9 * uiScaleRatio)
-  readonly property int marginL: PowerProfileService.quickislandGameMode ? 0 : Math.round(13 * uiScaleRatio)
-  readonly property int marginXL: PowerProfileService.quickislandGameMode ? 0 : Math.round(18 * uiScaleRatio)
+  readonly property int marginXXXS: root.gameModeCompactSpacingActive ? 0 : Math.round(1 * uiScaleRatio)
+  readonly property int marginXXS: root.gameModeCompactSpacingActive ? 0 : Math.round(2 * uiScaleRatio)
+  readonly property int marginXS: root.gameModeCompactSpacingActive ? 0 : Math.round(4 * uiScaleRatio)
+  readonly property int marginS: root.gameModeCompactSpacingActive ? 0 : Math.round(6 * uiScaleRatio)
+  readonly property int marginM: root.gameModeCompactSpacingActive ? 0 : Math.round(9 * uiScaleRatio)
+  readonly property int marginL: root.gameModeCompactSpacingActive ? 0 : Math.round(13 * uiScaleRatio)
+  readonly property int marginXL: root.gameModeCompactSpacingActive ? 0 : Math.round(18 * uiScaleRatio)
 
   // Double margins, for proper container sizing only (e.g. height: id.implicitHeight + Style.margin2M)
   readonly property int margin2XXXS: marginXXXS * 2

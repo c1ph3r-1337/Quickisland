@@ -10,7 +10,7 @@ import qs.Widgets
 FloatingWindow {
   id: root
 
-  title: "Quickisland"
+  title: "QuickIsland Settings"
   minimumSize: Qt.size(840 * Style.uiScaleRatio, 910 * Style.uiScaleRatio)
   implicitWidth: Math.round(840 * Style.uiScaleRatio)
   implicitHeight: Math.round(910 * Style.uiScaleRatio)
@@ -51,7 +51,7 @@ FloatingWindow {
     if (isInitialized) {
       Qt.callLater(() => settingsContent.navigateToResult(entry));
     } else {
-      settingsContent.requestedTab = entry.tab;
+      settingsContent.requestedTab = 0;
       settingsContent.initialize();
       Qt.callLater(() => settingsContent.navigateToResult(entry));
       isInitialized = true;
@@ -60,6 +60,7 @@ FloatingWindow {
 
   // Sync visibility with service
   onVisibleChanged: {
+    Style.settingsWindowOpen = visible;
     if (visible) {
       SettingsPanelService.isWindowOpen = true;
     } else {

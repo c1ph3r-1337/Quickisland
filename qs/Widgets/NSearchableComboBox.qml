@@ -332,7 +332,7 @@ RowLayout {
                 NText {
                   text: name
                   pointSize: Style.fontSizeM
-                  color: highlighted ? QuickIslandPalette.mOnHover : QuickIslandPalette.mOnSurface
+                  color: !Style.gameModeSettingsUiActive && highlighted ? QuickIslandPalette.mOnHover : QuickIslandPalette.mOnSurface
                   verticalAlignment: Text.AlignVCenter
                   elide: Text.ElideRight
                   Layout.fillWidth: true
@@ -379,7 +379,7 @@ RowLayout {
                         else
                           return Style.fontSizeXS;
                       }
-                      color: highlighted ? QuickIslandPalette.mOnHover : (badgeData && badgeData.color ? badgeData.color : QuickIslandPalette.mOnSurface)
+                      color: !Style.gameModeSettingsUiActive && highlighted ? QuickIslandPalette.mOnHover : (badgeData && badgeData.color ? badgeData.color : QuickIslandPalette.mOnSurface)
                       Layout.preferredWidth: Math.round(Style.baseWidgetSize * 0.6)
                       Layout.preferredHeight: Math.round(Style.baseWidgetSize * 0.6)
                       visible: badgeData && badgeData.icon !== undefined && badgeData.icon !== ""
@@ -389,7 +389,7 @@ RowLayout {
               }
               background: Rectangle {
                 anchors.fill: parent
-                color: highlighted ? QuickIslandPalette.mHover : "transparent"
+                color: Style.gameModeSettingsUiActive ? "transparent" : (highlighted ? QuickIslandPalette.mHover : "transparent")
                 radius: Style.iRadiusS
               }
             }

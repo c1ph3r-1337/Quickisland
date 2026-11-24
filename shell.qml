@@ -37,7 +37,15 @@ ShellRoot {
     property bool gameModeRequestedState: false
     property bool gameModePreviousPerformanceMode: false
     property bool gameModeHasPerformanceSnapshot: false
+    property bool gameModeNoticeVisible: false
     readonly property string gameModeScript: Qt.resolvedUrl("scripts/game-mode.sh").toString().replace("file://", "")
+
+    Timer {
+        id: gameModeNoticeTimer
+        interval: Settings.data.quickisland.gameModeLabelDuration
+        repeat: false
+        onTriggered: shell.gameModeNoticeVisible = false
+    }
 
     function refreshGameMode() {
         if (!gameModeStatusProcess.running) {
@@ -132,12 +140,19 @@ ShellRoot {
         target: PowerProfileService
         function onQuickislandGameModeChanged() {
             if (PowerProfileService.quickislandGameMode) {
+                shell.gameModeNoticeVisible = true;
+                gameModeNoticeTimer.interval = Settings.data.quickisland.gameModeLabelDuration;
+                gameModeNoticeTimer.restart();
                 shell.gameModePreviousPerformanceMode = PowerProfileService.quickislandPerformanceMode;
                 shell.gameModeHasPerformanceSnapshot = true;
                 PowerProfileService.setQuickislandPerformance(true);
-            } else if (shell.gameModeHasPerformanceSnapshot) {
-                PowerProfileService.setQuickislandPerformance(shell.gameModePreviousPerformanceMode);
-                shell.gameModeHasPerformanceSnapshot = false;
+            } else {
+                shell.gameModeNoticeVisible = false;
+                gameModeNoticeTimer.stop();
+                if (shell.gameModeHasPerformanceSnapshot) {
+                    PowerProfileService.setQuickislandPerformance(shell.gameModePreviousPerformanceMode);
+                    shell.gameModeHasPerformanceSnapshot = false;
+                }
             }
             if (Settings.isLoaded)
                 shell.applyCompositorRules();
@@ -3580,11 +3595,31 @@ function getCurrentThemeStateKey() {
                             }
                         }
 
-                        GameMode.AdaptiveTime {
-                            id: idleClock; text: shell.currentTime12h
-                            rollingEnabled: PowerProfileService.quickislandGameMode
-                            color: shell.textPrimary; font.pixelSize: 13; font.weight: Font.Bold; font.letterSpacing: 0.5; font.family: Settings.data.ui.fontDefault
+                        Item {
+                            id: idleClockSlot
+                            width: Math.max(idleClock.implicitWidth, gameModeClockLabel.implicitWidth)
+                            height: Math.max(idleClock.implicitHeight, gameModeClockLabel.implicitHeight)
                             anchors.verticalCenter: parent.verticalCenter
+
+                            GameMode.AdaptiveTime {
+                                id: idleClock; text: shell.currentTime12h
+                                rollingEnabled: PowerProfileService.quickislandGameMode
+                                color: shell.textPrimary; font.pixelSize: 13; font.weight: Font.Bold; font.letterSpacing: 0.5; font.family: Settings.data.ui.fontDefault
+                                anchors.centerIn: parent
+                                visible: !shell.gameModeNoticeVisible
+                            }
+
+                            Text {
+                                id: gameModeClockLabel
+                                anchors.centerIn: parent
+                                text: "Game Mode"
+                                color: shell.textPrimary
+                                font.pixelSize: 13
+                                font.weight: Font.Bold
+                                font.letterSpacing: 0.5
+                                font.family: Settings.data.ui.fontDefault
+                                visible: shell.gameModeNoticeVisible
+                            }
                         }
                     }
                 }
@@ -3650,8 +3685,8 @@ function getCurrentThemeStateKey() {
 
                         Item {
                             id: notchCenterInfo
-                            width: panelWindow.notchWorkspaceActive ? notchWorkspaceLabel.implicitWidth : notchIdleClock.implicitWidth
-                            height: Math.max(notchIdleClock.implicitHeight, notchWorkspaceLabel.implicitHeight)
+                            width: panelWindow.notchWorkspaceActive ? notchWorkspaceLabel.implicitWidth : Math.max(notchIdleClock.implicitWidth, gameModeNotice.implicitWidth)
+                            height: Math.max(notchIdleClock.implicitHeight, Math.max(notchWorkspaceLabel.implicitHeight, gameModeNotice.implicitHeight))
                             anchors.verticalCenter: parent.verticalCenter
 
                             Behavior on width { NumberAnimation { duration: Style.quickIslandAnimationDuration(200); easing.type: Easing.OutCubic } }
@@ -3666,10 +3701,23 @@ function getCurrentThemeStateKey() {
                                 font.weight: Font.Bold
                                 font.letterSpacing: 0.5
                                 font.family: Settings.data.ui.fontDefault
-                                opacity: panelWindow.notchWorkspaceActive ? 0.0 : 1.0
+                                visible: !panelWindow.notchWorkspaceActive && !shell.gameModeNoticeVisible
+                                opacity: panelWindow.notchWorkspaceActive || shell.gameModeNoticeVisible ? 0.0 : 1.0
                                 scale: panelWindow.notchWorkspaceActive ? 0.8 : 1.0
                                 Behavior on opacity { NumberAnimation { duration: Style.quickIslandAnimationDuration(200); easing.type: Easing.OutCubic } }
                                 Behavior on scale   { NumberAnimation { duration: Style.quickIslandAnimationDuration(200); easing.type: Easing.OutCubic } }
+                            }
+
+                            Text {
+                                id: gameModeNotice
+                                anchors.centerIn: parent
+                                text: "Game Mode"
+                                color: shell.textPrimary
+                                font.pixelSize: 13
+                                font.weight: Font.Bold
+                                font.letterSpacing: 0.5
+                                font.family: Settings.data.ui.fontDefault
+                                visible: shell.gameModeNoticeVisible && !panelWindow.notchWorkspaceActive
                             }
 
                             Text {

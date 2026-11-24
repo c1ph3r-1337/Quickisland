@@ -26,13 +26,13 @@ Singleton {
   - Default cache directory: ~/.cache/quickisland
   */
   readonly property alias data: adapter  // Used to access via Settings.data.xxx.yyy
-  readonly property int settingsVersion: 60
+  readonly property int settingsVersion: 61
   property bool isDebug: Quickshell.env("NOCTALIA_DEBUG") === "1"
   readonly property string shellName: "quickisland"
   readonly property string configDir: ensureTrailingSlash(Quickshell.env("NOCTALIA_CONFIG_DIR") || (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/" + shellName + "/")
   readonly property string cacheDir: ensureTrailingSlash(Quickshell.env("NOCTALIA_CACHE_DIR") || (Quickshell.env("XDG_CACHE_HOME") || Quickshell.env("HOME") + "/.cache") + "/" + shellName + "/")
 
-  readonly property string settingsFile: Quickshell.env("NOCTALIA_SETTINGS_FILE") || (configDir + "settings.json")
+  readonly property string settingsFile: Quickshell.env("QUICKISLAND_SETTINGS_FILE") || Quickshell.env("NOCTALIA_SETTINGS_FILE") || (configDir + "settings.json")
   readonly property string defaultAvatar: Quickshell.env("HOME") + "/.face"
   readonly property string defaultVideosDirectory: Quickshell.env("HOME") + "/Videos"
   readonly property string defaultWallpapersDirectory: Quickshell.env("HOME") + "/Pictures/Wallpapers"
@@ -560,6 +560,7 @@ Singleton {
       property bool mediaVisualizerEnabled: true
       property int workspaceIndicatorDuration: 350
       property int gameModeWorkspaceIndicatorDuration: 500
+      property int gameModeLabelDuration: 750
       property bool gameModeBarEnabled: true
       property int gameModeBarHeight: 30
       property string settingsKeybind: "Super+I"

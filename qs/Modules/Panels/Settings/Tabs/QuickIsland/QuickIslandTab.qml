@@ -72,7 +72,7 @@ ColumnLayout {
 
     const quickFields = [
       "animationsEnabled", "animationSpeed", "mediaVisualizerEnabled", "workspaceIndicatorDuration",
-      "gameModeWorkspaceIndicatorDuration", "gameModeBarEnabled", "gameModeBarHeight",
+      "gameModeWorkspaceIndicatorDuration", "gameModeLabelDuration", "gameModeBarEnabled", "gameModeBarHeight",
       "settingsKeybind", "launcherKeybind", "gameModeKeybind", "sessionMenuKeybind"
     ];
     for (let j = 0; j < quickFields.length; j++) {
@@ -281,6 +281,20 @@ ColumnLayout {
     showReset: true
     text: Math.round(value) + " px"
     onMoved: value => Settings.data.quickisland.gameModeBarHeight = Math.round(value)
+  }
+
+  NValueSlider {
+    Layout.fillWidth: true
+    label: "Game Mode label duration"
+    description: "Show this label in place of the center clock briefly when Game Mode turns on."
+    from: 500
+    to: 1500
+    stepSize: 50
+    value: Settings.data.quickisland.gameModeLabelDuration
+    defaultValue: Settings.getDefaultValue("quickisland.gameModeLabelDuration")
+    showReset: true
+    text: Math.round(value) + " ms"
+    onMoved: value => Settings.data.quickisland.gameModeLabelDuration = Math.round(value)
   }
 
   NValueSlider {

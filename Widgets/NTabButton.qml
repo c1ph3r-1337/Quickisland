@@ -32,8 +32,8 @@ Rectangle {
   topRightRadius: isLast ? Style.iRadiusM : Style.iRadiusXXXS
   bottomRightRadius: isLast ? Style.iRadiusM : Style.iRadiusXXXS
 
-  color: root.isHovered ? QuickIslandPalette.mHover : (root.checked ? QuickIslandPalette.mPrimary : QuickIslandPalette.smartAlpha(QuickIslandPalette.mSurface))
-  border.color: root.checked ? QuickIslandPalette.mPrimary : QuickIslandPalette.mOutline
+  color: Style.gameModeSettingsUiActive ? QuickIslandPalette.smartAlpha(QuickIslandPalette.mSurface) : (root.isHovered ? QuickIslandPalette.mHover : (root.checked ? QuickIslandPalette.mPrimary : QuickIslandPalette.smartAlpha(QuickIslandPalette.mSurface)))
+  border.color: Style.gameModeSettingsUiActive ? "transparent" : (root.checked ? QuickIslandPalette.mPrimary : QuickIslandPalette.mOutline)
   border.width: Style.borderS
 
   Behavior on color {
@@ -56,7 +56,7 @@ Rectangle {
       Layout.alignment: Qt.AlignVCenter
       icon: root.icon
       pointSize: root.pointSize * 1.2
-      color: root.isHovered ? QuickIslandPalette.mOnHover : (root.checked ? QuickIslandPalette.mOnPrimary : QuickIslandPalette.mOnSurface)
+      color: Style.gameModeSettingsUiActive ? QuickIslandPalette.mOnSurface : (root.isHovered ? QuickIslandPalette.mOnHover : (root.checked ? QuickIslandPalette.mOnPrimary : QuickIslandPalette.mOnSurface))
 
       Behavior on color {
         enabled: !QuickIslandPalette.isTransitioning
@@ -74,7 +74,7 @@ Rectangle {
       text: root.text
       pointSize: root.pointSize
       font.weight: Style.fontWeightSemiBold
-      color: root.isHovered ? QuickIslandPalette.mOnHover : (root.checked ? QuickIslandPalette.mOnPrimary : QuickIslandPalette.mOnSurface)
+      color: Style.gameModeSettingsUiActive ? QuickIslandPalette.mOnSurface : (root.isHovered ? QuickIslandPalette.mOnHover : (root.checked ? QuickIslandPalette.mOnPrimary : QuickIslandPalette.mOnSurface))
       horizontalAlignment: Text.AlignHCenter
       verticalAlignment: Text.AlignVCenter
 
