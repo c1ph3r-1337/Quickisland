@@ -71,7 +71,7 @@ PopupWindow {
     id: textMeasure
     visible: false
     pointSize: Style.fontSizeS
-    family: "SF Pro Rounded" // Match your NText font if different
+    family: Settings.data.ui.fontDefault
     wrapMode: Text.NoWrap
     elide: Text.ElideNone
   }

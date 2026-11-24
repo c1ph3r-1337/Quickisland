@@ -83,11 +83,20 @@ Singleton {
   readonly property real shadowVerticalOffset: Settings.data.general.shadowOffsetY
 
   // Animation duration (ms)
-  readonly property int animationFaster: (Settings.data.general.animationDisabled || PowerProfileService.quickislandPerformanceMode) ? 0 : Math.round(75 / Settings.data.general.animationSpeed)
-  readonly property int animationFast: (Settings.data.general.animationDisabled || PowerProfileService.quickislandPerformanceMode) ? 0 : Math.round(150 / Settings.data.general.animationSpeed)
-  readonly property int animationNormal: (Settings.data.general.animationDisabled || PowerProfileService.quickislandPerformanceMode) ? 0 : Math.round(300 / Settings.data.general.animationSpeed)
-  readonly property int animationSlow: (Settings.data.general.animationDisabled || PowerProfileService.quickislandPerformanceMode) ? 0 : Math.round(450 / Settings.data.general.animationSpeed)
-  readonly property int animationSlowest: (Settings.data.general.animationDisabled || PowerProfileService.quickislandPerformanceMode) ? 0 : Math.round(750 / Settings.data.general.animationSpeed)
+  function quickIslandAnimationDuration(baseDuration) {
+    if (Settings.data.general.animationDisabled || PowerProfileService.quickislandPerformanceMode || PowerProfileService.quickislandGameMode || !Settings.data.quickisland.animationsEnabled)
+      return 0;
+    const generalSpeed = Math.max(0.05, Settings.data.general.animationSpeed || 1.0);
+    const islandSpeed = Math.max(0.05, Settings.data.quickisland.animationSpeed || 1.0);
+    return Math.max(0, Math.round(baseDuration / (generalSpeed * islandSpeed)));
+  }
+  readonly property bool quickIslandAnimationsEnabled: !Settings.data.general.animationDisabled && !PowerProfileService.quickislandPerformanceMode && !PowerProfileService.quickislandGameMode && Settings.data.quickisland.animationsEnabled
+
+  readonly property int animationFaster: (Settings.data.general.animationDisabled || PowerProfileService.quickislandPerformanceMode || PowerProfileService.quickislandGameMode) ? 0 : Math.round(40 / Settings.data.general.animationSpeed)
+  readonly property int animationFast: (Settings.data.general.animationDisabled || PowerProfileService.quickislandPerformanceMode || PowerProfileService.quickislandGameMode) ? 0 : Math.round(75 / Settings.data.general.animationSpeed)
+  readonly property int animationNormal: (Settings.data.general.animationDisabled || PowerProfileService.quickislandPerformanceMode || PowerProfileService.quickislandGameMode) ? 0 : Math.round(150 / Settings.data.general.animationSpeed)
+  readonly property int animationSlow: (Settings.data.general.animationDisabled || PowerProfileService.quickislandPerformanceMode || PowerProfileService.quickislandGameMode) ? 0 : Math.round(225 / Settings.data.general.animationSpeed)
+  readonly property int animationSlowest: (Settings.data.general.animationDisabled || PowerProfileService.quickislandPerformanceMode || PowerProfileService.quickislandGameMode) ? 0 : Math.round(375 / Settings.data.general.animationSpeed)
 
   // Delays
   readonly property int tooltipDelay: 300

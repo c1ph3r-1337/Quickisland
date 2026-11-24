@@ -26,7 +26,7 @@ Item {
                             // Header
                             Item {
                                 width: parent.width; height: 32
-                                
+
                                 Row {
                                     anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter; spacing: 10
                                     Item {
@@ -42,7 +42,7 @@ Item {
                                     }
                                     Text { text: "Control Center"; color: shell.textPrimary; font.pixelSize: 16; font.weight: Font.Bold; anchors.verticalCenter: parent.verticalCenter }
                                 }
-                                
+
                                 Item {
                                     width: 32; height: 32; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
                                     Image {
@@ -332,7 +332,7 @@ Item {
                                      }
                                  }
                          }
-                         
+
                          // Audio Slider
                          Rectangle {
                              width: parent.width; height: 36; radius: PowerProfileService.quickislandGameMode ? 0 : 18
@@ -407,7 +407,7 @@ Item {
                                     color: shell.peach
                                     Behavior on width {
                                         enabled: !brightMouseArea.pressed
-                                        NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 100; easing.type: Easing.OutCubic }
+                                        NumberAnimation { duration: Style.quickIslandAnimationDuration(100); easing.type: Easing.OutCubic }
                                     }
                                 }
 
@@ -528,7 +528,7 @@ Item {
                                                 Rectangle {
                                                     width: shell.mediaLength > 0 ? parent.width * (shell.mediaPosition / shell.mediaLength) : 0
                                                     height: parent.height; radius: parent.radius; color: shell.accent
-                                                    Behavior on width { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 500; easing.type: Easing.Linear } }
+                                                    Behavior on width { NumberAnimation { duration: Style.quickIslandAnimationDuration(500); easing.type: Easing.Linear } }
                                                 }
                                             }
                                         }

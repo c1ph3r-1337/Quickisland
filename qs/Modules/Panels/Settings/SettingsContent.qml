@@ -19,6 +19,7 @@ import qs.Modules.Panels.Settings.Tabs.LockScreen
 import qs.Modules.Panels.Settings.Tabs.Notifications
 import qs.Modules.Panels.Settings.Tabs.Osd
 import qs.Modules.Panels.Settings.Tabs.Plugins
+import qs.Modules.Panels.Settings.Tabs.QuickIsland
 import qs.Modules.Panels.Settings.Tabs.Region
 import qs.Modules.Panels.Settings.Tabs.SessionMenu
 import qs.Modules.Panels.Settings.Tabs.SystemMonitor
@@ -498,6 +499,10 @@ Item {
     id: desktopWidgetsTab
     DesktopWidgetsTab {}
   }
+  Component {
+    id: quickIslandTab
+    QuickIslandTab {}
+  }
 
   function updateTabsModel() {
     let newTabs = [
@@ -506,6 +511,12 @@ Item {
             "label": "common.general",
             "icon": "settings-general",
             "source": generalTab
+          },
+          {
+            "id": SettingsPanel.Tab.QuickIsland,
+            "label": "panels.quickisland.title",
+            "icon": "quickisland",
+            "source": quickIslandTab
           },
           {
             "id": SettingsPanel.Tab.UserInterface,

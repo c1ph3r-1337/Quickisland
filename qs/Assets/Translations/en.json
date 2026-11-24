@@ -733,6 +733,9 @@
     }
   },
   "panels": {
+    "quickisland": {
+      "title": "QuickIsland"
+    },
     "about": {
       "become-supporter": "Become a supporter",
       "changelog": "View changelog",

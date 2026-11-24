@@ -150,7 +150,7 @@ Popup {
               Layout.fillWidth: true
               text: root.defaultCommand
               color: QuickIslandPalette.mOnSurfaceVariant
-              font.family: "SF Pro Rounded"
+              font.family: Settings.data.ui.fontDefault
               font.pointSize: Style.fontSizeS
               wrapMode: Text.Wrap
             }

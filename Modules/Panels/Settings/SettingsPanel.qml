@@ -91,7 +91,8 @@ SmartPanel {
     SessionMenu,
     System,
     UserInterface,
-    Wallpaper
+    Wallpaper,
+    QuickIsland
   }
 
   property int requestedTab: SettingsPanel.Tab.General

@@ -26,7 +26,7 @@ Singleton {
   - Default cache directory: ~/.cache/quickisland
   */
   readonly property alias data: adapter  // Used to access via Settings.data.xxx.yyy
-  readonly property int settingsVersion: 59
+  readonly property int settingsVersion: 60
   property bool isDebug: Quickshell.env("NOCTALIA_DEBUG") === "1"
   readonly property string shellName: "quickisland"
   readonly property string configDir: ensureTrailingSlash(Quickshell.env("NOCTALIA_CONFIG_DIR") || (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/" + shellName + "/")
@@ -86,7 +86,6 @@ Singleton {
     adapter.general.avatarImage = defaultAvatar;
     adapter.wallpaper.directory = defaultWallpapersDirectory;
     adapter.ui.fontDefault = Qt.application.font.family;
-    adapter.ui.fontFixed = "SF Pro Rounded";
 
     // Set the adapter to the settingsFileView to trigger the real settings load
     settingsFileView.adapter = adapter;
@@ -546,12 +545,59 @@ Singleton {
 
     // island
     property JsonObject islandConfig: JsonObject {
-      property bool notchMode: false
-      property real notchFlare: 16
-      property real barHeight: 34
-      property real collapsedWidth: 150
-      property real expandedHeight: 300
-      property real minExpandedWidth: 300
+      property bool notchMode: true
+      property real notchFlare: 10
+      property real barHeight: 30
+      property real collapsedWidth: 85
+      property real expandedHeight: 140
+      property real minExpandedWidth: 450
+    }
+
+    // QuickIsland controls not represented by the shared shell settings.
+    property JsonObject quickisland: JsonObject {
+      property bool animationsEnabled: true
+      property real animationSpeed: 1.0
+      property bool mediaVisualizerEnabled: true
+      property int workspaceIndicatorDuration: 350
+      property int gameModeWorkspaceIndicatorDuration: 500
+      property bool gameModeBarEnabled: true
+      property int gameModeBarHeight: 30
+      property string settingsKeybind: "Super+I"
+      property string launcherKeybind: "Super+A"
+      property string gameModeKeybind: "Super+G"
+      property string sessionMenuKeybind: "Ctrl+Alt+Delete"
+      property JsonObject keybinds: JsonObject {
+        property string airdrop: "Super+D"
+        property string controlCenter: "Super+N"
+        property string clipboard: "Super+V"
+        property string emoji: "Super+period"
+        property string keyboardShortcuts: "Super+slash"
+        property string lockScreen: "Super+L"
+        property string fullscreen: "Super+F"
+        property string screenTools: "Super+P"
+        property string monitorSettings: "Super+M"
+        property string wallpaper: "Super+Shift+W"
+        property string themePicker: "Super+Shift+T"
+        property string virtualOverview: "Super+Ctrl+Space"
+        property string overviewAlternate: "Super+grave"
+        property string workspaceOverview: "Super+Tab"
+        property string windowFocusLeft: "Super+Left"
+        property string windowFocusRight: "Super+Right"
+        property string moveWindowLeft: "Super+Shift+Left"
+        property string moveWindowRight: "Super+Shift+Right"
+      }
+      property JsonObject windows: JsonObject {
+        property int gapsIn: 5
+        property int gapsOut: 10
+        property int borderSize: 0
+        property int rounding: 18
+        property real activeOpacity: 1.0
+        property real inactiveOpacity: 1.0
+        property real fullscreenOpacity: 1.0
+        property bool shadowEnabled: false
+        property bool blurEnabled: false
+        property bool animationsEnabled: true
+      }
     }
 
     // system monitor

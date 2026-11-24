@@ -1,4 +1,5 @@
 import QtQuick
+import qs.Commons
 import qs.Services.Power
 import QtQuick.Effects
 
@@ -132,7 +133,7 @@ Item {
                 font.pixelSize: 29
                 font.weight: Font.Bold
                 font.letterSpacing: 0.5
-                font.family: "SF Pro Rounded"
+                font.family: Settings.data.ui.fontDefault
             }
 
             Row {

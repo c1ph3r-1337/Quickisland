@@ -231,7 +231,7 @@ Item {
                                                                                                                                                                                                                                                                                                                       || event.key === Qt.Key_Escape || event.key
                                                                                                                                                                                                                                                                                                                       === Qt.Key_Space);
 
-                          const hasModifier = (event.modifiers & Qt.ControlModifier) || (event.modifiers & Qt.AltModifier);
+                          const hasModifier = (event.modifiers & Qt.MetaModifier) || (event.modifiers & Qt.ControlModifier) || (event.modifiers & Qt.AltModifier);
 
                           if (root.requireModifierForNormalKeys && !hasModifier && !isSpecialKey) {
                             hasConflict = true;

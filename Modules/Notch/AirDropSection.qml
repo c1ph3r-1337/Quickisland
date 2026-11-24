@@ -1,4 +1,5 @@
 import QtQuick
+import qs.Commons
 import qs.Services.Power
 import QtQuick.Controls
 import QtQuick.Effects
@@ -302,7 +303,7 @@ Item {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             color: airDropActive ? appleBlue : Qt.rgba(1, 1, 1, 0.12)
-            Behavior on color { ColorAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 200 } }
+            Behavior on color { ColorAnimation { duration: Style.quickIslandAnimationDuration(200) } }
 
             Text {
                 anchors.centerIn: parent
@@ -368,7 +369,7 @@ Item {
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: "󰀝"
-                    font.family: "SF Pro Rounded"
+                    font.family: Settings.data.ui.fontDefault
                     font.pixelSize: 22
                     color: appleBlue
                 }
@@ -403,7 +404,7 @@ Item {
                     Text {
                         anchors.centerIn: parent
                         text: "󰄡"
-                        font.family: "SF Pro Rounded"
+                        font.family: Settings.data.ui.fontDefault
                         font.pixelSize: 20
                         color: textMutedColor
                     }
@@ -470,10 +471,10 @@ Item {
                         border.width: 1.5
                         opacity: 0.4
                         NumberAnimation on scale {
-                            from: 0.4; to: 1.1; duration: PowerProfileService.quickislandGameMode ? 0 : 1800; loops: Animation.Infinite; running: !PowerProfileService.quickislandGameMode; easing.type: Easing.OutQuad
+                            from: 0.4; to: 1.1; duration: Style.quickIslandAnimationDuration(1800); loops: Animation.Infinite; running: Style.quickIslandAnimationsEnabled; easing.type: Easing.OutQuad
                         }
                         NumberAnimation on opacity {
-                            from: 0.7; to: 0.0; duration: PowerProfileService.quickislandGameMode ? 0 : 1800; loops: Animation.Infinite; running: !PowerProfileService.quickislandGameMode; easing.type: Easing.OutQuad
+                            from: 0.7; to: 0.0; duration: Style.quickIslandAnimationDuration(1800); loops: Animation.Infinite; running: Style.quickIslandAnimationsEnabled; easing.type: Easing.OutQuad
                         }
                     }
 
@@ -486,10 +487,10 @@ Item {
                         border.width: 1.5
                         opacity: 0.4
                         NumberAnimation on scale {
-                            from: 0.4; to: 1.1; duration: PowerProfileService.quickislandGameMode ? 0 : 1800; loops: Animation.Infinite; running: !PowerProfileService.quickislandGameMode; easing.type: Easing.OutQuad
+                            from: 0.4; to: 1.1; duration: Style.quickIslandAnimationDuration(1800); loops: Animation.Infinite; running: Style.quickIslandAnimationsEnabled; easing.type: Easing.OutQuad
                         }
                         NumberAnimation on opacity {
-                            from: 0.7; to: 0.0; duration: PowerProfileService.quickislandGameMode ? 0 : 1800; loops: Animation.Infinite; running: !PowerProfileService.quickislandGameMode; easing.type: Easing.OutQuad
+                            from: 0.7; to: 0.0; duration: Style.quickIslandAnimationDuration(1800); loops: Animation.Infinite; running: Style.quickIslandAnimationsEnabled; easing.type: Easing.OutQuad
                         }
                     }
 
@@ -503,7 +504,7 @@ Item {
                         Text {
                             anchors.centerIn: parent
                             text: "󰄡"
-                            font.family: "SF Pro Rounded"
+                            font.family: Settings.data.ui.fontDefault
                             font.pixelSize: 14
                             color: "#FFFFFF"
                         }
@@ -575,7 +576,7 @@ Item {
 
                 // Apple-style spring scale on selection / drag-over
                 scale: isTargetActive ? 1.20 : (isDeviceDragOver ? 1.18 : (devMouseArea.containsMouse ? 1.05 : 1.0))
-                Behavior on scale { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 220; easing.type: Easing.OutBack } }
+                Behavior on scale { NumberAnimation { duration: Style.quickIslandAnimationDuration(220); easing.type: Easing.OutBack } }
 
                 // Individual Device DropArea
                 DropArea {
@@ -625,8 +626,8 @@ Item {
                             border.width: deviceDelegate.isDeviceDragOver ? 2.0 : 1.5
                             opacity: deviceDelegate.isTargetActive ? 0.9 : (deviceDelegate.isDeviceDragOver ? 0.75 : 0.0)
                             scale: deviceDelegate.isTargetActive ? 1.2 : (deviceDelegate.isDeviceDragOver ? 1.14 : 0.95)
-                            Behavior on opacity { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 180 } }
-                            Behavior on scale { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 180; easing.type: Easing.OutCubic } }
+                            Behavior on opacity { NumberAnimation { duration: Style.quickIslandAnimationDuration(180) } }
+                            Behavior on scale { NumberAnimation { duration: Style.quickIslandAnimationDuration(180); easing.type: Easing.OutCubic } }
                         }
 
                         // Main Circular Avatar with Person Silhouette
@@ -643,13 +644,13 @@ Item {
                                           ? appleBlue
                                           : (devMouseArea.containsMouse ? Qt.rgba(1, 1, 1, 0.35) : Qt.rgba(1, 1, 1, 0.15))
                             border.width: (deviceDelegate.isDeviceDragOver || deviceDelegate.isTargetActive) ? 2.5 : 1.0
-                            Behavior on color { ColorAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 150 } }
+                            Behavior on color { ColorAnimation { duration: Style.quickIslandAnimationDuration(150) } }
 
                             // Person Silhouette in Center
                             Text {
                                 anchors.centerIn: parent
                                 text: ""
-                                font.family: "SF Pro Rounded"
+                                font.family: Settings.data.ui.fontDefault
                                 font.pixelSize: 22
                                 color: (deviceDelegate.isDeviceDragOver || deviceDelegate.isTargetActive || devMouseArea.containsMouse) ? "#FFFFFF" : textColor
                             }
@@ -669,7 +670,7 @@ Item {
                             Text {
                                 anchors.centerIn: parent
                                 text: modelData.isPhone ? "" : (modelData.isMac ? "󰌢" : (modelData.isPad ? "" : "󰄡"))
-                                font.family: "SF Pro Rounded"
+                                font.family: Settings.data.ui.fontDefault
                                 font.pixelSize: 10
                                 color: (deviceDelegate.isDeviceDragOver || deviceDelegate.isTargetActive) ? "#FFFFFF" : textColor
                             }

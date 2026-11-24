@@ -5,6 +5,8 @@ import QtQuick
 QtObject {
   function getKeybindString(event) {
     let keyStr = "";
+    if (event.modifiers & Qt.MetaModifier)
+      keyStr += "Meta+";
     if (event.modifiers & Qt.ControlModifier)
       keyStr += "Ctrl+";
     if (event.modifiers & Qt.AltModifier)

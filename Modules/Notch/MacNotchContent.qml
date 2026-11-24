@@ -1,4 +1,5 @@
 import QtQuick
+import qs.Commons
 import QtQuick.Effects
 import QtQuick.Shapes
 import "../../Commons"
@@ -97,7 +98,7 @@ Item {
             height: 18
             opacity: sr.mediaPlaying ? 1.0 : ((sr.mediaTitle && sr.mediaTitle !== "") ? 0.35 : 0.0)
             visible: opacity > 0
-            Behavior on opacity { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 250; easing.type: Easing.InOutQuad } }
+            Behavior on opacity { NumberAnimation { duration: Style.quickIslandAnimationDuration(250); easing.type: Easing.InOutQuad } }
 
             Row {
                 anchors.centerIn: parent
@@ -117,12 +118,12 @@ Item {
                             color: sr.accent || textColor
                             anchors.bottom: parent.bottom
                             anchors.horizontalCenter: parent.horizontalCenter
-                            height: sr.mediaPlaying ? 5 : 2
+                            height: sr.mediaPlaying && Settings.data.quickisland.mediaVisualizerEnabled ? 5 : 2
                             SequentialAnimation on height {
                                 loops: Animation.Infinite
-                                running: sr.mediaPlaying && !PowerProfileService.quickislandGameMode
-                                NumberAnimation { to: modelData.h1; duration: modelData.d1; easing.type: Easing.InOutSine }
-                                NumberAnimation { to: modelData.h2; duration: modelData.d2; easing.type: Easing.InOutSine }
+                                running: sr.mediaPlaying && Settings.data.quickisland.mediaVisualizerEnabled && Style.quickIslandAnimationsEnabled
+                                NumberAnimation { to: modelData.h1; duration: Style.quickIslandAnimationDuration(modelData.d1); easing.type: Easing.InOutSine }
+                                NumberAnimation { to: modelData.h2; duration: Style.quickIslandAnimationDuration(modelData.d2); easing.type: Easing.InOutSine }
                             }
                         }
                     }
@@ -154,7 +155,7 @@ Item {
         anchors.bottom: parent.bottom
         visible: notchContent.currentTab === 0
         opacity: notchContent.currentTab === 0 ? 1 : 0
-        Behavior on opacity { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 200 } }
+        Behavior on opacity { NumberAnimation { duration: Style.quickIslandAnimationDuration(200) } }
 
         Item {
             id: mediaArea
@@ -287,7 +288,7 @@ Item {
                     font.pixelSize: 28
                     font.weight: Font.Bold
                     font.letterSpacing: 0.5
-                    font.family: "SF Pro Rounded"
+                    font.family: Settings.data.ui.fontDefault
                 }
 
                 Row {
@@ -346,7 +347,7 @@ Item {
         shellRoot: sr
         visible: notchContent.currentTab === 1
         opacity: notchContent.currentTab === 1 ? 1 : 0
-        Behavior on opacity { NumberAnimation { duration: PowerProfileService.quickislandGameMode ? 0 : 200 } }
+        Behavior on opacity { NumberAnimation { duration: Style.quickIslandAnimationDuration(200) } }
         onBackRequested: notchContent.currentTab = 0
     }
 }
